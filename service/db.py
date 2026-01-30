@@ -1,6 +1,28 @@
 import mysql.connector
 from mysql.connector import errorcode
+import json
+import os
 import io
+
+# Helper to load config
+
+
+def load_config():
+    # Construct full path to ensure it works regardless
+    # of where you run the script from
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(base_dir, 'config.json')
+
+    try:
+        with open(config_path, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"WARNING: Configuration file not found at {config_path}")
+        return None
+
+
+# Load the config
+config_data = load_config()
 
 
 class DatabaseManager:
@@ -26,6 +48,28 @@ class DatabaseManager:
         try:
             cursor.execute(query, (user_uuid, consent_agreed))
             conn.commit()
+        finally:
+            cursor.close()
+            conn.close()
+
+    def user_exists(self, user_uuid):
+        """
+        Checks if a user with the given UUID exists in the database.
+        Returns True if they exist, False otherwise.
+        """
+        conn = self.get_connection()
+        if not conn:
+            return False
+
+        cursor = conn.cursor()
+        query = "SELECT 1 FROM users WHERE uuid = %s LIMIT 1"
+        try:
+            cursor.execute(query, (user_uuid,))
+            # If fetchone() returns a result, the user exists
+            return cursor.fetchone() is not None
+        except mysql.connector.Error as err:
+            print(f"Error checking user existence: {err}")
+            return False
         finally:
             cursor.close()
             conn.close()
@@ -62,13 +106,8 @@ class DatabaseManager:
             conn.close()
 
 
-# Database Configuration
-db_config = {
-    'user': 'root',
-    'password': 'password',
-    'host': '127.0.0.1',
-    'database': 'village_db',
-    'raise_on_warnings': True
-}
-
-db = DatabaseManager(db_config)
+if config_data:
+    db = DatabaseManager(config_data['db'])
+else:
+    # Fallback or exit if config is missing
+    db = DatabaseManager({})

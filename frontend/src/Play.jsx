@@ -1,24 +1,52 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function Play() {
+  const navigate = useNavigate();
   const [hasConsented, setHasConsented] = useState(false);
   const [is18Plus, setIs18Plus] = useState(false);
+  const [joinableGames, setJoinableGames] = useState([]);
 
-  // Dummy data for joinable games
-  const [joinableGames, setJoinableGames] = useState([
-    { id: 'g_101', name: 'Alpha Simulation', players: '3/10' },
-    { id: 'g_102', name: 'Beta Cluster', players: '1/10' },
-    { id: 'g_103', name: 'Village Test 4', players: '8/10' },
-    { id: 'g_104', name: 'Economy V2', players: '2/10' },
-    { id: 'g_105', name: 'Social Impact', players: '5/10' },
-  ]);
+  // --- NEW: Fetch Active Games ---
+  useEffect(() => {
+    // Only fetch games if the user has consented and entered the lobby
+    if (hasConsented) {
+      const fetchGames = async () => {
+        try {
+          const response = await fetch('/api/activeGames');
+          if (response.ok) {
+            const data = await response.json();
+            // Expecting data format: [{ id: 'g_1', name: 'Village A', players: '3/10' }, ...]
+            setJoinableGames(data);
+          }
+        } catch (error) {
+          console.error("Error fetching active games:", error);
+        }
+      };
 
-  const handleConsent = (e) => {
+      // Fetch immediately
+      fetchGames();
+
+      // Optional: Poll every 3 seconds to keep list fresh
+      const interval = setInterval(fetchGames, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [hasConsented]);
+
+  const handleConsent = async (e) => {
     e.preventDefault();
     if (is18Plus) {
-      // Simulate setting a cookie
-      document.cookie = "user_session=" + Math.random().toString(36).substring(2);
-      setHasConsented(true);
+      try {
+        const response = await fetch('/api/consent', { method: 'POST' });
+
+        if (response.ok) {
+          setHasConsented(true); // This triggers the useEffect to fetch active games
+        } else {
+          console.error("Server rejected consent request");
+        }
+      } catch (error) {
+        console.error("Error sending consent:", error);
+      }
     } else {
       alert("You must be 18 or older to participate.");
     }
@@ -26,12 +54,9 @@ function Play() {
 
   const startNewGame = async () => {
     try {
-      // OLD: fetch('http://localhost:5000/api/newGame'...)
-      // NEW: Relative path thanks to proxy
       const response = await fetch('/api/newGame', { method: 'POST' });
       if (response.ok) {
         const data = await response.json();
-        // Navigate to the specific game instance
         navigate(`/game/${data.gameId}`);
       }
     } catch (error) {
@@ -41,18 +66,21 @@ function Play() {
 
   const joinGame = async (gameId) => {
     try {
-      console.log(`Joining game ${gameId}...`);
-      const response = await fetch('/api/joinGame', { method: 'POST' });
+      // Updated to send the gameId in the body
+      const response = await fetch('/api/joinGame', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameId })
+      });
+
       if (response.ok) {
         const data = await response.json();
-        // Navigate to the specific game instance
         navigate(`/game/${data.gameId}`);
       }
     } catch (error) {
-      console.error("Error starting game:", error);
+      console.error("Error joining game:", error);
     }
   }
-
 
   // --- View 1: Consent Form ---
   if (!hasConsented) {
@@ -107,25 +135,29 @@ function Play() {
         <p style={{ color: '#666', fontSize: '0.9rem' }}>Select a game to join:</p>
 
         <div style={{ height: '400px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '4px' }}>
-          {joinableGames.map((game) => (
-            <div
-              key={game.id}
-              onClick={() => joinGame(game.id)}
-              style={{
-                padding: '15px',
-                borderBottom: '1px solid #eee',
-                cursor: 'pointer',
-                display: 'flex',
-                justifyContent: 'space-between',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e8e8e8'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              <strong>{game.name}</strong>
-              <span style={{ fontSize: '0.85rem', color: '#888' }}>{game.players}</span>
-            </div>
-          ))}
+          {joinableGames.length === 0 ? (
+            <p style={{ color: '#999', textAlign: 'center', marginTop: '50px' }}>No active games found.</p>
+          ) : (
+            joinableGames.map((game) => (
+              <div
+                key={game.id}
+                onClick={() => joinGame(game.id)}
+                style={{
+                  padding: '15px',
+                  borderBottom: '1px solid #eee',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e8e8e8'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <strong>{game.name || `Game ${game.id}`}</strong>
+                <span style={{ fontSize: '0.85rem', color: '#888' }}>{game.players}</span>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
