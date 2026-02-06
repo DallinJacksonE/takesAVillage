@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const VillageMap = ({ mapData, players }) => {
+const VillageMap = ({ mapData, players, onAction }) => {
   const [selectedTile, setSelectedTile] = useState(null);
 
   // Constants for Hex Layout
@@ -96,8 +96,22 @@ const VillageMap = ({ mapData, players }) => {
                 Player {selectedTile.owner_id.substring(0, 8)}...
               </div>
             ) : (
-              <div style={{ color: '#2e7d32', fontStyle: 'italic' }}>
-                Available for Development
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                <div style={{ color: '#2e7d32', fontStyle: 'italic', marginBottom: '5px' }}>
+                  Available for Development
+                </div>
+
+                {/* NEW BUILD BUTTON */}
+                <button
+                  className="btn"
+                  style={{ background: '#795548', color: 'white', fontSize: '0.8rem' }}
+                  onClick={() => {
+                    onAction('BUILD_DEV', { tile_id: selectedTile.id });
+                    setSelectedTile(null); // Close popup after clicking
+                  }}
+                >
+                  Build Dev (2 Wood)
+                </button>
               </div>
             )}
             <button

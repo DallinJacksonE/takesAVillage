@@ -52,6 +52,11 @@ const MessageBoard = ({ messages, playerId, players, myDevelopments, onSend, onU
     setTradeDetails('');
   };
 
+  const getPlayerName = (id) => {
+    const p = players.find((player) => player.id === id);
+    return p ? p.name : id.substring(0, 4); // Fallback to short ID if not found
+  };
+
   const renderMessage = (msg) => {
     const isMe = msg.from_id === playerId;
     const isEditing = editingMsgId === msg.id;
@@ -77,7 +82,8 @@ const MessageBoard = ({ messages, playerId, players, myDevelopments, onSend, onU
         borderBottom: borderStyle, background: '#fff', marginBottom: '5px'
       }}>
         <div style={{ fontWeight: 'bold', width: '100px', fontSize: '0.8rem' }}>
-          {isMe ? <span>To: {msg.to_id.substring(0, 4)}</span> : <span>From: {msg.from_id.substring(0, 4)}</span>}
+          {/* UPDATED: Uses getPlayerName instead of substring */}
+          {isMe ? <span>To: {getPlayerName(msg.to_id)}</span> : <span>From: {getPlayerName(msg.from_id)}</span>}
         </div>
 
         <div style={{ flex: 1, padding: '0 10px' }}>
@@ -96,7 +102,7 @@ const MessageBoard = ({ messages, playerId, players, myDevelopments, onSend, onU
           {msg.status === 'ACCEPTED' && <span style={{ color: 'green', marginLeft: '10px' }}>(Accepted)</span>}
         </div>
 
-        {!isMe && msg.status === 'PENDING' && !isEditing && (
+        {!isMe && msg.status === 'PENDING' && msg.type !== 'TEXT' && !isEditing && (
           <div style={{ display: 'flex', gap: '5px' }}>
             <button className="btn-sm success" onClick={() => onUpdateMessage(msg.id, 'ACCEPT')}>Accept</button>
             <button className="btn-sm warning" onClick={() => handleBarterStart(msg)}>Barter</button>

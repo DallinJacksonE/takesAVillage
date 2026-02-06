@@ -142,7 +142,7 @@ def on_request_update(data):
 def on_send_message(data):
     """Handles composing new messages (Text, Trade, Employment)."""
     game_id = data.get('gameId')
-    user_id = data.get('userId')
+    user_id = data.get('from_id')
 
     if game_id in active_games:
         game = active_games[game_id]
@@ -165,24 +165,21 @@ def on_update_message(data):
             emit('game_started', {}, room=game_id)
 
 
-@socketio.on('finish_phase')
-def on_finish_phase(data):
-    """Used in Trade phase to advance to Night."""
+@socketio.on('user_action')
+def on_user_action(data):
+    """Handles generic game actions like Building, takeing, finishing phase"""
     game_id = data.get('gameId')
+    user_id = data.get('userId')
+    action = data.get('action')
+    payload = data.get('payload')
+
     if game_id in active_games:
         game = active_games[game_id]
-        game.next_phase()
-        emit('game_started', {}, room=game_id)
 
-
-@socketio.on('end_day')
-def on_end_day(data):
-    """Used in Night phase to advance to next Day/Work."""
-    game_id = data.get('gameId')
-    if game_id in active_games:
-        game = active_games[game_id]
-        game.next_phase()
-        emit('game_started', {}, room=game_id)
+        # Call the game logic
+        if game.handle_user_action(user_id, action, payload):
+            # If successful, broadcast update to everyone
+            emit('game_started', {}, room=game_id)
 
 
 if __name__ == '__main__':

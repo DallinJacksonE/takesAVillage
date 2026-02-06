@@ -75,11 +75,14 @@ function Gameplay() {
 
   const handleSendMessage = (payload) => {
     // Payload comes from MessageBoard: { to_id, type, ...details }
-    socket.emit('send_message', {
+    const message = {
+      from_id: userId,
       gameId,
-      userId,
       ...payload
-    });
+    }
+    console.log(`Sending message: ${message}`)
+    console.log(message)
+    socket.emit('send_message', message);
   };
 
   const handleUpdateMessage = (msgId, action, values = null) => {
@@ -89,6 +92,15 @@ function Gameplay() {
       msgId,
       action, // 'ACCEPT', 'DENY', 'BARTER'
       values  // The new offer details if bartering
+    });
+  };
+
+  const handleUserAction = (action, payload) => {
+    socket.emit('user_action', {
+      gameId,
+      userId,
+      action, // e.g., 'BUILD_DEV'
+      payload // e.g., { tile_id: 't_0_1' }
     });
   };
 
@@ -155,7 +167,8 @@ function Gameplay() {
       {/* --- ROW 3: PHASE CONTROLS --- */}
       {phase === 'TRADE' && (
         <div className="card" style={{ background: '#e8f5e9', textAlign: 'center', margin: '20px 0' }}>
-          <button className="btn" onClick={() => socket.emit('finish_phase', { gameId })}>
+          {/* CHANGED: Use handleUserAction with 'FINISH_PHASE' */}
+          <button className="btn" onClick={() => handleUserAction('FINISH_PHASE')}>
             Finish Trading
           </button>
         </div>
@@ -164,19 +177,19 @@ function Gameplay() {
       {phase === 'NIGHT' && (
         <div className="card" style={{ background: '#333', color: 'white', textAlign: 'center', margin: '20px 0' }}>
           <p>Eating 1 Food, Burning 1 Wood...</p>
-          <button className="btn" onClick={() => socket.emit('end_day', { gameId })}>
+          {/* CHANGED: Use handleUserAction with 'FINISH_PHASE' (End Day is just finishing the night phase) */}
+          <button className="btn" onClick={() => handleUserAction('FINISH_PHASE')}>
             End Day
           </button>
         </div>
       )}
-
       {/* --- ROW 4: MAP --- */}
       {gameState.map && (
         <VillageMap
           mapData={gameState.map}
-          players={gameState.players} // Note: VillageMap might need full player dict for names/owners
-        />
-      )}
+          players={gameState.players}
+          onAction={handleUserAction}  // <--- Pass the prop here
+        />)}
     </div>
   );
 }

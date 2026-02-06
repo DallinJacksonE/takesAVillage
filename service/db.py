@@ -43,11 +43,19 @@ class DatabaseManager:
 
     def create_user(self, user_uuid, consent_agreed):
         conn = self.get_connection()
+        if not conn:
+            print("ERROR: Failed to connect to DB. User not created.")
+            return False  # Return failure
+
         cursor = conn.cursor()
         query = "INSERT INTO users (uuid, consent_agreed, created_at) VALUES (%s, %s, NOW())"
         try:
             cursor.execute(query, (user_uuid, consent_agreed))
             conn.commit()
+            return True
+        except mysql.connector.Error as err:
+            print(f"Error creating user: {err}")
+            return False
         finally:
             cursor.close()
             conn.close()

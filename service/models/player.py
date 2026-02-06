@@ -6,10 +6,13 @@ class Player:
         self.health = "healthy"  # healthy, sick, recovering
         self.sickness_chance = 0.05
         self.developments = []  # List of IDs owned by this player
+        self.messages = {}  # msgId : msg
 
         # Phase specific states
-        self.action_locked = False  # Has committed to a work action
-        self.current_fire_host = None  # ID of player sharing fire with me
+        self.hosting_fire = False
+        self.current_fire_host = None  # ID of player sharing fire with messages
+        self.available_work = self.developments
+        self.finished_phase = False
 
     def consume_daily(self):
         """Logic for nightly consumption and sickness calculation."""
@@ -45,7 +48,13 @@ class Player:
 
         # Reset daily flags
         self.current_fire_host = None
+        self.hosting_fire = False
         self.action_locked = False
+        self.available_work = self.developments
+
+    def reset_phase(self):
+        self.available_work = self.developments
+        self.finished_phase = False
 
     def to_dict(self):
         return {
@@ -54,5 +63,7 @@ class Player:
             "health": self.health,
             "sickness_chance": self.sickness_chance,
             "developments": self.developments,
-            "action_locked": self.action_locked
+            "action_locked": self.action_locked,
+            "messages": [m.to_dict() for m in self.messages.values()],
+            "available_work": self.available_work
         }
