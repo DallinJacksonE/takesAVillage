@@ -8,12 +8,27 @@ class MessageFactory:
     def __init__(self, players):
         self.players = players
 
-    def create_message(self, msg_data):
+    def process_message(self, user_id, data):
         """
-        Creates a message and adds it to BOTH the sender's and recipient's 
-        internal message lists.
+        Unified entry point.
+        If 'id' exists in data, it updates the existing message.
+        Otherwise, it creates a new one.
+        Returns: (status_code, message_object)
         """
-        new_message = self.serialize_message(msg_data)
+        msg_id = data.get('id') or data.get('msgId')
+
+        if msg_id and self.find_message(msg_id):
+            return self._update_message(user_id, msg_id, data)
+        else:
+            return self._create_message(data)
+
+    def _create_message(self, msg_data):
+        """Creates a new message and adds it to players."""
+        try:
+            new_message = self.serialize_message(msg_data)
+        except ValueError as e:
+            print(f"Error creating message: {e}")
+            return "ERROR", None
 
         # Add to Sender
         sender = self.players.get(new_message.from_id)
@@ -24,9 +39,67 @@ class MessageFactory:
         recipient = self.players.get(new_message.to_id)
         if recipient:
             recipient.messages[new_message.id] = new_message
-            return True, new_message
+            return "CREATED", new_message
 
-        return False, None
+        return "ERROR", None
+
+    def _update_message(self, user_id, msg_id, data):
+        """Updates an existing message based on action (ACCEPT, DENY, BARTER)."""
+        original_msg = self.find_message(msg_id)
+        if not original_msg:
+            return "NOT_FOUND", None
+
+        # 1. Work on a copy
+        msg_copy = copy.deepcopy(original_msg)
+        actor = self.players.get(user_id)
+        action = data.get('action')
+
+        # 2. Apply Changes
+        if action == 'BARTER':
+            if msg_copy.status not in ['PENDING', 'BARTERING']:
+                return "INVALID_STATE", msg_copy
+
+            # Update fields based on provided data
+            if msg_copy.type == 'EMPLOYMENT':
+                msg_copy.wage_offer = int(
+                    data.get('wage_offer', msg_copy.wage_offer))
+                msg_copy.wage_type = data.get('wage_type', msg_copy.wage_type)
+            elif msg_copy.type == 'TRADE':
+                msg_copy.offer_items = data.get(
+                    'offer_items', msg_copy.offer_items)
+                msg_copy.request_items = data.get(
+                    'request_items', msg_copy.request_items)
+
+            msg_copy.status = 'BARTERING'
+
+        elif action == 'DENY':
+            msg_copy.status = 'DENIED'
+
+        elif action == 'ACCEPT':
+            msg_copy.status = 'ACCEPTED'
+
+        elif action == 'EXECUTE':
+            # Internal system action usually, but can be triggered here
+            pass
+
+        # 3. Check Legality
+        if not msg_copy.is_legal(actor):
+            return "ILLEGAL", original_msg
+
+        # 4. Save Changes (Replace old message)
+        sender = self.players.get(msg_copy.from_id)
+        recipient = self.players.get(msg_copy.to_id)
+
+        if sender:
+            sender.messages[msg_id] = msg_copy
+        if recipient:
+            recipient.messages[msg_id] = msg_copy
+
+        # 5. Return Status for Side Effects
+        if action == 'ACCEPT' and msg_copy.type == 'EMPLOYMENT':
+            return "ACCEPTED_EMPLOYMENT", msg_copy
+
+        return "UPDATED", msg_copy
 
     def serialize_message(self, msg_data):
         msg_type = msg_data.get('type')
@@ -42,111 +115,10 @@ class MessageFactory:
         return message_class(**constructor_inputs)
 
     def find_message(self, msg_id):
-        """
-        Helper to find a message object by ID. 
-        Scans players efficiently.
-        """
-        # We can iterate players, or if we know the context (user_id) we could look there.
-        # Since msg_id is unique, we just need to find the first instance.
         for player in self.players.values():
             if msg_id in player.messages:
                 return player.messages[msg_id]
         return None
-
-    def update_msg(self, msg_id, user_id, action, values=None, game_phase=None):
-        """
-        1. Finds original message.
-        2. Creates a COPY.
-        3. Modifies data on the copy.
-        4. Checks is_legal().
-        5. If passed, saves copy back to players and handles side effects.
-        """
-        original_msg = self.find_message(msg_id)
-        if not original_msg:
-            return False
-
-        # 1. Make a Copy
-        msg_copy = copy.deepcopy(original_msg)
-        actor = self.players.get(user_id)
-
-        # 2. Modify Data (The "Update" Logic)
-        if action == 'BARTER':
-            if msg_copy.status not in ['PENDING', 'BARTERING']:
-                return False
-
-            # Apply values manually since message classes don't have update()
-            if msg_copy.type == 'EMPLOYMENT':
-                if 'wage_offer' in values:
-                    msg_copy.wage_offer = int(values['wage_offer'])
-                if 'wage_type' in values:
-                    msg_copy.wage_type = values['wage_type']
-            elif msg_copy.type == 'TRADE':
-                if 'offer_items' in values:
-                    msg_copy.offer_items = values['offer_items']
-                if 'request_items' in values:
-                    msg_copy.request_items = values['request_items']
-
-            msg_copy.status = 'BARTERING'
-
-        elif action == 'DENY':
-            msg_copy.status = 'DENIED'
-
-        elif action == 'ACCEPT':
-            msg_copy.status = 'ACCEPTED'
-
-        elif action == 'UPDATE_PAYLOAD':
-            if msg_copy.from_id != user_id:
-                return False
-            if hasattr(msg_copy, 'actual_payout'):
-                msg_copy.actual_payout = int(values.get('wage_offer', 0))
-                msg_copy.actual_payout_type = values.get('wage_type', 'food')
-            elif hasattr(msg_copy, 'actual_offer_items'):
-                msg_copy.actual_offer_items = values.get('offer_items', {})
-
-        # 3. Check Legality on the Copy
-        # We pass the actor (the person doing the update) to validate ownership/rules
-        if not msg_copy.is_legal(actor):
-            return False
-
-        # 4. Handle Side Effects (Logic moved from old update_msg)
-        if action == 'ACCEPT':
-            if game_phase == 'WORK' and msg_copy.type == 'EMPLOYMENT':
-                # Lock the employee
-                employee = self.players.get(msg_copy.to_id)
-                if employee:
-                    employee.action_locked = True
-
-            if game_phase == 'NIGHT' and msg_copy.type == 'FIRE':
-                beneficiary_id = msg_copy.to_id if msg_copy.action == 'INVITE' else msg_copy.from_id
-                provider_id = msg_copy.from_id if msg_copy.action == 'INVITE' else msg_copy.to_id
-                if beneficiary_id in self.players:
-                    self.players[beneficiary_id].current_fire_host = provider_id
-
-        elif action == 'EXECUTE':
-            if msg_copy.type == 'EMPLOYMENT' and msg_copy.status == 'ACCEPTED':
-                employer = self.players.get(msg_copy.from_id)
-                employee = self.players.get(msg_copy.to_id)
-                if employer and employee:
-                    amt = msg_copy.actual_payout
-                    res = msg_copy.actual_payout_type
-                    if employer.resources.get(res, 0) >= amt:
-                        employer.resources[res] -= amt
-                        employee.resources[res] += amt
-                        msg_copy.status = 'COMPLETED'
-                    else:
-                        return False  # Cannot afford
-
-        # 5. Commit: Save the Copy back to BOTH players involved
-        # This replaces the old object with the new state
-        sender = self.players.get(msg_copy.from_id)
-        recipient = self.players.get(msg_copy.to_id)
-
-        if sender:
-            sender.messages[msg_id] = msg_copy
-        if recipient:
-            recipient.messages[msg_id] = msg_copy
-
-        return True
 
     def getClassType(self, type):
         return {
@@ -156,7 +128,7 @@ class MessageFactory:
             'FIRE': FireOffer,
         }.get(type)
 
-# --- Message Classes (Unchanged but included for context) ---
+# --- Message Classes ---
 
 
 class Message:
@@ -180,7 +152,7 @@ class Message:
         }
 
     def is_legal(self, player):
-        return True  # Default true
+        return True
 
 
 class TextMessage(Message):
@@ -213,12 +185,10 @@ class EmploymentOffer(Message):
         return data
 
     def is_legal(self, player):
-        # Only check legality if the player updating is the Employer (sender)
-        # If the employee is accepting, they don't need to own the development
+        # Only sender needs to own the dev to update terms.
+        # Receiver accepting doesn't need ownership.
         if player.session_id == self.from_id:
             if str(self.dev_id) not in [str(d) for d in player.developments]:
-                # Note: Assuming player.developments is list of IDs.
-                # If it's list of objects, logic needs to match your Development class.
                 return False
         return True
 

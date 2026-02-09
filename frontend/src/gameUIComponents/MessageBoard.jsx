@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const MessageBoard = ({ messages, playerId, players, myDevelopments, onSend, onUpdateMessage }) => {
+const MessageBoard = ({ messages, playerId, players, myDevelopments, onSend }) => {
   const [editingMsgId, setEditingMsgId] = useState(null);
   const [barterValues, setBarterValues] = useState({});
 
@@ -8,12 +8,9 @@ const MessageBoard = ({ messages, playerId, players, myDevelopments, onSend, onU
   const [toId, setToId] = useState('');
   const [type, setType] = useState('TEXT');
   const [content, setContent] = useState('');
-  // Employment specific
   const [wageOffer, setWageOffer] = useState(1);
   const [wageType, setWageType] = useState('food');
   const [devId, setDevId] = useState('');
-  // Trade specific (Simplified as text for now, or map objects if you prefer)
-  const [tradeDetails, setTradeDetails] = useState('');
 
   const handleBarterStart = (msg) => {
     setEditingMsgId(msg.id);
@@ -25,7 +22,12 @@ const MessageBoard = ({ messages, playerId, players, myDevelopments, onSend, onU
   };
 
   const handleSendUpdate = (msg) => {
-    onUpdateMessage(msg.id, 'BARTER', barterValues);
+    // Send update via the single onSend channel
+    onSend({
+      id: msg.id,
+      action: 'BARTER',
+      ...barterValues
+    });
     setEditingMsgId(null);
   };
 
@@ -41,28 +43,36 @@ const MessageBoard = ({ messages, playerId, players, myDevelopments, onSend, onU
       payload.wage_type = wageType;
       payload.dev_id = devId;
     } else if (type === 'TRADE') {
-      // Parsing a simple text string for MVP: "4 food"
-      // In full version, use structured inputs like the barter modal
-      payload.offer_items = { [wageType]: wageOffer }; // Reusing state for simplicity
-      payload.request_items = {}; // Add request inputs if needed
+      payload.offer_items = { [wageType]: wageOffer };
+      payload.request_items = {};
     }
 
     onSend(payload);
     setContent('');
-    setTradeDetails('');
   };
 
   const getPlayerName = (id) => {
     const p = players.find((player) => player.id === id);
-    return p ? p.name : id.substring(0, 4); // Fallback to short ID if not found
+    return p ? p.name : id.substring(0, 4);
+  };
+
+  const handleAccept = (msg) => {
+    // We just send the ACCEPT action. 
+    // The backend detects this and triggers the WORK_DEV action automatically.
+    onSend({
+      id: msg.id,
+      action: 'ACCEPT'
+    });
+  };
+
+  const handleDeny = (msg) => {
+    onSend({ id: msg.id, action: 'DENY' });
   };
 
   const renderMessage = (msg) => {
     const isMe = msg.from_id === playerId;
     const isEditing = editingMsgId === msg.id;
-    console.log(msg)
 
-    // Check if system message
     if (msg.is_system) {
       return (
         <div key={msg.id} style={{ padding: '5px', fontSize: '0.8rem', color: '#666', textAlign: 'center', fontStyle: 'italic' }}>
@@ -82,7 +92,6 @@ const MessageBoard = ({ messages, playerId, players, myDevelopments, onSend, onU
         borderBottom: borderStyle, background: '#fff', marginBottom: '5px'
       }}>
         <div style={{ fontWeight: 'bold', width: '100px', fontSize: '0.8rem' }}>
-          {/* UPDATED: Uses getPlayerName instead of substring */}
           {isMe ? <span>To: {getPlayerName(msg.to_id)}</span> : <span>From: {getPlayerName(msg.from_id)}</span>}
         </div>
 
@@ -104,9 +113,9 @@ const MessageBoard = ({ messages, playerId, players, myDevelopments, onSend, onU
 
         {!isMe && msg.status === 'PENDING' && msg.type !== 'TEXT' && !isEditing && (
           <div style={{ display: 'flex', gap: '5px' }}>
-            <button className="btn-sm success" onClick={() => onUpdateMessage(msg.id, 'ACCEPT')}>Accept</button>
+            <button className="btn-sm success" onClick={() => handleAccept(msg)}>Accept</button>
             <button className="btn-sm warning" onClick={() => handleBarterStart(msg)}>Barter</button>
-            <button className="btn-sm danger" onClick={() => onUpdateMessage(msg.id, 'DENY')}>Deny</button>
+            <button className="btn-sm danger" onClick={() => handleDeny(msg)}>Deny</button>
           </div>
         )}
         {isEditing && (
@@ -124,7 +133,6 @@ const MessageBoard = ({ messages, playerId, players, myDevelopments, onSend, onU
         {messages && messages.length > 0 ? messages.map(renderMessage) : <p style={{ color: '#999', textAlign: 'center' }}>No messages.</p>}
       </div>
 
-      {/* --- COMPOSE SECTION --- */}
       <div style={{ borderTop: '2px solid #eee', paddingTop: '10px', marginTop: '10px' }}>
         <div style={{ display: 'flex', gap: '5px', marginBottom: '5px' }}>
           <select style={{ flex: 1, padding: '5px' }} value={toId} onChange={(e) => setToId(e.target.value)}>
@@ -150,9 +158,8 @@ const MessageBoard = ({ messages, playerId, players, myDevelopments, onSend, onU
               <select value={wageType} onChange={e => setWageType(e.target.value)}>
                 <option value="food">Food</option>
                 <option value="wood">Wood</option>
-                <option value="ferrous">Ferrous</option>
+                <option value="iron">Iron</option>
               </select>
-              {/* Select which development to hire for */}
               <select value={devId} onChange={e => setDevId(e.target.value)} style={{ flex: 1 }}>
                 <option value="">Select Site...</option>
                 {myDevelopments.map((d, i) => <option key={i} value={d.id || i}>{d.type} (Lvl {d.level})</option>)}
@@ -160,7 +167,6 @@ const MessageBoard = ({ messages, playerId, players, myDevelopments, onSend, onU
             </>
           )}
 
-          {/* Simple Trade UI for MVP */}
           {type === 'TRADE' && (
             <>
               <input type="number" style={{ width: '50px' }} value={wageOffer} onChange={e => setWageOffer(e.target.value)} />

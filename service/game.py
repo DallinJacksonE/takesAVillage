@@ -14,18 +14,11 @@ class Game:
         self.players = {}
         self.map_tiles = []
         self.name_gen = self.name_generator()
-
-        # Game State
         self.state = "WAITING"
         self.day = 1
         self.phase = "WORK"
-
-        # Stores Development Objects: { "dev_uuid": DevelopmentObj }
         self.developments = {}
-
-        # Pending production: { player_id: { "food": 5, "wood": 2 } }
         self.work_phase_resources = {}
-
         self.phase_duration = 180
         self.phase_end_time = 0
         self.active_conflicts = {}
@@ -50,13 +43,10 @@ class Game:
     def start_phase(self, phase_name):
         self.phase = phase_name
         self.phase_end_time = time.time() + self.phase_duration
-
-        # Reset Phase specific flags
         for p in self.players.values():
-            p.finished_phase = False  # Unlock players for new phase
+            p.finished_phase = False
             if phase_name == "NIGHT":
                 p.current_fire_host = None
-
         if phase_name == "TRADE":
             self.generate_payout_messages()
 
@@ -78,14 +68,10 @@ class Game:
             self.day += 1
             self.start_phase("WORK")
 
-    # --- User Action Handling ---
-
     def handle_user_action(self, user_id, action, payload):
         player = self.players.get(user_id)
         if not player:
             return False
-
-        # If player has already clicked "Finish Phase", block actions
         if player.finished_phase and action != 'FINISH_PHASE':
             return False
 
@@ -95,45 +81,31 @@ class Game:
             return self.action_work_development(player, payload)
         if action == 'FINISH_PHASE':
             return self.action_finish_phase(player)
-
         return False
 
     def action_work_development(self, player, payload):
-        """
-        Calculates production based on Dev Level and Type.
-        Stores it in a temporary buffer until phase resolution.
-        """
         dev_id = payload.get('dev_id')
-
-        # Ensure player owns or has rights to this dev
-        # (Simplified: currently only owners can work their devs in this logic,
-        # unless you want to add 'delegated' work logic here)
-        if dev_id not in player.available_work:
-            return False
 
         dev = self.developments.get(dev_id)
         if not dev:
             return False
 
-        # Determine Resource Type
+        owner_id = dev.owner
+
         res_map = {'Farm': 'food', 'Woods': 'wood', 'Mine': 'iron'}
         res_type = res_map.get(dev.type)
         if not res_type:
             return False
 
-        # Calculate Quantity (Base 2 * Level)
-        quantity = 2 * dev.level
+        quantity = 1 * dev.level
 
-        # Initialize buffer if empty
-        if player.session_id not in self.work_phase_resources:
-            self.work_phase_resources[player.session_id] = {}
+        if owner_id not in self.work_phase_resources:
+            self.work_phase_resources[owner_id] = {}
 
-        # Add to buffer
-        current_amount = self.work_phase_resources[player.session_id].get(
+        current_amount = self.work_phase_resources[owner_id].get(
             res_type, 0)
-        self.work_phase_resources[player.session_id][res_type] = current_amount + quantity
+        self.work_phase_resources[owner_id][res_type] = current_amount + quantity
 
-        # Lock player
         return self.action_finish_phase(player)
 
     def action_finish_phase(self, player):
@@ -143,135 +115,83 @@ class Game:
 
     def action_build_development(self, player, payload):
         tile_id = payload.get('tile_id')
-
-        # 1. Find the tile
         tile = next((t for t in self.map_tiles if t['id'] == tile_id), None)
-        if not tile:
-            return False
-
-        # 2. Validation
-        if tile['owner_id'] is not None:
+        if not tile or tile['owner_id'] is not None:
             return False
 
         cost_wood = 2
         if player.resources['wood'] < cost_wood:
             return False
 
-        # 3. Execution
         player.resources['wood'] -= cost_wood
-
-        # Update Map Tile
         tile['owner_id'] = player.session_id
-        # Starts at level 1 usually? (Changed from 2 in your original)
-        tile['level'] = 1
-
-        # Create Development Object
-        # Note: Tile type 'Farm' -> Dev type 'Farm'
+        tile['level'] = 2
         new_dev = Development(tile['id'], tile['type'], player.session_id)
-        new_dev.level = 1  # Explicitly set start level
-
-        # Store in Game Registry
+        new_dev.level = 2
         self.developments[new_dev.id] = new_dev
-
-        # Store ID in Player
         player.developments.append(new_dev.id)
 
-        return True
+        return self.action_finish_phase(player)
 
-    # --- Message Handling ---
+    # --- Unified Message Handling ---
 
-    def create_message(self, from_id, data):
-        success, msg = self.message_factory.create_message(data)
-        return success
+    def handle_message_action(self, user_id, data):
+        """
+        Handles creation AND updates of messages.
+        Checks for game side-effects (like auto-working upon accepting a job).
+        """
+        status, msg = self.message_factory.process_message(user_id, data)
 
-    def handle_message_update(self, user_id, msg_id, action, values=None):
-        updated = self.message_factory.update_msg(
-            msg_id=msg_id,
-            user_id=user_id,
-            action=action,
-            values=values,
-            game_phase=self.phase
-        )
-
-        if updated:
-            if action == 'ACCEPT' and self.phase == 'WORK':
+        if status == "ACCEPTED_EMPLOYMENT" and self.phase == "WORK":
+            # Auto-execute the work action for the employee
+            player = self.players.get(user_id)
+            if player:
+                self.action_work_development(player, {'dev_id': msg.dev_id})
                 self.check_all_players_locked()
-            return True
-        return False
 
-    # --- Phase Resolution Logic ---
+        return status in ["CREATED", "UPDATED", "ACCEPTED_EMPLOYMENT"]
+
+    # --- Phase Resolution ---
 
     def resolve_work_phase(self):
-        """
-        1. Grant generated resources to producers.
-        2. Process payments for Employment contracts.
-        """
-        # 1. Distribute Production
         for pid, resources in self.work_phase_resources.items():
             player = self.players.get(pid)
             if player:
                 for res_type, amount in resources.items():
                     player.resources[res_type] = player.resources.get(
                         res_type, 0) + amount
-
-        # Clear the production buffer
         self.work_phase_resources = {}
 
-        # 2. Process Wages (Employment)
-        # Scan all players for ACCEPTED employment messages
         for player in self.players.values():
             for msg in player.messages.values():
                 if msg.type == 'EMPLOYMENT' and msg.status == 'ACCEPTED':
-                    # Execute the transaction
-                    # Note: We rely on the MessageFactory execution logic
-                    # We spoof the 'EXECUTE' action to trigger the money transfer
-                    self.message_factory.update_msg(
-                        msg_id=msg.id,
-                        user_id=msg.from_id,  # Owner triggers it effectively
-                        action='EXECUTE'
-                    )
+                    # Execute wages using factory's update mechanism
+                    self.message_factory.process_message(
+                        msg.from_id, {'id': msg.id, 'action': 'EXECUTE'})
 
-        # Reset for next phase
         for p in self.players.values():
             p.reset_phase()
 
     def resolve_trade_phase(self):
-        """
-        Finalize any trades that are stuck or auto-expire offers.
-        """
-        # In this simplified version, we just clear player locks.
-        # Complex logic: Could auto-deny pending trades here.
         for p in self.players.values():
             p.reset_phase()
 
     def resolve_night_phase(self):
-        """
-        1. Players consume food/wood.
-        2. Developments degrade (maintenance).
-        """
-        # 1. Player Survival
         for p in self.players.values():
             p.consume_daily()
             p.reset_phase()
 
-        # 2. Building Maintenance
-        # Use a list to avoid runtime errors if we need to remove devs (optional)
         for dev in self.developments.values():
             dev.degrade()
-            # If you want to reflect level changes back to the map tiles:
             tile = next((t for t in self.map_tiles if t['id'] == dev.id), None)
             if tile:
                 tile['level'] = dev.level
 
-    # --- Helpers ---
-
     def check_all_players_locked(self):
-        # Optimization: Don't force next phase if it's barely started
         if all(p.finished_phase for p in self.players.values()):
             self.next_phase()
 
     def generate_payout_messages(self):
-        # Placeholder if specific notification messages are needed
         pass
 
     def name_generator(self, filename='names/goblinNames.txt'):
@@ -279,11 +199,9 @@ class Game:
             with open(filename, 'r') as f:
                 pool = [line.strip() for line in f if line.strip()]
         except FileNotFoundError:
-            print("FileNotFoundError")
             return
         random.shuffle(pool)
         yield from pool
-
         for i in count(1):
             yield f"Settler {i}"
 
@@ -292,14 +210,12 @@ class Game:
         if not me:
             return None
 
-        # Convert Dev Objects to dicts for the UI
         my_devs_full = []
         for dev_id in me.developments:
             dev_obj = self.developments.get(dev_id)
             if dev_obj:
-                my_devs_full.append(vars(dev_obj))  # Simple obj to dict
+                my_devs_full.append(vars(dev_obj))
 
-        # Update the 'me' dict with full development info
         my_data = me.to_dict()
         my_data['developments'] = my_devs_full
 
@@ -312,6 +228,7 @@ class Game:
         return {
             "game_id": self.game_id,
             "status": self.state,
+            "session_id": session_id,
             "day": self.day,
             "phase": self.phase,
             "time_remaining": int(self.phase_end_time - time.time()) if self.state == 'RUNNING' else 0,
