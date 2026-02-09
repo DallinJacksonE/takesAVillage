@@ -39,10 +39,9 @@ class Game:
 
     def start_game(self):
         if len(self.players) > 1:
-            self.generate_map()
             self.state = "RUNNING"
             self.message_factory = MessageFactory(self.players)
-            self.map_factory = MapFactory()
+            self.map_factory = MapFactory(len(self.players))
             self.map_tiles = self.map_factory.map_tiles
             self.start_phase("WORK")
             return True
@@ -263,8 +262,6 @@ class Game:
             tile = next((t for t in self.map_tiles if t['id'] == dev.id), None)
             if tile:
                 tile['level'] = dev.level
-
-        self.next_phase()
 
     # --- Helpers ---
 

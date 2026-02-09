@@ -2,8 +2,8 @@ import random
 
 
 class MapFactory:
-    def __init__(self):
-        self.generate_map()
+    def __init__(self, player_count):
+        self.generate_map(player_count)
 
     def generate_map(self, player_count):
         # 1. Determine Tile Counts

@@ -151,7 +151,7 @@ function Gameplay() {
 
       {/* --- ROW 1: STATUS CARDS (Resources, Developments, Sentiments) --- */}
       <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
-        <StatusCards state={me} />
+        <StatusCards state={gameState} onAction={handleUserAction} />
       </div>
 
       {/* --- ROW 2: MESSAGES & COMMS --- */}
@@ -187,9 +187,11 @@ function Gameplay() {
       {gameState.map && (
         <VillageMap
           mapData={gameState.map}
-          players={gameState.players}
-          onAction={handleUserAction}  // <--- Pass the prop here
-        />)}
+          // CHANGE: Use "player_list" instead of "players"
+          players={gameState.player_list}
+          onAction={handleUserAction}
+        />
+      )}
     </div>
   );
 }

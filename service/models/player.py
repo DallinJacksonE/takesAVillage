@@ -63,7 +63,7 @@ class Player:
             "health": self.health,
             "sickness_chance": self.sickness_chance,
             "developments": self.developments,
-            "action_locked": self.action_locked,
+            "finished_phase": self.finished_phase,
             "messages": [m.to_dict() for m in self.messages.values()],
             "available_work": self.available_work
         }

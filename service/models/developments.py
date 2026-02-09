@@ -2,7 +2,7 @@
 class Development:
     def __init__(self, dev_id, dev_type, dev_owner):
         self.id = dev_id
-        self.type = self.get_type(dev_type)
+        self.type = dev_type
         self.level = 2
         self.owner = dev_owner
         self.maintenence_days = 7
