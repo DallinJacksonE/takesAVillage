@@ -95,6 +95,7 @@ function Gameplay() {
       </div>
 
       <MessageBoard
+        phase={phase}
         messages={gameState.messages || []}
         playerId={userId}
         players={gameState.player_list || []}
