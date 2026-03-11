@@ -1,18 +1,19 @@
+import React from 'react';
+import { GameState, Player, MapTile } from '../types/game';
 
-const StatusCards = ({ state, players, map, onAction }) => {
-  // Safety check to prevent crashes if data isn't loaded yet
-  if (!state || !state.me) return null;
+interface Props {
+  state: GameState;
+  players: Player[];
+  map: MapTile[];
+  onAction: (action: string, payload: any) => void;
+}
 
-  const { me, phase } = state;
-  const safeMap = map || [];
-  const safePlayers = players || [];
+const StatusCards: React.FC<Props> = ({ state, players, map, onAction }) => {
+  const { me, phase, session_id } = state;
 
-  const getPlayerName = (id) => {
-    // Check if it's me
-    if (id === state.session_id) return me.name;
-
-    // Check other players
-    const p = safePlayers.find((player) => player.id === id);
+  const getPlayerName = (id: string) => {
+    if (id === session_id) return me.name;
+    const p = players.find((player) => player.id === id);
     return p ? p.name : id.substring(0, 4);
   };
 
@@ -61,18 +62,16 @@ const StatusCards = ({ state, players, map, onAction }) => {
         ) : (
           <ul style={{ paddingLeft: '20px' }}>
             {me.available_work.map((devId) => {
-              // 1. Find the tile safely using the passed 'map' prop
-              const tile = safeMap.find(t => t.id === devId);
+              const tile = map.find(t => t.id === devId);
 
               if (!tile) return null;
 
               return (
                 <li key={devId} style={{ marginBottom: '5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>
-                    <strong>{tile.type}</strong> <span style={{ fontSize: '0.8em', color: '#666' }}>({getPlayerName(tile.owner_id)})</span>
+                    <strong>{tile.type}</strong> <span style={{ fontSize: '0.8em', color: '#666' }}>({getPlayerName(tile.owner_id!)})</span>
                   </span>
 
-                  {/* Work Button: Only visible in WORK phase and if not already finished */}
                   {phase === 'WORK' && !me.finished_phase && (
                     <button
                       className="btn-sm success"

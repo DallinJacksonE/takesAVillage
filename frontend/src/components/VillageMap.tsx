@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
+import { MapTile, Player } from '../types/game';
 
-const VillageMap = ({ mapData, players, onAction }) => {
-  const [selectedTile, setSelectedTile] = useState(null);
+interface Props {
+  mapData: MapTile[];
+  players: Player[];
+  onAction: (action: string, payload: any) => void;
+}
+
+const VillageMap: React.FC<Props> = ({ mapData, players, onAction }) => {
+  const [selectedTile, setSelectedTile] = useState<MapTile | null>(null);
 
   // Constants for Hex Layout
   const HEX_SIZE = 50;
-  const HEX_WIDTH = Math.sqrt(3) * HEX_SIZE;
-  const HEX_HEIGHT = 2 * HEX_SIZE;
 
   // Convert Axial (q, r) to Pixel (x, y) for Iso layout
-  const hexToPixel = (q, r) => {
+  const hexToPixel = (q: number, r: number) => {
     const x = HEX_SIZE * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
     const y = HEX_SIZE * (3. / 2 * r);
     return { x, y };

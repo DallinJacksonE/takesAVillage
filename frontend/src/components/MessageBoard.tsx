@@ -1,12 +1,34 @@
 import React, { useState } from 'react';
+import { Message, Player, Development } from '../types/game';
 
-const MessageBoard = ({ phase, messages, playerId, players, myDevelopments, onSend }) => {
-  const [editingMsgId, setEditingMsgId] = useState(null);
-  const [barterValues, setBarterValues] = useState({});
+type MessageType = 'TEXT' | 'TRADE' | 'EMPLOYMENT';
+
+interface Props {
+  phase: 'WORK' | 'TRADE' | 'NIGHT';
+  messages: Message[];
+  playerId: string;
+  players: Player[];
+  myDevelopments: Development[];
+  onSend: (payload: Partial<Message> & { action?: string }) => void;
+}
+
+interface BarterState {
+  wage_offer?: number;
+  wage_type?: string;
+  dev_id?: string;
+  offer_amount?: number;
+  offer_type?: string;
+  gain_amount?: number;
+  gain_type?: string;
+}
+
+const MessageBoard: React.FC<Props> = ({ phase, messages, playerId, players, myDevelopments, onSend }) => {
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
+  const [barterValues, setBarterValues] = useState<BarterState>({});
 
   // Compose State
   const [toId, setToId] = useState('');
-  const [type, setType] = useState('TEXT');
+  const [type, setType] = useState<MessageType>('TEXT');
   const [content, setContent] = useState('');
 
   // Compose: Trade/Job Defaults
@@ -20,20 +42,20 @@ const MessageBoard = ({ phase, messages, playerId, players, myDevelopments, onSe
 
   // --- Helpers ---
 
-  const getFirstItem = (itemsDict) => {
+  const getFirstItem = (itemsDict: Record<string, number> | undefined) => {
     if (!itemsDict) return { type: 'food', amount: 0 };
     const key = Object.keys(itemsDict)[0];
     return { type: key, amount: itemsDict[key] };
   };
 
-  const getPlayerName = (id) => {
+  const getPlayerName = (id: string) => {
     const p = players.find((player) => player.id === id);
-    return p ? p.name : (id ? id.substring(0, 4) : 'Unknown');
+    return p ? p.name : id.substring(0, 4);
   };
 
   // --- Handlers ---
 
-  const handleBarterStart = (msg) => {
+  const handleBarterStart = (msg: Message) => {
     setEditingMsgId(msg.id);
 
     if (msg.type === 'EMPLOYMENT') {
@@ -55,19 +77,19 @@ const MessageBoard = ({ phase, messages, playerId, players, myDevelopments, onSe
     }
   };
 
-  const handleSendUpdate = (msg) => {
-    const payload = {
+  const handleSendUpdate = (msg: Message) => {
+    const payload: Partial<Message> & { action: string } = {
       id: msg.id,
       action: 'BARTER',
       from_id: playerId
     };
 
     if (msg.type === 'EMPLOYMENT') {
-      payload.wage_offer = parseInt(barterValues.wage_offer);
+      payload.wage_offer = parseInt(String(barterValues.wage_offer));
       payload.wage_type = barterValues.wage_type;
     } else if (msg.type === 'TRADE') {
-      payload.offer_items = { [barterValues.offer_type]: parseInt(barterValues.offer_amount) };
-      payload.request_items = { [barterValues.gain_type]: parseInt(barterValues.gain_amount) };
+      payload.offer_items = { [barterValues.offer_type!]: parseInt(String(barterValues.offer_amount)) };
+      payload.request_items = { [barterValues.gain_type!]: parseInt(String(barterValues.gain_amount)) };
     }
 
     onSend(payload);
@@ -77,7 +99,7 @@ const MessageBoard = ({ phase, messages, playerId, players, myDevelopments, onSe
   const handleComposeSend = () => {
     if (!toId) return alert("Select a recipient");
 
-    const payload = {
+    const payload: Partial<Message> = {
       to_id: toId,
       from_id: playerId,
       type: type
@@ -86,12 +108,12 @@ const MessageBoard = ({ phase, messages, playerId, players, myDevelopments, onSe
     if (type === 'TEXT') {
       payload.content = content;
     } else if (type === 'EMPLOYMENT') {
-      payload.wage_offer = parseInt(wageOffer);
+      payload.wage_offer = parseInt(String(wageOffer));
       payload.wage_type = wageType;
       payload.dev_id = devId;
     } else if (type === 'TRADE') {
-      payload.offer_items = { [offerType]: parseInt(offerAmount) };
-      payload.request_items = { [gainType]: parseInt(gainAmount) };
+      payload.offer_items = { [offerType]: parseInt(String(offerAmount)) };
+      payload.request_items = { [gainType]: parseInt(String(gainAmount)) };
     }
 
     onSend(payload);
@@ -100,14 +122,10 @@ const MessageBoard = ({ phase, messages, playerId, players, myDevelopments, onSe
 
   // --- Renderers ---
 
-  const renderMessage = (msg) => {
+  const renderMessage = (msg: Message) => {
     const isMe = msg.from_id === playerId;
     const isEditing = editingMsgId === msg.id;
 
-    // Logic: 
-    // 1. Hide buttons if it's just a text message.
-    // 2. If PENDING, only recipient can act.
-    // 3. If BARTERING, both can act.
     const showActions = msg.type !== 'TEXT' && !isEditing && (
       (!isMe && msg.status === 'PENDING') ||
       (msg.status === 'BARTERING')
@@ -121,16 +139,14 @@ const MessageBoard = ({ phase, messages, playerId, players, myDevelopments, onSe
       );
     }
 
-    // Display helpers
-    let displayOffer, displayRequest;
+    let displayOffer: string, displayRequest: string;
     if (msg.type === 'TRADE') {
-      const o = msg.offer_items ? getFirstItem(msg.offer_items) : { amount: 0, type: '?' };
-      const r = msg.request_items ? getFirstItem(msg.request_items) : { amount: 0, type: '?' };
+      const o = getFirstItem(msg.offer_items);
+      const r = getFirstItem(msg.request_items);
       displayOffer = `${o.amount} ${o.type}`;
       displayRequest = `${r.amount} ${r.type}`;
     }
 
-    // Styles for inputs
     const inputStyle = { width: '70px', padding: '4px', marginRight: '4px' };
     const selectStyle = { padding: '4px', marginRight: '4px' };
 
@@ -140,7 +156,6 @@ const MessageBoard = ({ phase, messages, playerId, players, myDevelopments, onSe
         padding: '10px', marginBottom: '8px', borderRadius: '6px', background: '#fff',
         boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
       }}>
-        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '8px', color: '#555' }}>
           <span style={{ fontWeight: 'bold' }}>
             {isMe ? `To: ${getPlayerName(msg.to_id)}` : `From: ${getPlayerName(msg.from_id)}`}
@@ -153,7 +168,6 @@ const MessageBoard = ({ phase, messages, playerId, players, myDevelopments, onSe
           </span>
         </div>
 
-        {/* Content Body */}
         <div style={{ padding: '5px 0', fontSize: '0.9rem' }}>
           {isEditing ? (
             <div style={{ background: '#f5f5f5', padding: '10px', borderRadius: '4px' }}>
@@ -161,7 +175,7 @@ const MessageBoard = ({ phase, messages, playerId, players, myDevelopments, onSe
                 <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
                   <span>Offer:</span>
                   <input type="number" style={inputStyle} value={barterValues.wage_offer}
-                    onChange={e => setBarterValues({ ...barterValues, wage_offer: e.target.value })} />
+                    onChange={e => setBarterValues({ ...barterValues, wage_offer: Number(e.target.value) })} />
                   <select style={selectStyle} value={barterValues.wage_type} onChange={e => setBarterValues({ ...barterValues, wage_type: e.target.value })}>
                     <option value="food">Food</option><option value="wood">Wood</option><option value="iron">Iron</option>
                   </select>
@@ -171,13 +185,13 @@ const MessageBoard = ({ phase, messages, playerId, players, myDevelopments, onSe
                 <div style={{ display: 'flex', gap: '5px', alignItems: 'center', flexWrap: 'wrap' }}>
                   <span>Give</span>
                   <input type="number" style={inputStyle} value={barterValues.offer_amount}
-                    onChange={e => setBarterValues({ ...barterValues, offer_amount: e.target.value })} />
+                    onChange={e => setBarterValues({ ...barterValues, offer_amount: Number(e.target.value) })} />
                   <select style={selectStyle} value={barterValues.offer_type} onChange={e => setBarterValues({ ...barterValues, offer_type: e.target.value })}>
                     <option value="food">Food</option><option value="wood">Wood</option><option value="iron">Iron</option>
                   </select>
                   <span>for</span>
                   <input type="number" style={inputStyle} value={barterValues.gain_amount}
-                    onChange={e => setBarterValues({ ...barterValues, gain_amount: e.target.value })} />
+                    onChange={e => setBarterValues({ ...barterValues, gain_amount: Number(e.target.value) })} />
                   <select style={selectStyle} value={barterValues.gain_type} onChange={e => setBarterValues({ ...barterValues, gain_type: e.target.value })}>
                     <option value="food">Food</option><option value="wood">Wood</option><option value="iron">Iron</option>
                   </select>
@@ -188,12 +202,11 @@ const MessageBoard = ({ phase, messages, playerId, players, myDevelopments, onSe
             <div>
               {msg.type === 'TEXT' && <span>{msg.content}</span>}
               {msg.type === 'EMPLOYMENT' && <span><strong>Job:</strong> Work for {msg.wage_offer} {msg.wage_type}</span>}
-              {msg.type === 'TRADE' && <span><strong>Trade:</strong> {displayOffer} ↔ {displayRequest}</span>}
+              {msg.type === 'TRADE' && <span><strong>Trade:</strong> {displayOffer!} ↔ {displayRequest!}</span>}
             </div>
           )}
         </div>
 
-        {/* Footer Actions */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
           {showActions && (
             <>
@@ -222,26 +235,24 @@ const MessageBoard = ({ phase, messages, playerId, players, myDevelopments, onSe
       </div>
 
       <div style={{ borderTop: '2px solid #eee', padding: '10px 0 0 0', marginTop: '10px' }}>
-        {/* Compose Controls */}
         <div style={{ display: 'flex', gap: '5px', marginBottom: '8px' }}>
           <select style={{ flex: 1 }} value={toId} onChange={(e) => setToId(e.target.value)}>
             <option value="">To Player...</option>
             {players.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
-          <select value={type} onChange={(e) => setType(e.target.value)}>
+          <select value={type} onChange={(e) => setType(e.target.value as MessageType)}>
             <option value="TEXT">Chat</option>
             {phase === 'WORK' && <option value="EMPLOYMENT">Job Offer</option>}
             {phase === 'TRADE' && <option value="TRADE">Trade</option>}
           </select>
         </div>
 
-        {/* Compose Inputs */}
         <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
           {type === 'TEXT' && <input style={{ flex: 1 }} value={content} onChange={e => setContent(e.target.value)} placeholder="Message..." />}
 
           {type === 'EMPLOYMENT' && (
             <>
-              <input type="number" style={{ width: '70px' }} value={wageOffer} onChange={e => setWageOffer(e.target.value)} />
+              <input type="number" style={{ width: '70px' }} value={wageOffer} onChange={e => setWageOffer(Number(e.target.value))} />
               <select value={wageType} onChange={e => setWageType(e.target.value)}>
                 <option value="food">Food</option><option value="wood">Wood</option><option value="iron">Iron</option>
               </select>
@@ -254,12 +265,12 @@ const MessageBoard = ({ phase, messages, playerId, players, myDevelopments, onSe
 
           {type === 'TRADE' && (
             <>
-              <input type="number" style={{ width: '70px' }} value={offerAmount} onChange={e => setOfferAmount(e.target.value)} />
+              <input type="number" style={{ width: '70px' }} value={offerAmount} onChange={e => setOfferAmount(Number(e.target.value))} />
               <select value={offerType} onChange={e => setOfferType(e.target.value)}>
                 <option value="food">Food</option><option value="wood">Wood</option><option value="iron">Iron</option>
               </select>
               <span>for</span>
-              <input type="number" style={{ width: '70px' }} value={gainAmount} onChange={e => setGainAmount(e.target.value)} />
+              <input type="number" style={{ width: '70px' }} value={gainAmount} onChange={e => setGainAmount(Number(e.target.value))} />
               <select value={gainType} onChange={e => setGainType(e.target.value)}>
                 <option value="food">Food</option><option value="wood">Wood</option><option value="iron">Iron</option>
               </select>

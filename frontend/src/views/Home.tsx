@@ -1,10 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-function Home() {
+const Home: React.FC = () => {
   const navigate = useNavigate();
 
-  const buttonStyle = {
+  const buttonStyle: React.CSSProperties = {
     display: 'block',
     width: '200px',
     margin: '20px auto',

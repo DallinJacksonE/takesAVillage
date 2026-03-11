@@ -1,6 +1,6 @@
 import React from 'react';
 
-function Instructions() {
+const Instructions: React.FC = () => {
   return (
     <div className="card">
       <h1 style={{ marginBottom: '1rem' }}>How to Play: Takes a Village</h1>

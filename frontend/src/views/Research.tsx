@@ -1,23 +1,39 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { ResearchPresenter, ResearchView } from '../presenters/ResearchPresenter';
 
-function Research() {
+interface ResearchGame {
+  id: number;
+  date: string;
+  rounds: number;
+  survivors: number;
+  resource_total: number;
+}
+
+const Research: React.FC = () => {
+  const [presenter, setPresenter] = useState<ResearchPresenter | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [selectedGame, setSelectedGame] = useState(null);
+  const [selectedGame, setSelectedGame] = useState<ResearchGame | null>(null);
+  const [games, setGames] = useState<ResearchGame[]>([]);
 
-  // Mock Data for Research Dashboard
-  const games = [
-    { id: 1, date: '2025-04-10', rounds: 45, survivors: 2, resource_total: 500 },
-    { id: 2, date: '2025-04-11', rounds: 12, survivors: 0, resource_total: 120 },
-    { id: 3, date: '2025-04-12', rounds: 88, survivors: 8, resource_total: 1200 },
-  ];
+  useEffect(() => {
+    const view: ResearchView = {
+      setIsLoggedIn,
+      setSelectedGame,
+      setGames,
+    };
+    const researchPresenter = new ResearchPresenter(view);
+    setPresenter(researchPresenter);
+  }, []);
 
-  const handleLogin = (e) => {
+  if (!presenter) {
+    return <div>Loading...</div>;
+  }
+
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // In reality: POST /api/research/login
-    setIsLoggedIn(true);
+    presenter.handleLogin();
   };
 
-  // --- View 1: Login ---
   if (!isLoggedIn) {
     return (
       <div className="card" style={{ maxWidth: '400px', margin: '50px auto' }}>
@@ -37,13 +53,11 @@ function Research() {
     );
   }
 
-  // --- View 2: Dashboard ---
   return (
     <div>
       <h1>Research Dashboard</h1>
       <div style={{ display: 'flex', gap: '20px' }}>
 
-        {/* Game List */}
         <div className="card" style={{ flex: 1 }}>
           <h3>Game Logs</h3>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -65,7 +79,7 @@ function Research() {
                     <button
                       className="btn btn-secondary"
                       style={{ padding: '5px 10px', fontSize: '0.8rem' }}
-                      onClick={() => setSelectedGame(g)}
+                      onClick={() => presenter.handleSelectGame(g)}
                     >
                       Analyze
                     </button>
@@ -76,7 +90,6 @@ function Research() {
           </table>
         </div>
 
-        {/* Visualization Area */}
         <div className="card" style={{ flex: 2 }}>
           {selectedGame ? (
             <div>
@@ -84,21 +97,6 @@ function Research() {
               <p>Total Resources Generated: {selectedGame.resource_total}</p>
 
               <div style={{ marginTop: '30px', textAlign: 'center' }}>
-                {/* DATA VISUALIZATION STRATEGY:
-                  
-                  Since you want to use Matplotlib/Seaborn (Python), you have two options:
-
-                  OPTION 1 (Static Images - Easiest):
-                  Have your Flask endpoint return a base64 encoded string of the plot.
-                  Example: 
-                  <img src={`data:image/png;base64,${base64StringFromApi}`} />
-
-                  OPTION 2 (Interactive - React Way):
-                  Send the raw data (JSON) to the frontend and use a library like 
-                  'recharts' or 'victory'.
-                  
-                  Below is a simulation of Option 1 (The Image approach):
-                */}
                 <div style={{
                   width: '100%',
                   height: '300px',

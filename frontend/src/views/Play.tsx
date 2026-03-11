@@ -1,22 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-function Play() {
+interface JoinableGame {
+  id: string;
+  name: string;
+  players: string;
+}
+
+const Play: React.FC = () => {
   const navigate = useNavigate();
   const [hasConsented, setHasConsented] = useState(false);
   const [is18Plus, setIs18Plus] = useState(false);
-  const [joinableGames, setJoinableGames] = useState([]);
+  const [joinableGames, setJoinableGames] = useState<JoinableGame[]>([]);
 
-  // --- NEW: Fetch Active Games ---
   useEffect(() => {
-    // Only fetch games if the user has consented and entered the lobby
     if (hasConsented) {
       const fetchGames = async () => {
         try {
           const response = await fetch('/api/activeGames');
           if (response.ok) {
-            const data = await response.json();
-            // Expecting data format: [{ id: 'g_1', name: 'Village A', players: '3/10' }, ...]
+            const data: JoinableGame[] = await response.json();
             setJoinableGames(data);
           }
         } catch (error) {
@@ -24,23 +27,19 @@ function Play() {
         }
       };
 
-      // Fetch immediately
       fetchGames();
-
-      // Optional: Poll every 3 seconds to keep list fresh
       const interval = setInterval(fetchGames, 10000);
       return () => clearInterval(interval);
     }
   }, [hasConsented]);
 
-  const handleConsent = async (e) => {
+  const handleConsent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (is18Plus) {
       try {
         const response = await fetch('/api/consent', { method: 'POST' });
-
         if (response.ok) {
-          setHasConsented(true); // This triggers the useEffect to fetch active games
+          setHasConsented(true);
         } else {
           console.error("Server rejected consent request");
         }
@@ -64,9 +63,8 @@ function Play() {
     }
   };
 
-  const joinGame = async (gameId) => {
+  const joinGame = async (gameId: string) => {
     try {
-      // Updated to send the gameId in the body
       const response = await fetch('/api/joinGame', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -82,7 +80,6 @@ function Play() {
     }
   }
 
-  // --- View 1: Consent Form ---
   if (!hasConsented) {
     return (
       <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
@@ -114,11 +111,9 @@ function Play() {
     );
   }
 
-  // --- View 2: Game Lobby ---
   return (
     <div className="card" style={{ display: 'flex', height: '600px', padding: 0, overflow: 'hidden' }}>
 
-      {/* Left Side: Start Game */}
       <div style={{ flex: 1, padding: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'center', borderRight: '1px solid #ddd' }}>
         <h3>Create a Village</h3>
         <p style={{ color: '#666', marginBottom: '2rem' }}>
@@ -129,7 +124,6 @@ function Play() {
         </button>
       </div>
 
-      {/* Right Side: Join List */}
       <div style={{ flex: 1, padding: '40px', backgroundColor: '#fafafa' }}>
         <h3>Join Existing Village</h3>
         <p style={{ color: '#666', fontSize: '0.9rem' }}>Select a game to join:</p>
