@@ -56,3 +56,14 @@ export interface GameState {
   messages: Message[];
   session_id?: string;
 }
+
+export interface ResearchGame {
+  game_id: string;
+  finished_at: string;
+  data: GameState;
+}
+export interface JoinableGame {
+  id: string;
+  name: string;
+  players: string;
+}

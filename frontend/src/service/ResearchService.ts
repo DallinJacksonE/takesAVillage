@@ -1,16 +1,11 @@
-export interface ResearchData {
-  id: string;
-  title: string;
-  description: string;
-  // Add other fields as necessary
-}
+import { ResearchGame } from '../types/game';
 
 export class ResearchService {
-	static async getResearchData(): Promise<ResearchData[]> {
-		const response = await fetch("/api/research");
-		if (!response.ok) {
-			throw new Error("Failed to fetch research data");
-		}
-		return await response.json();
-	}
+  static async getResearchData(): Promise<ResearchGame[]> {
+    const response = await fetch('/api/research/games');
+    if (!response.ok) {
+      throw new Error('Failed to fetch research data');
+    }
+    return await response.json();
+  }
 }

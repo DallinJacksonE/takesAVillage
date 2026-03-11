@@ -1,12 +1,7 @@
-import { View } from "./View";
-
-interface ResearchGame {
-  id: number;
-  date: string;
-  rounds: number;
-  survivors: number;
-  resource_total: number;
-}
+import { ResearchService } from '../service/ResearchService';
+import { ResearchGame } from '../types/game';
+import { Presenter } from './Presenter';
+import { View } from './View';
 
 export interface ResearchView extends View {
   setIsLoggedIn(isLoggedIn: boolean): void;
@@ -15,15 +10,19 @@ export interface ResearchView extends View {
 }
 
 export class ResearchPresenter extends Presenter<ResearchView> {
-  private games: ResearchGame[] = [
-    { id: 1, date: '2025-04-10', rounds: 45, survivors: 2, resource_total: 500 },
-    { id: 2, date: '2025-04-11', rounds: 12, survivors: 0, resource_total: 120 },
-    { id: 3, date: '2025-04-12', rounds: 88, survivors: 8, resource_total: 1200 },
-  ];
-
   constructor(view: ResearchView) {
     super(view);
-    this._view.setGames(this.games);
+    this.loadGames();
+  }
+
+  private async loadGames() {
+    try {
+      const games = await ResearchService.getResearchData();
+      this._view.setGames(games);
+    } catch (error) {
+      console.error('Failed to load games:', error);
+      // Optionally, display an error message to the user
+    }
   }
 
   public handleLogin() {

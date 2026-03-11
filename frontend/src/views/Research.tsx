@@ -1,13 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ResearchPresenter, ResearchView } from '../presenters/ResearchPresenter';
-
-interface ResearchGame {
-  id: number;
-  date: string;
-  rounds: number;
-  survivors: number;
-  resource_total: number;
-}
+import { ResearchGame } from '../types/game';
 
 const Research: React.FC = () => {
   const [presenter, setPresenter] = useState<ResearchPresenter | null>(null);
@@ -71,10 +64,10 @@ const Research: React.FC = () => {
             </thead>
             <tbody>
               {games.map(g => (
-                <tr key={g.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: '10px 0' }}>{g.id}</td>
-                  <td>{g.date}</td>
-                  <td>{g.rounds}</td>
+                <tr key={g.game_id} style={{ borderBottom: '1px solid #eee' }}>
+                  <td style={{ padding: '10px 0' }}>{g.game_id}</td>
+                  <td>{new Date(g.finished_at).toLocaleDateString()}</td>
+                  <td>{g.data.day}</td>
                   <td>
                     <button
                       className="btn btn-secondary"
@@ -93,8 +86,8 @@ const Research: React.FC = () => {
         <div className="card" style={{ flex: 2 }}>
           {selectedGame ? (
             <div>
-              <h3>Visualizations: Game #{selectedGame.id}</h3>
-              <p>Total Resources Generated: {selectedGame.resource_total}</p>
+              <h3>Visualizations: Game #{selectedGame.game_id}</h3>
+              <p>Total Resources Generated: {/* Logic to calculate this from selectedGame.data will go here */}</p>
 
               <div style={{ marginTop: '30px', textAlign: 'center' }}>
                 <div style={{

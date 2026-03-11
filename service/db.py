@@ -94,6 +94,29 @@ class DatabaseManager:
             cursor.close()
             conn.close()
 
+    def get_all_game_history(self):
+        """Retrieves all game history records."""
+        conn = self.get_connection()
+        if not conn:
+            return []
+
+        cursor = conn.cursor(dictionary=True)
+        query = "SELECT game_id, data, finished_at FROM game_history ORDER BY finished_at DESC"
+        try:
+            cursor.execute(query)
+            results = cursor.fetchall()
+            # The 'data' column is likely a JSON string, so we parse it.
+            for row in results:
+                if isinstance(row['data'], str):
+                    row['data'] = json.loads(row['data'])
+            return results
+        except mysql.connector.Error as err:
+            print(f"Error getting game history: {err}")
+            return []
+        finally:
+            cursor.close()
+            conn.close()
+
     def store_visualization(self, game_id, plot_name, figure):
         """
         Converts a matplotlib figure to bytes and stores it in BLOB column.
@@ -102,16 +125,6 @@ class DatabaseManager:
         figure.savefig(buf, format='png')
         buf.seek(0)
         image_bytes = buf.read()
-
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        query = "INSERT INTO visualizations (game_id, plot_name, image_blob) VALUES (%s, %s, %s)"
-        try:
-            cursor.execute(query, (game_id, plot_name, image_bytes))
-            conn.commit()
-        finally:
-            cursor.close()
-            conn.close()
 
 
 if config_data:

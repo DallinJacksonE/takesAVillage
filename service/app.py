@@ -66,6 +66,15 @@ def get_active_games():
     return jsonify(games_list)
 
 
+@app.route('/api/research/games', methods=['GET'])
+def get_research_games():
+    # user_cookie = request.cookies.get('user_session')
+    # if not user_cookie or not db.user_exists(user_cookie):
+    #     return jsonify({"error": "Invalid or expired session"}), 403
+    game_history = db.get_all_game_history()
+    return jsonify(game_history)
+
+
 @app.route('/api/newGame', methods=['POST'])
 def new_game():
     user_cookie = request.cookies.get('user_session')

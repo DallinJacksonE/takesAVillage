@@ -1,11 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-interface JoinableGame {
-  id: string;
-  name: string;
-  players: string;
-}
+import { PlayPresenter, PlayView } from '../presenters/PlayPresenter';
+import { JoinableGame } from '../types/game';
 
 const Play: React.FC = () => {
   const navigate = useNavigate();
@@ -13,71 +9,36 @@ const Play: React.FC = () => {
   const [is18Plus, setIs18Plus] = useState(false);
   const [joinableGames, setJoinableGames] = useState<JoinableGame[]>([]);
 
+  const presenter = useMemo(() => {
+    const view: PlayView = {
+      setJoinableGames: (games) => setJoinableGames(games),
+      setHasConsented: (consented) => setHasConsented(consented),
+      navigateToGame: (gameId) => navigate(`/game/${gameId}`),
+      showAlert: (message) => alert(message),
+    };
+    return new PlayPresenter(view);
+  }, [navigate]);
+
   useEffect(() => {
     if (hasConsented) {
-      const fetchGames = async () => {
-        try {
-          const response = await fetch('/api/activeGames');
-          if (response.ok) {
-            const data: JoinableGame[] = await response.json();
-            setJoinableGames(data);
-          }
-        } catch (error) {
-          console.error("Error fetching active games:", error);
-        }
-      };
-
-      fetchGames();
-      const interval = setInterval(fetchGames, 10000);
-      return () => clearInterval(interval);
+      presenter.startFetchingGames();
     }
-  }, [hasConsented]);
+    return () => {
+      presenter.destroy();
+    };
+  }, [presenter, hasConsented]);
 
-  const handleConsent = async (e: React.FormEvent) => {
+  const handleConsent = (e: React.FormEvent) => {
     e.preventDefault();
-    if (is18Plus) {
-      try {
-        const response = await fetch('/api/consent', { method: 'POST' });
-        if (response.ok) {
-          setHasConsented(true);
-        } else {
-          console.error("Server rejected consent request");
-        }
-      } catch (error) {
-        console.error("Error sending consent:", error);
-      }
-    } else {
-      alert("You must be 18 or older to participate.");
-    }
+    presenter.handleConsent(is18Plus);
   };
 
-  const startNewGame = async () => {
-    try {
-      const response = await fetch('/api/newGame', { method: 'POST' });
-      if (response.ok) {
-        const data = await response.json();
-        navigate(`/game/${data.gameId}`);
-      }
-    } catch (error) {
-      console.error("Error starting game:", error);
-    }
+  const startNewGame = () => {
+    presenter.startNewGame();
   };
 
-  const joinGame = async (gameId: string) => {
-    try {
-      const response = await fetch('/api/joinGame', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        navigate(`/game/${data.gameId}`);
-      }
-    } catch (error) {
-      console.error("Error joining game:", error);
-    }
+  const joinGame = (gameId: string) => {
+    presenter.joinGame(gameId);
   }
 
   if (!hasConsented) {
