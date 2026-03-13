@@ -129,6 +129,6 @@ class DatabaseManager:
 
 if config_data:
     db = DatabaseManager(config_data['db'])
+    print("db setup successful")
 else:
-    # Fallback or exit if config is missing
-    db = DatabaseManager({})
+    print("failed databse setup: config missing")

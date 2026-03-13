@@ -16,6 +16,6 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["src", "test/presenters/GameLobbyPresenter.test.ts"],
+  "include": ["src", "test"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

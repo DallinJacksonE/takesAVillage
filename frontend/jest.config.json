@@ -10,10 +10,6 @@
   "testMatch": ["<rootDir>/test/**/*.test.{ts,tsx}"],
   "collectCoverage": true,
   "coverageProvider": "v8",
-  "collectCoverageFrom": [
-    "src/presenters/**/*.{ts,tsx}",
-    "!src/presenters/**/index.ts",
-    "!**/*.d.ts"
-  ],
+  "collectCoverageFrom": ["src/**/*.{ts,tsx}", "!src/**/*.d.ts"],
   "coverageReporters": ["text", "lcov", "clover"]
 }
