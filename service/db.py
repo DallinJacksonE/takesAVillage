@@ -82,6 +82,48 @@ class DatabaseManager:
             cursor.close()
             conn.close()
 
+    def initialize_database(self):
+        """
+        Ensures that all necessary tables exist in the database.
+        Uses `CREATE TABLE IF NOT EXISTS` to be idempotent.
+        """
+        conn = self.get_connection()
+        if not conn:
+            print("ERROR: Failed to connect to DB. Cannot initialize database.")
+            return
+
+        cursor = conn.cursor()
+        print("Ensuring database tables are initialized...")
+        try:
+            # Split the schema script into individual statements and execute them one by one
+            sql_statements = [s.strip() for s in self._get_schema_script().split(';') if s.strip()]
+            for statement in sql_statements:
+                cursor.execute(statement)
+            conn.commit()
+            print("Database is ready.")
+        except mysql.connector.Error as err:
+            print(f"Failed to initialize database tables: {err}")
+            conn.rollback()
+        finally:
+            cursor.close()
+            conn.close()
+
+    def _get_schema_script(self):
+        return """
+            CREATE TABLE IF NOT EXISTS `users` (
+              `id` INT AUTO_INCREMENT PRIMARY KEY,
+              `uuid` VARCHAR(36) NOT NULL UNIQUE,
+              `consent_agreed` BOOLEAN NOT NULL,
+              `created_at` DATETIME NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS `game_history` (
+              `id` INT AUTO_INCREMENT PRIMARY KEY,
+              `game_id` VARCHAR(12) NOT NULL,
+              `data` JSON NOT NULL,
+              `finished_at` DATETIME NOT NULL
+            );
+        """
+
     def store_game_result(self, game_id, game_data_json):
         """Stores the final JSON state of a game."""
         conn = self.get_connection()
@@ -129,6 +171,7 @@ class DatabaseManager:
 
 if config_data:
     db = DatabaseManager(config_data['db'])
+    db.initialize_database()
     print("db setup successful")
 else:
     print("failed databse setup: config missing")

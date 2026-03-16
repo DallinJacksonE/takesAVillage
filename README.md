@@ -44,4 +44,4 @@ This project is composed of two main parts:
 To run the project, you will need to set up both the frontend and the backend services. Detailed instructions for each part can be found in their respective directories:
 
 - **For the frontend application, see: [`frontend/README.md`](/frontend/README.md)**
-- **For the backend service, see: `service/README.md`**
+- **For the backend service, see: [`service/README.md`](/service/README.md)**
