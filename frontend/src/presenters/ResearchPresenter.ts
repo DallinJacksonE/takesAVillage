@@ -1,12 +1,12 @@
 import { ResearchService } from '../service/ResearchService';
-import { ResearchGame } from '../types/game';
+import { ResearchGameDTO } from '../../dtos';
 import { Presenter } from './Presenter';
 import { View } from './View';
 
 export interface ResearchView extends View {
   setIsLoggedIn(isLoggedIn: boolean): void;
-  setSelectedGame(selectedGame: ResearchGame | null): void;
-  setGames(games: ResearchGame[]): void;
+  setSelectedGame(selectedGame: ResearchGameDTO | null): void;
+  setGames(games: ResearchGameDTO[]): void;
 }
 
 export class ResearchPresenter extends Presenter<ResearchView> {
@@ -30,7 +30,7 @@ export class ResearchPresenter extends Presenter<ResearchView> {
     this._view.setIsLoggedIn(true);
   }
 
-  public handleSelectGame(game: ResearchGame) {
+  public handleSelectGame(game: ResearchGameDTO) {
     this._view.setSelectedGame(game);
   }
 }

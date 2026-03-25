@@ -1,3 +1,7 @@
+from dtos import (
+    ConsentDTO, ActiveGamesDTO, JoinableGameDTO, 
+    ResearchGameDTO, NewGameDTO, JoinGameDTO
+)
 from flask import Flask, request, jsonify, make_response
 from flask_socketio import SocketIO, join_room, emit
 from game import Game
@@ -42,10 +46,12 @@ threading.Thread(target=game_loop, daemon=True).start()
 @app.route('/api/consent', methods=['POST'])
 def consent():
     user_uuid = str(uuid.uuid4())
-    resp = make_response(
-        jsonify({"message": "Consent logged", "userId": user_uuid}))
-    resp.set_cookie('user_session', user_uuid, max_age=60*60*24)
     db.create_user(user_uuid, True)
+    
+    consent_dto = ConsentDTO(message="Consent logged", userId=user_uuid)
+    resp = make_response(jsonify(consent_dto.__dict__))
+    resp.set_cookie('user_session', user_uuid, max_age=60*60*24)
+    
     return resp
 
 
@@ -58,12 +64,14 @@ def get_active_games():
     games_list = []
     for game_id, game in active_games.items():
         if game.state == "WAITING":
-            games_list.append({
-                "id": game.game_id,
-                "name": f"Village {game.game_id}",
-                "players": f"{len(game.players)}/10"
-            })
-    return jsonify(games_list)
+            games_list.append(JoinableGameDTO(
+                id=game.game_id,
+                name=f"Village {game.game_id}",
+                players=f"{len(game.players)}/10"
+            ))
+    
+    active_games_dto = ActiveGamesDTO(games=games_list)
+    return jsonify(active_games_dto.__dict__)
 
 
 @app.route('/api/research/games', methods=['GET'])
@@ -72,7 +80,8 @@ def get_research_games():
     # if not user_cookie or not db.user_exists(user_cookie):
     #     return jsonify({"error": "Invalid or expired session"}), 403
     game_history = db.get_all_game_history()
-    return jsonify(game_history)
+    research_games = [ResearchGameDTO(**game).__dict__ for game in game_history]
+    return jsonify(research_games)
 
 
 @app.route('/api/newGame', methods=['POST'])
@@ -83,7 +92,9 @@ def new_game():
 
     game_id = "g_" + str(uuid.uuid4())[:8]
     active_games[game_id] = Game(game_id, user_cookie)
-    return jsonify({"gameId": game_id})
+    
+    new_game_dto = NewGameDTO(gameId=game_id)
+    return jsonify(new_game_dto.__dict__)
 
 
 @app.route('/api/joinGame', methods=['POST'])
@@ -91,7 +102,8 @@ def join_game():
     data = request.json
     game_id = data.get('gameId')
     if game_id in active_games:
-        return jsonify({"gameId": game_id, "status": "Found"})
+        join_game_dto = JoinGameDTO(gameId=game_id)
+        return jsonify(join_game_dto.__dict__)
     return jsonify({"error": "Game not found"}), 404
 
 # --- WebSocket Events ---

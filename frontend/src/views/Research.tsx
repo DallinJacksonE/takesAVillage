@@ -1,118 +1,133 @@
-import React, { useEffect, useState } from 'react';
-import { ResearchPresenter, ResearchView } from '../presenters/ResearchPresenter';
-import { ResearchGame } from '../types/game';
+import React, { useEffect, useState } from "react";
+import {
+	ResearchPresenter,
+	ResearchView,
+} from "../presenters/ResearchPresenter";
+import { ResearchGameDTO } from "../../../dtos";
 
 const Research: React.FC = () => {
-  const [presenter, setPresenter] = useState<ResearchPresenter | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [selectedGame, setSelectedGame] = useState<ResearchGame | null>(null);
-  const [games, setGames] = useState<ResearchGame[]>([]);
+	const [presenter, setPresenter] = useState<ResearchPresenter | null>(null);
+	const [isLoggedIn, setIsLoggedIn] = useState(false);
+	const [selectedGame, setSelectedGame] = useState<ResearchGameDTO | null>(
+		null,
+	);
+	const [games, setGames] = useState<ResearchGameDTO[]>([]);
 
-  useEffect(() => {
-    const view: ResearchView = {
-      setIsLoggedIn,
-      setSelectedGame,
-      setGames,
-    };
-    const researchPresenter = new ResearchPresenter(view);
-    setPresenter(researchPresenter);
-  }, []);
+	useEffect(() => {
+		const view: ResearchView = {
+			setIsLoggedIn,
+			setSelectedGame,
+			setGames,
+		};
+		const researchPresenter = new ResearchPresenter(view);
+		setPresenter(researchPresenter);
+	}, []);
 
-  if (!presenter) {
-    return <div>Loading...</div>;
-  }
+	if (!presenter) {
+		return <div>Loading...</div>;
+	}
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    presenter.handleLogin();
-  };
+	const handleLogin = (e: React.FormEvent) => {
+		e.preventDefault();
+		presenter.handleLogin();
+	};
 
-  if (!isLoggedIn) {
-    return (
-      <div className="card" style={{ maxWidth: '400px', margin: '50px auto' }}>
-        <h2 style={{ textAlign: 'center' }}>Research Access</h2>
-        <form onSubmit={handleLogin}>
-          <label>Email</label>
-          <input type="email" placeholder="researcher@lab.edu" required />
+	if (!isLoggedIn) {
+		return (
+			<div className='card' style={{ maxWidth: "400px", margin: "50px auto" }}>
+				<h2 style={{ textAlign: "center" }}>Research Access</h2>
+				<form onSubmit={handleLogin}>
+					<label>Email</label>
+					<input type='email' placeholder='researcher@lab.edu' required />
 
-          <label>Password</label>
-          <input type="password" required />
+					<label>Password</label>
+					<input type='password' required />
 
-          <button type="submit" className="btn" style={{ width: '100%', marginTop: '10px' }}>
-            Login
-          </button>
-        </form>
-      </div>
-    );
-  }
+					<button
+						type='submit'
+						className='btn'
+						style={{ width: "100%", marginTop: "10px" }}
+					>
+						Login
+					</button>
+				</form>
+			</div>
+		);
+	}
 
-  return (
-    <div>
-      <h1>Research Dashboard</h1>
-      <div style={{ display: 'flex', gap: '20px' }}>
+	return (
+		<div>
+			<h1>Research Dashboard</h1>
+			<div style={{ display: "flex", gap: "20px" }}>
+				<div className='card' style={{ flex: 1 }}>
+					<h3>Game Logs</h3>
+					<table style={{ width: "100%", borderCollapse: "collapse" }}>
+						<thead>
+							<tr style={{ borderBottom: "2px solid #ddd", textAlign: "left" }}>
+								<th>ID</th>
+								<th>Date</th>
+								<th>Rounds</th>
+								<th>Action</th>
+							</tr>
+						</thead>
+						<tbody>
+							{games.map((g) => (
+								<tr key={g.game_id} style={{ borderBottom: "1px solid #eee" }}>
+									<td style={{ padding: "10px 0" }}>{g.game_id}</td>
+									<td>{new Date(g.finished_at).toLocaleDateString()}</td>
+									<td>{g.data.day}</td>
+									<td>
+										<button
+											className='btn btn-secondary'
+											style={{ padding: "5px 10px", fontSize: "0.8rem" }}
+											onClick={() => presenter.handleSelectGame(g)}
+										>
+											Analyze
+										</button>
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
 
-        <div className="card" style={{ flex: 1 }}>
-          <h3>Game Logs</h3>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #ddd', textAlign: 'left' }}>
-                <th>ID</th>
-                <th>Date</th>
-                <th>Rounds</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {games.map(g => (
-                <tr key={g.game_id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: '10px 0' }}>{g.game_id}</td>
-                  <td>{new Date(g.finished_at).toLocaleDateString()}</td>
-                  <td>{g.data.day}</td>
-                  <td>
-                    <button
-                      className="btn btn-secondary"
-                      style={{ padding: '5px 10px', fontSize: '0.8rem' }}
-                      onClick={() => presenter.handleSelectGame(g)}
-                    >
-                      Analyze
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+				<div className='card' style={{ flex: 2 }}>
+					{selectedGame ? (
+						<div>
+							<h3>Visualizations: Game #{selectedGame.game_id}</h3>
+							<p>
+								Total Resources Generated:{" "}
+								{/* Logic to calculate this from selectedGame.data will go here */}
+							</p>
 
-        <div className="card" style={{ flex: 2 }}>
-          {selectedGame ? (
-            <div>
-              <h3>Visualizations: Game #{selectedGame.game_id}</h3>
-              <p>Total Resources Generated: {/* Logic to calculate this from selectedGame.data will go here */}</p>
-
-              <div style={{ marginTop: '30px', textAlign: 'center' }}>
-                <div style={{
-                  width: '100%',
-                  height: '300px',
-                  backgroundColor: '#f9f9f9',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1px dashed #ccc'
-                }}>
-                  [Matplotlib Graph generated by Python Backend would appear here]
-                  <br />
-                  (e.g., Sentiment vs. Wealth Correlation)
-                </div>
-              </div>
-            </div>
-          ) : (
-            <p style={{ color: '#888', fontStyle: 'italic' }}>Select a game to view visualizations.</p>
-          )}
-        </div>
-
-      </div>
-    </div>
-  );
-}
+							<div style={{ marginTop: "30px", textAlign: "center" }}>
+								<div
+									style={{
+										width: "100%",
+										height: "300px",
+										backgroundColor: "#f9f9f9",
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "center",
+										border: "1px dashed #ccc",
+									}}
+								>
+									[Matplotlib Graph generated by Python Backend would appear
+									here]
+									<br />
+									(e.g., Sentiment vs. Wealth Correlation)
+								</div>
+							</div>
+						</div>
+					) : (
+						<p style={{ color: "#888", fontStyle: "italic" }}>
+							Select a game to view visualizations.
+						</p>
+					)}
+				</div>
+			</div>
+		</div>
+	);
+};
 
 export default Research;

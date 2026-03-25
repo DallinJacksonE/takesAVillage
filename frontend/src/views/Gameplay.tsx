@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import StatusCards from "../components/StatusCards";
 import VillageMap from "../components/VillageMap";
 import MessageBoard from "../components/MessageBoard";
-import { GameState, Message } from "../types/game";
+import { GameStateDTO, MessageDTO } from "../../../dtos";
 import {
 	GameplayPresenter,
 	GameplayView,
@@ -12,7 +12,7 @@ import {
 const Gameplay: React.FC = () => {
 	const { gameId } = useParams<{ gameId: string }>();
 	const [presenter, setPresenter] = useState<GameplayPresenter | null>(null);
-	const [gameState, setGameState] = useState<GameState | null>(null);
+	const [gameState, setGameState] = useState<GameStateDTO | null>(null);
 	const [playerCount, setPlayerCount] = useState(0);
 	const [timeLeft, setTimeLeft] = useState(0);
 	const [userId, setUserId] = useState("");

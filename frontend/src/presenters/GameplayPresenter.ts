@@ -1,4 +1,4 @@
-import { GameState, Message } from "../types/game";
+import { GameStateDTO, MessageDTO } from "../../../dtos";
 import { Presenter } from "./Presenter";
 import { View } from "./View";
 import io from "socket.io-client";
@@ -9,7 +9,7 @@ const socket = io({
 });
 
 export interface GameplayView extends View {
-	setGameState(gameState: GameState | null): void;
+	setGameState(gameState: GameStateDTO | null): void;
 	setPlayerCount(playerCount: number): void;
 	setTimeLeft(timeLeft: number): void;
 	setUserId(userId: string): void;
@@ -36,7 +36,7 @@ export class GameplayPresenter extends Presenter<GameplayView> {
 		socket.on("room_update", (data: { player_count: number }) =>
 			this._view.setPlayerCount(data.player_count),
 		);
-		socket.on("game_state", (data: GameState) => {
+		socket.on("game_state", (data: GameStateDTO) => {
 			this.timeLeft = data.time_remaining;
 			this._view.setGameState(data);
 			this._view.setTimeLeft(data.time_remaining);
@@ -81,7 +81,7 @@ export class GameplayPresenter extends Presenter<GameplayView> {
 		});
 	}
 
-	public handleSendMessage(payload: Partial<Message>) {
+	public handleSendMessage(payload: Partial<MessageDTO>) {
 		const message = {
 			from_id: this.userId,
 			gameId: this.gameId,

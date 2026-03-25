@@ -1,57 +1,67 @@
-import { JoinableGame } from "../types/game";
+import {
+	ActiveGamesDTO,
+	ConsentDTO,
+	JoinGameDTO,
+	NewGameDTO,
+} from "../../../dtos";
 
 export class UserService {
-  async consent(): Promise<boolean> {
-    try {
-      const response = await fetch('/api/consent', { method: 'POST' });
-      return response.ok;
-    } catch (error) {
-      console.error("Error sending consent:", error);
-      return false;
-    }
-  }
+	async consent(): Promise<ConsentDTO | null> {
+		try {
+			const response = await fetch("/api/consent", { method: "POST" });
+			if (response.ok) {
+				return await response.json();
+			}
+			return null;
+		} catch (error) {
+			console.error("Error sending consent:", error);
+			return null;
+		}
+	}
 
-  async getActiveGames(): Promise<JoinableGame[]> {
-    try {
-      const response = await fetch('/api/activeGames');
-      if (response.ok) {
-        return await response.json();
-      }
-      return [];
-    } catch (error) {
-      console.error("Error fetching active games:", error);
-      return [];
-    }
-  }
+	async getActiveGames(): Promise<ActiveGamesDTO> {
+		try {
+			const response = await fetch("/api/activeGames");
+			if (response.ok) {
+				const obj = await response.json();
+				//console.log(obj);
+				return obj;
+			}
+			return { games: [] };
+		} catch (error) {
+			console.error("Error fetching active games:", error);
+			return { games: [] };
+		}
+	}
 
-  async newGame(): Promise<{ gameId: string } | null> {
-    try {
-      const response = await fetch('/api/newGame', { method: 'POST' });
-      if (response.ok) {
-        return await response.json();
-      }
-      return null;
-    } catch (error) {
-      console.error("Error starting game:", error);
-      return null;
-    }
-  }
+	async newGame(): Promise<NewGameDTO | null> {
+		try {
+			const response = await fetch("/api/newGame", { method: "POST" });
+			if (response.ok) {
+				return await response.json();
+			}
+			return null;
+		} catch (error) {
+			console.error("Error starting game:", error);
+			return null;
+		}
+	}
 
-  async joinGame(gameId: string): Promise<{ gameId: string } | null> {
-    try {
-      const response = await fetch('/api/joinGame', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId })
-      });
+	async joinGame(gameId: string): Promise<JoinGameDTO | null> {
+		try {
+			const response = await fetch("/api/joinGame", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ gameId }),
+			});
 
-      if (response.ok) {
-        return await response.json();
-      }
-      return null;
-    } catch (error) {
-      console.error("Error joining game:", error);
-      return null;
-    }
-  }
+			if (response.ok) {
+				return await response.json();
+			}
+			return null;
+		} catch (error) {
+			console.error("Error joining game:", error);
+			return null;
+		}
+	}
 }
