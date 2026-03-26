@@ -40,8 +40,9 @@ export interface MessageDTO {
 	wage_offer?: number;
 	wage_type?: string;
 	dev_id?: string;
-	status: "PENDING" | "ACCEPTED" | "DENIED" | "BARTERING";
+	status: "PENDING" | "ACCEPTED" | "DENIED";
 	is_system?: boolean;
+	bartered?: boolean;
 }
 
 export interface GameStateDTO {

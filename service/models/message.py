@@ -56,8 +56,34 @@ class MessageFactory:
 
         # 2. Apply Changes
         if action == 'BARTER':
-            if msg_copy.status not in ['PENDING', 'BARTERING']:
-                return "INVALID_STATE", msg_copy
+            if original_msg.type == 'TRADE':
+                # Create a new TradeOffer as a counter-offer
+                new_offer_items = data.get('request_items', original_msg.request_items)
+                new_request_items = data.get('offer_items', original_msg.offer_items)
+
+                new_message = TradeOffer(
+                    from_id=original_msg.to_id,  # Swap sender/recipient
+                    to_id=original_msg.from_id,
+                    offer_items=new_offer_items,
+                    request_items=new_request_items,
+                    bartered=True  # Mark as a bartered offer
+                )
+
+                # Update the status of the original message to indicate it was countered
+                original_msg.status = 'COUNTERED'
+
+                # Add original message to sender and recipient (updated status)
+                sender_orig = self.players.get(original_msg.from_id)
+                recipient_orig = self.players.get(original_msg.to_id)
+                if sender_orig:
+                    sender_orig.messages[original_msg.id] = original_msg
+                if recipient_orig:
+                    recipient_orig.messages[original_msg.id] = original_msg
+
+                # Add the new message to the new sender and recipient
+                self._add_message_to_players(new_message)
+
+                return "CREATED_COUNTER_OFFER", new_message
 
             # Update fields based on provided data
             if msg_copy.type == 'EMPLOYMENT':
@@ -82,24 +108,36 @@ class MessageFactory:
             # Internal system action usually, but can be triggered here
             pass
 
-        # 3. Check Legality
-        if not msg_copy.is_legal(actor):
-            return "ILLEGAL", original_msg
+        # For non-BARTER actions, or BARTER for EMPLOYMENT, apply changes to msg_copy
+        if action != 'BARTER' or original_msg.type == 'EMPLOYMENT':
+            # 3. Check Legality
+            if not msg_copy.is_legal(actor):
+                return "ILLEGAL", original_msg
 
-        # 4. Save Changes (Replace old message)
-        sender = self.players.get(msg_copy.from_id)
-        recipient = self.players.get(msg_copy.to_id)
+            # 4. Save Changes (Replace old message)
+            sender = self.players.get(msg_copy.from_id)
+            recipient = self.players.get(msg_copy.to_id)
 
-        if sender:
-            sender.messages[msg_id] = msg_copy
-        if recipient:
-            recipient.messages[msg_id] = msg_copy
+            if sender:
+                sender.messages[msg_id] = msg_copy
+            if recipient:
+                recipient.messages[msg_id] = msg_copy
 
         # 5. Return Status for Side Effects
         if action == 'ACCEPT' and msg_copy.type == 'EMPLOYMENT':
             return "ACCEPTED_EMPLOYMENT", msg_copy
+        elif action == 'BARTER' and original_msg.type == 'EMPLOYMENT':
+            return "UPDATED", msg_copy # Employment barter is an an update
 
         return "UPDATED", msg_copy
+
+    def _add_message_to_players(self, message):
+        sender = self.players.get(message.from_id)
+        recipient = self.players.get(message.to_id)
+        if sender:
+            sender.messages[message.id] = message
+        if recipient:
+            recipient.messages[message.id] = message
 
     def serialize_message(self, msg_data):
         msg_type = msg_data.get('type')
@@ -194,17 +232,20 @@ class EmploymentOffer(Message):
 
 
 class TradeOffer(Message):
-    def __init__(self, from_id, to_id, offer_items, request_items):
+    def __init__(self, from_id, to_id, offer_items, request_items, bartered=False):
         super().__init__(from_id, to_id, 'TRADE')
         self.offer_items = offer_items
         self.request_items = request_items
         self.actual_offer_items = offer_items.copy()
+        self.bartered = bartered
+
 
     def to_dict(self):
         data = super().to_dict()
         data.update({
             "offer_items": self.offer_items,
-            "request_items": self.request_items
+            "request_items": self.request_items,
+            "bartered": self.bartered
         })
         return data
 

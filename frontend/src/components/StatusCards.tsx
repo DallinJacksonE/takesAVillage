@@ -1,21 +1,16 @@
 import React from "react";
-import { GameStateDTO, PlayerDTO, MapTileDTO } from "../../../dtos/index";
+import { GameStateDTO, MapTileDTO } from "../../../dtos/index";
+import { usePlayerName } from "./hooks/usePlayerName";
 
 interface Props {
 	state: GameStateDTO;
-	players: PlayerDTO[];
 	map: MapTileDTO[];
 	onAction: (action: string, payload: any) => void;
 }
 
-const StatusCards: React.FC<Props> = ({ state, players, map, onAction }) => {
+const StatusCards: React.FC<Props> = ({ state, map, onAction }) => {
 	const { me, phase, session_id } = state;
-
-	const getPlayerName = (id: string) => {
-		if (id === session_id) return me.name;
-		const p = players.find((player) => player.id === id);
-		return p ? p.name : id.substring(0, 4);
-	};
+	const getPlayerName = usePlayerName();
 
 	return (
 		<>
@@ -109,7 +104,11 @@ const StatusCards: React.FC<Props> = ({ state, players, map, onAction }) => {
 									<span>
 										<strong>{tile.type}</strong>{" "}
 										<span style={{ fontSize: "0.8em", color: "#666" }}>
-											({getPlayerName(tile.owner_id!)})
+											(
+											{tile.owner_id === session_id
+												? me.name
+												: getPlayerName(tile.owner_id!)}
+											)
 										</span>
 									</span>
 

@@ -48,7 +48,7 @@ To run the project, you will need to set up both the frontend and the backend se
 
 ## Development
 
-- [ ] Build DTOs for network transfer
+- [x] Build DTOs for network transfer
 - [ ] Fix gameplay bugs
     - [ ] Fix bartering by removing it and having the barter button just change the trade offer to a trade offer from the original recipeint to the original sender
     - [ ] UI fixes

@@ -1,14 +1,16 @@
 import React, { useState } from "react";
-import { MapTileDTO, PlayerDTO } from "../../../dtos/index";
+import { MapTileDTO } from "../../../dtos/index";
+import { usePlayerName } from "./hooks/usePlayerName";
 
 interface Props {
 	mapData: MapTileDTO[];
-	players: PlayerDTO[];
 	onAction: (action: string, payload: any) => void;
+	playerId: string;
 }
 
-const VillageMap: React.FC<Props> = ({ mapData, players, onAction }) => {
+const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId }) => {
 	const [selectedTile, setSelectedTile] = useState<MapTileDTO | null>(null);
+	const getPlayerNameFromHook = usePlayerName();
 
 	// Constants for Hex Layout
 	const HEX_SIZE = 50;
@@ -21,8 +23,11 @@ const VillageMap: React.FC<Props> = ({ mapData, players, onAction }) => {
 	};
 
 	const getPlayerName = (id: string) => {
-		const p = players.find((player) => player.id === id);
-		return p ? `${p.name}'s` : "Your";
+		if (id === playerId) {
+			return "Your";
+		}
+		const name = getPlayerNameFromHook(id);
+		return `${name}'s`;
 	};
 
 	if (!mapData || mapData.length === 0) {
