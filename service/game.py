@@ -149,7 +149,22 @@ class Game:
                 self.action_work_development(player, {'dev_id': msg.dev_id})
                 self.check_all_players_locked()
 
-        return status in ["CREATED", "UPDATED", "ACCEPTED_EMPLOYMENT"]
+        elif status == "TRADE_COMPLETED":
+            sender = self.players.get(msg.from_id)
+            recipient = self.players.get(msg.to_id)
+            if sender and recipient:
+                # Execute trade with actual finalized items (capped at what they actually own)
+                for res, amt in getattr(msg, 'actual_offer_items', msg.offer_items).items():
+                    actual_amt = min(amt, sender.resources.get(res, 0))
+                    sender.resources[res] = sender.resources.get(res, 0) - actual_amt
+                    recipient.resources[res] = recipient.resources.get(res, 0) + actual_amt
+                
+                for res, amt in getattr(msg, 'actual_request_items', msg.request_items).items():
+                    actual_amt = min(amt, recipient.resources.get(res, 0))
+                    recipient.resources[res] = recipient.resources.get(res, 0) - actual_amt
+                    sender.resources[res] = sender.resources.get(res, 0) + actual_amt
+
+        return status in ["CREATED", "UPDATED", "ACCEPTED_EMPLOYMENT", "BARTER", "CREATED_COUNTER_OFFER", "TRADE_COMPLETED"]
 
     # --- Phase Resolution ---
 

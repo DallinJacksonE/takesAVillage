@@ -104,6 +104,18 @@ class MessageFactory:
         elif action == 'ACCEPT':
             msg_copy.status = 'ACCEPTED'
 
+        elif action == 'FINALIZE':
+            if msg_copy.type == 'TRADE':
+                if user_id == msg_copy.from_id:
+                    msg_copy.actual_offer_items = data.get('actual_items', getattr(msg_copy, 'actual_offer_items', msg_copy.offer_items))
+                    msg_copy.sender_finalized = True
+                elif user_id == msg_copy.to_id:
+                    msg_copy.actual_request_items = data.get('actual_items', getattr(msg_copy, 'actual_request_items', msg_copy.request_items))
+                    msg_copy.recipient_finalized = True
+                
+                if getattr(msg_copy, 'sender_finalized', False) and getattr(msg_copy, 'recipient_finalized', False):
+                    msg_copy.status = 'COMPLETED'
+
         elif action == 'EXECUTE':
             # Internal system action usually, but can be triggered here
             pass
@@ -128,6 +140,8 @@ class MessageFactory:
             return "ACCEPTED_EMPLOYMENT", msg_copy
         elif action == 'BARTER' and original_msg.type == 'EMPLOYMENT':
             return "UPDATED", msg_copy # Employment barter is an an update
+        elif action == 'FINALIZE' and msg_copy.type == 'TRADE' and msg_copy.status == 'COMPLETED':
+            return "TRADE_COMPLETED", msg_copy
 
         return "UPDATED", msg_copy
 
@@ -237,7 +251,10 @@ class TradeOffer(Message):
         self.offer_items = offer_items
         self.request_items = request_items
         self.actual_offer_items = offer_items.copy()
+        self.actual_request_items = request_items.copy()
         self.bartered = bartered
+        self.sender_finalized = False
+        self.recipient_finalized = False
 
 
     def to_dict(self):
@@ -245,7 +262,11 @@ class TradeOffer(Message):
         data.update({
             "offer_items": self.offer_items,
             "request_items": self.request_items,
-            "bartered": self.bartered
+            "actual_offer_items": self.actual_offer_items,
+            "actual_request_items": self.actual_request_items,
+            "bartered": self.bartered,
+            "sender_finalized": self.sender_finalized,
+            "recipient_finalized": self.recipient_finalized
         })
         return data
 
