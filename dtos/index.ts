@@ -1,7 +1,7 @@
 export interface PlayerDTO {
   id: string;
   name: string;
-  health: "healthy" | "sick";
+  health: "healthy" | "sick" | "recovering";
   sickness_chance: number;
   resources: {
     wood: number;
@@ -29,32 +29,60 @@ export interface MapTileDTO {
   owner_id: string | null;
 }
 
-export interface MessageDTO {
+// --- Message DTOs (Discriminated Union) ---
+
+export interface BaseMessageDTO {
   id: string;
   from_id: string;
   to_id: string;
-  type: "TEXT" | "TRADE" | "EMPLOYMENT";
+  status:
+  | "PENDING"
+  | "ACCEPTED"
+  | "DENIED"
+  | "COMPLETED"
+  | "COUNTERED"
+  | "BARTERING";
+  pending_action_from: string;
+  is_system?: boolean;
+}
+
+export interface TextMessageDTO extends BaseMessageDTO {
+  type: "TEXT";
   content?: string;
-  offer_items?: Record<string, number>;
-  request_items?: Record<string, number>;
+}
+
+export interface EmploymentMessageDTO extends BaseMessageDTO {
+  type: "EMPLOYMENT";
+  dev_id?: string;
   wage_offer?: number;
   wage_type?: string;
-  dev_id?: string;
-  status:
-    | "PENDING"
-    | "ACCEPTED"
-    | "DENIED"
-    | "COMPLETED"
-    | "COUNTERED"
-    | "BARTERING";
-  is_system?: boolean;
   bartered?: boolean;
-  sender_finalized?: boolean;
-  recipient_finalized?: boolean;
-  actual_items?: Record<string, number>;
+}
+
+export interface TradeMessageDTO extends BaseMessageDTO {
+  type: "TRADE";
+  offer_items?: Record<string, number>;
+  request_items?: Record<string, number>;
   actual_offer_items?: Record<string, number>;
   actual_request_items?: Record<string, number>;
+  sender_finalized?: boolean;
+  recipient_finalized?: boolean;
+  bartered?: boolean;
 }
+
+export interface ShareFireMessageDTO extends BaseMessageDTO {
+  type: "FIRE";
+  action?: string;
+}
+
+// This union type tells TypeScript that a MessageDTO is exactly ONE of these shapes
+export type MessageDTO =
+  | TextMessageDTO
+  | EmploymentMessageDTO
+  | TradeMessageDTO
+  | ShareFireMessageDTO;
+
+// --- Core Game DTOs ---
 
 export interface GameStateDTO {
   status: "WAITING" | "ACTIVE" | "FINISHED";
@@ -74,6 +102,7 @@ export interface ResearchGameDTO {
   finished_at: string;
   data: GameStateDTO;
 }
+
 export interface JoinableGameDTO {
   id: string;
   name: string;

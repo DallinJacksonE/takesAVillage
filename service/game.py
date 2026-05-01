@@ -4,6 +4,7 @@ from models.player import Player
 from models.message import MessageFactory
 from models.map import MapFactory
 from models.developments import Development
+from dtos import PlayerDTO, GameStateDTO, MapTileDTO, message_dto_factory
 from itertools import count
 
 
@@ -102,9 +103,10 @@ class Game:
         if owner_id not in self.work_phase_resources:
             self.work_phase_resources[owner_id] = {}
 
-        current_amount = self.work_phase_resources[owner_id].get(
-            res_type, 0)
-        self.work_phase_resources[owner_id][res_type] = current_amount + quantity
+        current_amount = self.work_phase_resources[owner_id].get(res_type, 0)
+        self.work_phase_resources[owner_id][res_type] = (
+            current_amount + quantity
+        )
 
         return self.action_finish_phase(player)
 
@@ -115,8 +117,9 @@ class Game:
 
     def action_build_development(self, player, payload):
         tile_id = payload.get('tile_id')
-        tile = next((t for t in self.map_tiles if t['id'] == tile_id), None)
-        if not tile or tile['owner_id'] is not None:
+
+        tile = next((t for t in self.map_tiles if t.id == tile_id), None)
+        if not tile or tile.owner_id is not None:
             return False
 
         cost_wood = 2
@@ -124,9 +127,9 @@ class Game:
             return False
 
         player.resources['wood'] -= cost_wood
-        tile['owner_id'] = player.session_id
-        tile['level'] = 2
-        new_dev = Development(tile['id'], tile['type'], player.session_id)
+        tile.owner_id = player.session_id
+
+        new_dev = Development(tile.id, tile.type, player.session_id)
         new_dev.level = 2
         self.developments[new_dev.id] = new_dev
         player.developments.append(new_dev.id)
@@ -136,35 +139,59 @@ class Game:
     # --- Unified Message Handling ---
 
     def handle_message_action(self, user_id, data):
-        """
-        Handles creation AND updates of messages.
-        Checks for game side-effects (like auto-working upon accepting a job).
-        """
         status, msg = self.message_factory.process_message(user_id, data)
 
+        if not msg:
+            return False
+
         if status == "ACCEPTED_EMPLOYMENT" and self.phase == "WORK":
-            # Auto-execute the work action for the employee
-            player = self.players.get(user_id)
+            employee_id = getattr(msg, 'to_id', None)
+            player = self.players.get(employee_id) if employee_id else None
+
             if player:
-                self.action_work_development(player, {'dev_id': msg.dev_id})
+                self.action_work_development(
+                    player, {'dev_id': getattr(msg, 'dev_id', None)}
+                )
                 self.check_all_players_locked()
 
         elif status == "TRADE_COMPLETED":
-            sender = self.players.get(msg.from_id)
-            recipient = self.players.get(msg.to_id)
-            if sender and recipient:
-                # Execute trade with actual finalized items (capped at what they actually own)
-                for res, amt in getattr(msg, 'actual_offer_items', msg.offer_items).items():
-                    actual_amt = min(amt, sender.resources.get(res, 0))
-                    sender.resources[res] = sender.resources.get(res, 0) - actual_amt
-                    recipient.resources[res] = recipient.resources.get(res, 0) + actual_amt
-                
-                for res, amt in getattr(msg, 'actual_request_items', msg.request_items).items():
-                    actual_amt = min(amt, recipient.resources.get(res, 0))
-                    recipient.resources[res] = recipient.resources.get(res, 0) - actual_amt
-                    sender.resources[res] = sender.resources.get(res, 0) + actual_amt
+            from_id = getattr(msg, 'from_id', None)
+            to_id = getattr(msg, 'to_id', None)
 
-        return status in ["CREATED", "UPDATED", "ACCEPTED_EMPLOYMENT", "BARTER", "CREATED_COUNTER_OFFER", "TRADE_COMPLETED"]
+            sender = self.players.get(from_id) if from_id else None
+            recipient = self.players.get(to_id) if to_id else None
+
+            if sender and recipient:
+                offer_items = getattr(
+                    msg, 'actual_offer_items', getattr(msg, 'offer_items', {})
+                )
+                for res, amt in offer_items.items():
+                    actual_amt = min(amt, sender.resources.get(res, 0))
+                    sender.resources[res] = (
+                        sender.resources.get(res, 0) - actual_amt
+                    )
+                    recipient.resources[res] = (
+                        recipient.resources.get(res, 0) + actual_amt
+                    )
+
+                req_items = getattr(
+                    msg, 'actual_request_items', getattr(
+                        msg, 'request_items', {})
+                )
+                for res, amt in req_items.items():
+                    actual_amt = min(amt, recipient.resources.get(res, 0))
+                    recipient.resources[res] = (
+                        recipient.resources.get(res, 0) - actual_amt
+                    )
+                    sender.resources[res] = (
+                        sender.resources.get(res, 0) + actual_amt
+                    )
+
+        valid_statuses = [
+            "CREATED", "UPDATED", "ACCEPTED_EMPLOYMENT",
+            "BARTER", "TRADE_COMPLETED"
+        ]
+        return status in valid_statuses
 
     # --- Phase Resolution ---
 
@@ -173,16 +200,17 @@ class Game:
             player = self.players.get(pid)
             if player:
                 for res_type, amount in resources.items():
-                    player.resources[res_type] = player.resources.get(
-                        res_type, 0) + amount
+                    player.resources[res_type] = (
+                        player.resources.get(res_type, 0) + amount
+                    )
         self.work_phase_resources = {}
 
         for player in self.players.values():
             for msg in player.messages.values():
                 if msg.type == 'EMPLOYMENT' and msg.status == 'ACCEPTED':
-                    # Execute wages using factory's update mechanism
                     self.message_factory.process_message(
-                        msg.from_id, {'id': msg.id, 'action': 'EXECUTE'})
+                        msg.from_id, {'id': msg.id, 'action': 'EXECUTE'}
+                    )
 
         for p in self.players.values():
             p.reset_phase()
@@ -198,9 +226,6 @@ class Game:
 
         for dev in self.developments.values():
             dev.degrade()
-            tile = next((t for t in self.map_tiles if t['id'] == dev.id), None)
-            if tile:
-                tile['level'] = dev.level
 
     def check_all_players_locked(self):
         if all(p.finished_phase for p in self.players.values()):
@@ -225,32 +250,44 @@ class Game:
         if not me:
             return None
 
-        my_devs_full = []
-        for dev_id in me.developments:
-            dev_obj = self.developments.get(dev_id)
-            if dev_obj:
-                my_devs_full.append(vars(dev_obj))
-
-        my_data = me.to_dict()
-        my_data['developments'] = my_devs_full
-
-        other_players = [
-            {"id": pid, "name": p.name}
-            for pid, p in self.players.items()
-            if pid != session_id
+        my_devs_full = [
+            self.developments[d]
+            for d in me.developments if d in self.developments
         ]
+        me_dto = PlayerDTO.from_model(me, my_devs_full)
 
-        return {
-            "game_id": self.game_id,
-            "status": self.state,
-            "session_id": session_id,
-            "day": self.day,
-            "phase": self.phase,
-            "time_remaining": int(self.phase_end_time - time.time()) if self.state == 'RUNNING' else 0,
-            "me": my_data,
-            "map": self.map_tiles,
-            "messages": my_data['messages'],
-            "player_count": len(self.players),
-            "player_list": other_players,
-            "is_host": session_id == self.host_id
-        }
+        player_list_dtos = []
+        for pid, p in self.players.items():
+            if pid != session_id:
+                their_devs = [
+                    self.developments[d]
+                    for d in p.developments if d in self.developments
+                ]
+                player_list_dtos.append(PlayerDTO.from_model(p, their_devs))
+
+        map_dtos = [
+            MapTileDTO(
+                id=t.id, q=t.q, r=t.r, type=t.type, owner_id=t.owner_id
+            )
+            for t in self.map_tiles
+        ]
+        messages_dtos = [message_dto_factory(m) for m in me.messages.values()]
+
+        is_running = self.state == 'RUNNING'
+
+        game_state = GameStateDTO(
+            status=self.state,
+            is_host=session_id == self.host_id,
+            me=me_dto,
+            day=self.day,
+            phase=self.phase,
+            time_remaining=(
+                int(self.phase_end_time - time.time()) if is_running else 0
+            ),
+            player_list=player_list_dtos,
+            map=map_dtos,
+            messages=messages_dtos,
+            session_id=session_id
+        )
+
+        return game_state.to_dict()

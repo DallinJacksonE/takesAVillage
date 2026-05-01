@@ -1,7 +1,8 @@
 from dtos import (
-    ConsentDTO, ActiveGamesDTO, JoinableGameDTO, 
+    ConsentDTO, ActiveGamesDTO, JoinableGameDTO,
     ResearchGameDTO, NewGameDTO, JoinGameDTO
 )
+from dataclasses import asdict
 from flask import Flask, request, jsonify, make_response
 from flask_socketio import SocketIO, join_room, emit
 from game import Game
@@ -11,6 +12,7 @@ import json
 import os
 import threading
 import time
+from typing import Dict, Any, cast
 
 app = Flask(__name__)
 
@@ -33,8 +35,11 @@ def game_loop():
         for game in list(active_games.values()):
             if game.state == "RUNNING":
                 if game.check_timer():
-                    socketio.emit('game_started', {
-                                  "day": game.day}, room=game.game_id)
+                    socketio.emit(
+                        'game_started',
+                        {"day": game.day},
+                        to=game.game_id
+                    )
         time.sleep(1)
 
 
@@ -47,11 +52,11 @@ threading.Thread(target=game_loop, daemon=True).start()
 def consent():
     user_uuid = str(uuid.uuid4())
     db.create_user(user_uuid, True)
-    
+
     consent_dto = ConsentDTO(message="Consent logged", userId=user_uuid)
-    resp = make_response(jsonify(consent_dto.__dict__))
+    resp = make_response(jsonify(asdict(consent_dto)))
     resp.set_cookie('user_session', user_uuid, max_age=60*60*24)
-    
+
     return resp
 
 
@@ -62,25 +67,29 @@ def get_active_games():
         return jsonify({"error": "Invalid or expired session"}), 403
 
     games_list = []
-    for game_id, game in active_games.items():
+    # Fixed unused game_id variable by iterating values
+    for game in active_games.values():
         if game.state == "WAITING":
             games_list.append(JoinableGameDTO(
                 id=game.game_id,
                 name=f"Village {game.game_id}",
                 players=f"{len(game.players)}/10"
             ))
-    
+
     active_games_dto = ActiveGamesDTO(games=games_list)
-    return jsonify(active_games_dto.__dict__)
+    return jsonify(asdict(active_games_dto))
 
 
 @app.route('/api/research/games', methods=['GET'])
 def get_research_games():
-    # user_cookie = request.cookies.get('user_session')
-    # if not user_cookie or not db.user_exists(user_cookie):
-    #     return jsonify({"error": "Invalid or expired session"}), 403
     game_history = db.get_all_game_history()
-    research_games = [ResearchGameDTO(**game).__dict__ for game in game_history]
+
+    # We cast 'game' to a Dict with string keys to satisfy the strict type checker
+    research_games = [
+        asdict(ResearchGameDTO(**cast(Dict[str, Any], game)))
+        for game in game_history
+    ]
+
     return jsonify(research_games)
 
 
@@ -92,9 +101,9 @@ def new_game():
 
     game_id = "g_" + str(uuid.uuid4())[:8]
     active_games[game_id] = Game(game_id, user_cookie)
-    
+
     new_game_dto = NewGameDTO(gameId=game_id)
-    return jsonify(new_game_dto.__dict__)
+    return jsonify(asdict(new_game_dto))
 
 
 @app.route('/api/joinGame', methods=['POST'])
@@ -103,7 +112,7 @@ def join_game():
     game_id = data.get('gameId')
     if game_id in active_games:
         join_game_dto = JoinGameDTO(gameId=game_id)
-        return jsonify(join_game_dto.__dict__)
+        return jsonify(asdict(join_game_dto))
     return jsonify({"error": "Game not found"}), 404
 
 # --- WebSocket Events ---
@@ -117,7 +126,7 @@ def on_join(data):
         game = active_games[game_id]
         game.add_player(user_id)
         join_room(game_id)
-        emit('room_update', {"player_count": len(game.players)}, room=game_id)
+        emit('room_update', {"player_count": len(game.players)}, to=game_id)
         emit('game_state', game.get_state_for_player(user_id))
     else:
         emit('error', {'message': 'Game not found.'})
@@ -131,7 +140,7 @@ def on_start(data):
         game = active_games[game_id]
         if game.host_id == user_id:
             if game.start_game():
-                emit('game_started', {"day": 1}, room=game_id)
+                emit('game_started', {"day": 1}, to=game_id)
 
 
 @socketio.on('request_update')
@@ -148,20 +157,17 @@ def on_request_update(data):
 
 @socketio.on('send_message')
 def on_send_message(data):
-    """Handles both new messages and updates (Accept, Deny, Barter)."""
     game_id = data.get('gameId')
     user_id = data.get('from_id') or data.get('userId')
 
     if game_id in active_games:
         game = active_games[game_id]
-        # Calls the unified game logic
         if game.handle_message_action(user_id, data):
-            emit('game_started', {}, room=game_id)
+            emit('game_started', {}, to=game_id)
 
 
 @socketio.on('user_action')
 def on_user_action(data):
-    """Handles generic game actions like Building, Finishing Phase"""
     game_id = data.get('gameId')
     user_id = data.get('userId')
     action = data.get('action')
@@ -170,7 +176,7 @@ def on_user_action(data):
     if game_id in active_games:
         game = active_games[game_id]
         if game.handle_user_action(user_id, action, payload):
-            emit('game_started', {}, room=game_id)
+            emit('game_started', {}, to=game_id)
 
 
 if __name__ == '__main__':

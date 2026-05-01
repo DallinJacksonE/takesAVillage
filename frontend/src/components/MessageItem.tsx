@@ -57,7 +57,7 @@ const MessageItem: React.FC<Props> = ({
   if (
     isEditing &&
     msg.type === "EMPLOYMENT" &&
-    msg.from_id === playerId &&
+    msg.employer_id === playerId && // Fixed: Check against the explicit employer_id
     barterValues.wage_offer !== undefined &&
     barterValues.wage_type
   ) {
