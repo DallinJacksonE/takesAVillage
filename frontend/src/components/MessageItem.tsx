@@ -1,18 +1,24 @@
 import React, { useState } from "react";
-import { MessageDTO } from "../../../dtos/index";
+import {
+  MessageDTO,
+  TradeMessageDTO,
+  EmploymentMessageDTO,
+  TextMessageDTO,
+} from "../../../dtos/index";
 import ChatMessage from "./MessageTypes/ChatMessage";
 import JobOfferMessage from "./MessageTypes/JobOfferMessage";
 import TradeMessage from "./MessageTypes/TradeMessage";
 import { usePlayerName } from "./hooks/usePlayerName";
+import { BarterDraft } from "./MessageBoard";
 
 interface Props {
   msg: MessageDTO;
   playerId: string;
   myResources: { wood: number; food: number; iron: number };
   isEditing: boolean;
-  barterValues: Partial<MessageDTO>;
-  setBarterValues: (values: Partial<MessageDTO>) => void;
-  onSend: (payload: Partial<MessageDTO> & { action?: string }) => void;
+  barterValues: BarterDraft;
+  setBarterValues: (values: BarterDraft) => void;
+  onSend: (payload: Record<string, any>) => void;
   onBarterStart: (msg: MessageDTO) => void;
   onSendUpdate: () => void;
   onCancelEdit: () => void;
@@ -32,39 +38,36 @@ const MessageItem: React.FC<Props> = ({
 }) => {
   const getPlayerName = usePlayerName();
   const isMe = msg.from_id === playerId;
-  const isReceivedCounterOffer = msg.bartered && msg.to_id === playerId;
+  const isSender = playerId === msg.from_id;
+
+  const isBartered = "bartered" in msg ? msg.bartered : false;
+  const isReceivedCounterOffer = isBartered && msg.pending_action_from === playerId;
 
   const showActions =
     msg.type !== "TEXT" &&
     !isEditing &&
-    msg.to_id === playerId &&
-    (msg.status === "PENDING" || msg.bartered);
+    msg.pending_action_from === playerId &&
+    (msg.status === "PENDING" || msg.status === "BARTERING");
 
-  const isSender = playerId === msg.from_id;
-  const hasFinalized = isSender
-    ? msg.sender_finalized
-    : msg.recipient_finalized;
-  const expectedItems = isSender ? msg.offer_items : msg.request_items;
-  const [actualItems, setActualItems] = useState<Record<string, number>>(
-    expectedItems || {},
-  );
-
-  const isExceedingInventory = Object.entries(actualItems).some(
-    ([res, amt]) => amt > (myResources[res as keyof typeof myResources] || 0),
-  );
-
-  let isBarterExceedingInventory = false;
-  if (
-    isEditing &&
-    msg.type === "EMPLOYMENT" &&
-    msg.employer_id === playerId && // Fixed: Check against the explicit employer_id
-    barterValues.wage_offer !== undefined &&
-    barterValues.wage_type
-  ) {
-    isBarterExceedingInventory =
-      barterValues.wage_offer >
-      (myResources[barterValues.wage_type as keyof typeof myResources] || 0);
+  let hasFinalized = false;
+  let expectedItems: Record<string, number> | undefined = {};
+  if (msg.type === "TRADE") {
+    hasFinalized = isSender
+      ? !!(msg as TradeMessageDTO).sender_finalized
+      : !!(msg as TradeMessageDTO).recipient_finalized;
+    expectedItems = isSender
+      ? (msg as TradeMessageDTO).offer_items
+      : (msg as TradeMessageDTO).request_items;
   }
+
+  const [actualItems, setActualItems] = useState<Record<string, number>>(
+    expectedItems || {}
+  );
+
+  // This is the strict lock that applies ONLY to the actual delivery (Finalize)
+  const isExceedingInventory = Object.entries(actualItems).some(
+    ([res, amt]) => amt > (myResources[res as keyof typeof myResources] || 0)
+  );
 
   if (msg.is_system) {
     return (
@@ -78,7 +81,7 @@ const MessageItem: React.FC<Props> = ({
           fontSize: "0.8rem",
         }}
       >
-        {msg.content}
+        {msg.type === "TEXT" ? (msg as TextMessageDTO).content : ""}
       </div>
     );
   }
@@ -123,7 +126,7 @@ const MessageItem: React.FC<Props> = ({
                   ? "#d1c4e9"
                   : msg.status === "DENIED"
                     ? "#ffebee"
-                    : msg.bartered
+                    : isBartered
                       ? "#fff3e0"
                       : "#e3f2fd",
             padding: "2px 6px",
@@ -140,10 +143,11 @@ const MessageItem: React.FC<Props> = ({
         {msg.status === "ACCEPTED" && msg.type === "TRADE" ? (
           <div>
             <TradeMessage
-              msg={msg}
+              msg={msg as TradeMessageDTO}
               isEditing={false}
               barterValues={barterValues}
               setBarterValues={setBarterValues}
+              isSender={isSender}
             />
             {hasFinalized ? (
               <div
@@ -223,7 +227,7 @@ const MessageItem: React.FC<Props> = ({
           >
             {msg.type === "EMPLOYMENT" && (
               <JobOfferMessage
-                msg={msg}
+                msg={msg as EmploymentMessageDTO}
                 isEditing={isEditing}
                 barterValues={barterValues}
                 setBarterValues={setBarterValues}
@@ -231,20 +235,22 @@ const MessageItem: React.FC<Props> = ({
             )}
             {msg.type === "TRADE" && (
               <TradeMessage
-                msg={msg}
+                msg={msg as TradeMessageDTO}
                 isEditing={isEditing}
                 barterValues={barterValues}
                 setBarterValues={setBarterValues}
+                isSender={isSender}
               />
             )}
           </div>
         ) : msg.status === "COMPLETED" && msg.type === "TRADE" ? (
           <div>
             <TradeMessage
-              msg={msg}
+              msg={msg as TradeMessageDTO}
               isEditing={false}
               barterValues={barterValues}
               setBarterValues={setBarterValues}
+              isSender={isSender}
             />
             <div
               style={{
@@ -261,8 +267,8 @@ const MessageItem: React.FC<Props> = ({
                   <strong>You sent:</strong>{" "}
                   {Object.entries(
                     isSender
-                      ? msg.actual_offer_items || {}
-                      : msg.actual_request_items || {},
+                      ? (msg as TradeMessageDTO).actual_offer_items || {}
+                      : (msg as TradeMessageDTO).actual_request_items || {}
                   )
                     .map(([res, amt]) => `${amt} ${res}`)
                     .join(", ") || "Nothing"}
@@ -271,8 +277,8 @@ const MessageItem: React.FC<Props> = ({
                   <strong>You received:</strong>{" "}
                   {Object.entries(
                     isSender
-                      ? msg.actual_request_items || {}
-                      : msg.actual_offer_items || {},
+                      ? (msg as TradeMessageDTO).actual_request_items || {}
+                      : (msg as TradeMessageDTO).actual_offer_items || {}
                   )
                     .map(([res, amt]) => `${amt} ${res}`)
                     .join(", ") || "Nothing"}
@@ -282,10 +288,10 @@ const MessageItem: React.FC<Props> = ({
           </div>
         ) : (
           <div>
-            {msg.type === "TEXT" && <ChatMessage msg={msg} />}
+            {msg.type === "TEXT" && <ChatMessage msg={msg as TextMessageDTO} />}
             {msg.type === "EMPLOYMENT" && (
               <JobOfferMessage
-                msg={msg}
+                msg={msg as EmploymentMessageDTO}
                 isEditing={isEditing}
                 barterValues={barterValues}
                 setBarterValues={setBarterValues}
@@ -293,10 +299,11 @@ const MessageItem: React.FC<Props> = ({
             )}
             {msg.type === "TRADE" && (
               <TradeMessage
-                msg={msg}
+                msg={msg as TradeMessageDTO}
                 isEditing={isEditing}
                 barterValues={barterValues}
                 setBarterValues={setBarterValues}
+                isSender={isSender}
               />
             )}
           </div>
@@ -335,11 +342,7 @@ const MessageItem: React.FC<Props> = ({
         )}
         {isEditing && (
           <>
-            <button
-              className="btn-sm success"
-              onClick={onSendUpdate}
-              disabled={isBarterExceedingInventory}
-            >
+            <button className="btn-sm success" onClick={onSendUpdate}>
               Send Offer
             </button>
             <button className="btn-sm" onClick={onCancelEdit}>

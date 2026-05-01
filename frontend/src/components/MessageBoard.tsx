@@ -1,7 +1,23 @@
 import React, { useState } from "react";
-import { MessageDTO, DevelopmentDTO, PlayerDTO } from "../../../dtos/index";
+import {
+  MessageDTO,
+  DevelopmentDTO,
+  PlayerDTO,
+  TradeMessageDTO,
+  EmploymentMessageDTO,
+} from "../../../dtos/index";
 import MessageItem from "./MessageItem";
 import MessageComposer from "./MessageComposer";
+
+export interface BarterDraft {
+  to_id?: string;
+  from_id?: string;
+  wage_offer?: number;
+  wage_type?: string;
+  offer_items?: Record<string, number>;
+  request_items?: Record<string, number>;
+  [key: string]: any;
+}
 
 export interface MessageBoardProps {
   phase: "WORK" | "TRADE" | "NIGHT";
@@ -10,13 +26,7 @@ export interface MessageBoardProps {
   myDevelopments: DevelopmentDTO[];
   myResources: { wood: number; food: number; iron: number };
   players: PlayerDTO[];
-  onSend: (payload: Partial<MessageDTO> & { action?: string }) => void;
-  setEditingMsgId: (id: string | null) => void;
-  editingMsgId: string | null;
-  barterValues: Partial<MessageDTO>;
-  setBarterValues: (values: Partial<MessageDTO>) => void;
-  onBarterStart: (msg: MessageDTO) => void;
-  onSendUpdate: () => void;
+  onSend: (payload: Record<string, any>) => void;
 }
 
 const MessageBoard: React.FC<MessageBoardProps> = ({
@@ -27,13 +37,40 @@ const MessageBoard: React.FC<MessageBoardProps> = ({
   myResources,
   players,
   onSend,
-  editingMsgId,
-  setEditingMsgId,
-  barterValues,
-  setBarterValues,
-  onBarterStart,
-  onSendUpdate,
 }) => {
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
+  const [barterValues, setBarterValues] = useState<BarterDraft>({});
+
+  const handleBarterStart = (msg: MessageDTO) => {
+    setEditingMsgId(msg.id);
+    if (msg.type === "EMPLOYMENT") {
+      const empMsg = msg as EmploymentMessageDTO;
+      setBarterValues({
+        wage_offer: empMsg.wage_offer,
+        wage_type: empMsg.wage_type,
+      });
+    } else if (msg.type === "TRADE") {
+      const tradeMsg = msg as TradeMessageDTO;
+      setBarterValues({
+        offer_items: tradeMsg.offer_items,
+        request_items: tradeMsg.request_items,
+      });
+    }
+  };
+
+  const handleSendUpdate = () => {
+    if (!editingMsgId) return;
+
+    const payload: Record<string, any> = {
+      id: editingMsgId,
+      action: "BARTER",
+      ...barterValues,
+    };
+
+    onSend(payload);
+    setEditingMsgId(null);
+  };
+
   return (
     <div
       className="card"
@@ -74,8 +111,8 @@ const MessageBoard: React.FC<MessageBoardProps> = ({
               barterValues={barterValues}
               setBarterValues={setBarterValues}
               onSend={onSend}
-              onBarterStart={onBarterStart}
-              onSendUpdate={onSendUpdate}
+              onBarterStart={handleBarterStart}
+              onSendUpdate={handleSendUpdate}
               onCancelEdit={() => setEditingMsgId(null)}
             />
           ))

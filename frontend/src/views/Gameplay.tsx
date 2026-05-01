@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import StatusCards from "../components/StatusCards";
 import VillageMap from "../components/VillageMap";
 import MessageBoard from "../components/MessageBoard";
-import { GameStateDTO, MessageDTO } from "../../../dtos";
+import { GameStateDTO } from "../../../dtos";
 import { PlayerProvider } from "../components/hooks/usePlayerName";
 import {
   GameplayPresenter,
@@ -17,8 +17,6 @@ const Gameplay: React.FC = () => {
   const [playerCount, setPlayerCount] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [userId, setUserId] = useState("");
-  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
-  const [barterValues, setBarterValues] = useState<Partial<MessageDTO>>({});
 
   useEffect(() => {
     if (gameId) {
@@ -37,38 +35,6 @@ const Gameplay: React.FC = () => {
       };
     }
   }, [gameId]);
-
-  const handleBarterStart = (msg: MessageDTO) => {
-    setEditingMsgId(msg.id);
-    if (msg.type === "EMPLOYMENT") {
-      setBarterValues({
-        to_id: msg.from_id,
-        from_id: msg.to_id,
-        wage_offer: msg.wage_offer,
-        wage_type: msg.wage_type,
-      });
-    } else if (msg.type === "TRADE") {
-      setBarterValues({
-        to_id: msg.from_id,
-        from_id: msg.to_id,
-        offer_items: msg.request_items,
-        request_items: msg.offer_items,
-      });
-    }
-  };
-
-  const handleSendUpdate = () => {
-    if (!editingMsgId || !presenter) return;
-
-    const payload: Partial<MessageDTO> & { action: string } = {
-      id: editingMsgId,
-      action: "BARTER",
-      ...barterValues,
-    };
-
-    presenter.handleSendMessage(payload);
-    setEditingMsgId(null);
-  };
 
   if (!presenter || !gameState) return <div>Connecting...</div>;
 
@@ -132,12 +98,6 @@ const Gameplay: React.FC = () => {
           myResources={gameState.me.resources}
           players={gameState.player_list || []}
           onSend={(payload) => presenter.handleSendMessage(payload)}
-          editingMsgId={editingMsgId}
-          setEditingMsgId={setEditingMsgId}
-          barterValues={barterValues}
-          setBarterValues={setBarterValues}
-          onBarterStart={handleBarterStart}
-          onSendUpdate={handleSendUpdate}
         />
 
         {phase === "TRADE" && (

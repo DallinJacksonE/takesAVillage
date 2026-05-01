@@ -84,7 +84,8 @@ def get_active_games():
 def get_research_games():
     game_history = db.get_all_game_history()
 
-    # We cast 'game' to a Dict with string keys to satisfy the strict type checker
+    # We cast 'game' to a Dict with string keys to
+    # satisfy the strict type checker
     research_games = [
         asdict(ResearchGameDTO(**cast(Dict[str, Any], game)))
         for game in game_history

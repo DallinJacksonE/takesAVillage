@@ -9,7 +9,7 @@ interface Props {
   myDevelopments: DevelopmentDTO[];
   myResources: { wood: number; food: number; iron: number };
   players: PlayerDTO[];
-  onSend: (payload: Partial<MessageDTO>) => void;
+  onSend: (payload: Record<string, any>) => void;
 }
 
 const MessageComposer: React.FC<Props> = ({
@@ -20,12 +20,10 @@ const MessageComposer: React.FC<Props> = ({
   players,
   onSend,
 }) => {
-  // Compose State
   const [toId, setToId] = useState("");
   const [type, setType] = useState<MessageType>("TEXT");
   const [content, setContent] = useState("");
 
-  // Compose: Trade/Job Defaults
   const [offerAmount, setOfferAmount] = useState(1);
   const [offerType, setOfferType] = useState("food");
   const [gainAmount, setGainAmount] = useState(1);
@@ -34,14 +32,10 @@ const MessageComposer: React.FC<Props> = ({
   const [wageType, setWageType] = useState("wood");
   const [devId, setDevId] = useState("");
 
-  const isWageExceeding =
-    type === "EMPLOYMENT" &&
-    wageOffer > (myResources[wageType as keyof typeof myResources] || 0);
-
   const handleComposeSend = () => {
     if (!toId) return alert("Select a recipient");
 
-    const payload: Partial<MessageDTO> = {
+    const payload: Record<string, any> = {
       to_id: toId,
       from_id: playerId,
       type: type,
@@ -175,11 +169,7 @@ const MessageComposer: React.FC<Props> = ({
           </>
         )}
 
-        <button
-          className="btn"
-          onClick={handleComposeSend}
-          disabled={isWageExceeding}
-        >
+        <button className="btn" onClick={handleComposeSend}>
           Send
         </button>
       </div>
