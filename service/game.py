@@ -48,6 +48,8 @@ class Game:
             p.finished_phase = False
             if phase_name == "NIGHT":
                 p.current_fire_host = None
+            if phase_name == "WORK" and p.health in ['sick', 'recovering']:
+                self.action_finish_phase(p)
         if phase_name == "TRADE":
             self.generate_payout_messages()
 
