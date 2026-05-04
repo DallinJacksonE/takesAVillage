@@ -46,6 +46,12 @@ To run the project, you will need to set up both the frontend and the backend se
 - **For the frontend application, see: [`frontend/README.md`](/frontend/README.md)**
 - **For the backend service, see: [`service/README.md`](/service/README.md)**
 
+## Docker Deployment
+
+```
+sudo docker compose up --build
+```
+
 ## Development
 
 - [x] Build DTOs for network transfer
