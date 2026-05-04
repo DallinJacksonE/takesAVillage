@@ -8,17 +8,28 @@ import io
 
 
 def load_config():
-    # Construct full path to ensure it works regardless
-    # of where you run the script from
     base_dir = os.path.dirname(os.path.abspath(__file__))
     config_path = os.path.join(base_dir, 'config.json')
 
+    config_data = {"db": {}, "flask": {}}
+
     try:
         with open(config_path, 'r') as f:
-            return json.load(f)
+            config_data = json.load(f)
     except FileNotFoundError:
-        print(f"WARNING: Configuration file not found at {config_path}")
-        return None
+        print("config.json not found, relying on environment variables.")
+
+    # Override config with Docker Environment Variables if they exist
+    config_data['db']['host'] = os.environ.get(
+        'DB_HOST', config_data['db'].get('host', '127.0.0.1'))
+    config_data['db']['user'] = os.environ.get(
+        'DB_USER', config_data['db'].get('user', 'village'))
+    config_data['db']['password'] = os.environ.get(
+        'DB_PASSWORD', config_data['db'].get('password', 'village_db'))
+    config_data['db']['database'] = os.environ.get(
+        'DB_NAME', config_data['db'].get('database', 'village_db'))
+
+    return config_data
 
 
 # Load the config
@@ -96,7 +107,8 @@ class DatabaseManager:
         print("Ensuring database tables are initialized...")
         try:
             # Split the schema script into individual statements and execute them one by one
-            sql_statements = [s.strip() for s in self._get_schema_script().split(';') if s.strip()]
+            sql_statements = [
+                s.strip() for s in self._get_schema_script().split(';') if s.strip()]
             for statement in sql_statements:
                 cursor.execute(statement)
             conn.commit()

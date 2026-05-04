@@ -14,7 +14,9 @@ import threading
 import time
 from typing import Dict, Any, cast
 
-app = Flask(__name__)
+app = Flask(__name__,
+            static_folder='../frontend/dist',
+            static_url_path='/')
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(base_dir, 'config.json')
@@ -116,6 +118,15 @@ def join_game():
         return jsonify(asdict(join_game_dto))
     return jsonify({"error": "Game not found"}), 404
 
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_react(path):
+    if path != "" and os.path.exists(app.static_folder + '/' + path):
+        return app.send_static_file(path)
+    else:
+        return app.send_static_file('index.html')
+
 # --- WebSocket Events ---
 
 
@@ -181,4 +192,5 @@ def on_user_action(data):
 
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, port=5000)
+    # Add host="0.0.0.0" so Docker can route external traffic to it
+    socketio.run(app, host="0.0.0.0", debug=True, port=5000)

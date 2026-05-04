@@ -59,7 +59,7 @@ const Gameplay: React.FC = () => {
   const { day, phase } = gameState;
 
   return (
-    <div className="container">
+    <div style={{ width: "100%", display: "flex", flexDirection: "column", height: "100%" }}>
       <div
         style={{
           display: "flex",
@@ -80,7 +80,7 @@ const Gameplay: React.FC = () => {
       </div>
 
       <PlayerProvider players={gameState.player_list || []}>
-        <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
+        <div style={{ width: "100%", marginBottom: "20px" }}>
           <StatusCards
             state={gameState}
             map={gameState.map}

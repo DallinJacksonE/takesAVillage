@@ -50,8 +50,8 @@ To run the project, you will need to set up both the frontend and the backend se
 
 - [x] Build DTOs for network transfer
 - [ ] Fix gameplay bugs
-    - [ ] Fix bartering by removing it and having the barter button just change the trade offer to a trade offer from the original recipeint to the original sender
-    - [ ] UI fixes
+    - [x] Fix bartering by removing it and having the barter button just change the trade offer to a trade offer from the original recipeint to the original sender
+    - [x] UI fixes
     - [ ] add ability to seize an opponent's development, cancelling all previous work commitments and starting a seize commitment
     - [ ] add sentiment tracking to the game
     - [ ] add rumor round
