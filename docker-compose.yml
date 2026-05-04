@@ -4,30 +4,47 @@ services:
     container_name: village_db
     restart: always
     environment:
-      # These must match what your app expects
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: village_db
-      MYSQL_USER: village
-      MYSQL_PASSWORD: village_db
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_DATABASE=village_db
+      - MYSQL_USER=village
+      - MYSQL_PASSWORD=village_db
     ports:
-      - "5001:3306"
+      - "3307:3306" 
     volumes:
       - db_data:/var/lib/mysql
+    healthcheck:
+      # Using the specific village user to ping ensures the DB is 100% ready for Flask
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "village", "-pvillage_db"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 90s # Gives MySQL a massive 90-second runway to finish building
 
   web:
     build: .
     container_name: village_web
     restart: always
-    ports:
-      - "5000:5000"
+    expose:
+      - "5000"
     environment:
-      # These variables get picked up by the new load_config() in db.py
       - DB_HOST=db
       - DB_USER=village
       - DB_PASSWORD=village_db
       - DB_NAME=village_db
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+  nginx:
+    image: nginx:alpine
+    container_name: village_nginx
+    restart: always
+    ports:
+      - "5000:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - web
 
 volumes:
   db_data:

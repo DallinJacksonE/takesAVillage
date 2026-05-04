@@ -57,7 +57,8 @@ def consent():
 
     consent_dto = ConsentDTO(message="Consent logged", userId=user_uuid)
     resp = make_response(jsonify(asdict(consent_dto)))
-    resp.set_cookie('user_session', user_uuid, max_age=60*60*24)
+    resp.set_cookie('user_session', user_uuid, max_age=60 *
+                    60*24, secure=True, samesite='Lax')
 
     return resp
 
@@ -119,13 +120,19 @@ def join_game():
     return jsonify({"error": "Game not found"}), 404
 
 
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve_react(path):
-    if path != "" and os.path.exists(app.static_folder + '/' + path):
-        return app.send_static_file(path)
-    else:
-        return app.send_static_file('index.html')
+@app.route('/')
+def serve_root():
+    return app.send_static_file('index.html')
+
+
+@app.errorhandler(404)
+def not_found(e):
+    # If a frontend route is requested (like /instructions), serve React.
+    # If a missing API route is requested, return a proper JSON error.
+    if request.path.startswith('/api/'):
+        return jsonify({"error": "API route not found"}), 404
+
+    return app.send_static_file('index.html')
 
 # --- WebSocket Events ---
 
