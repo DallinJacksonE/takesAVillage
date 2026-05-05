@@ -3,6 +3,11 @@ from typing import List, Optional, Dict, Any
 
 
 @dataclass
+class AvailableWorkDTO:
+    dev_id: str
+
+
+@dataclass
 class DevelopmentDTO:
     id: str
     type: str
@@ -143,7 +148,7 @@ class PlayerDTO:
     sickness_chance: float
     resources: Dict[str, int]
     developments: List[DevelopmentDTO]
-    available_work: List[str]
+    available_work: List[AvailableWorkDTO]
     finished_phase: bool
 
     @classmethod
@@ -157,7 +162,8 @@ class PlayerDTO:
             developments=[
                 DevelopmentDTO.from_model(d) for d in full_dev_objects
             ],
-            available_work=player.available_work,
+            available_work=[AvailableWorkDTO(
+                dev_id=work_id) for work_id in player.available_work],
             finished_phase=player.finished_phase
         )
 

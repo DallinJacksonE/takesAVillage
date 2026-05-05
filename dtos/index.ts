@@ -1,3 +1,8 @@
+
+export interface AvailableWorkDTO {
+  dev_id: string;
+}
+
 export interface PlayerDTO {
   id: string;
   name: string;
@@ -9,7 +14,7 @@ export interface PlayerDTO {
     iron: number;
   };
   developments: DevelopmentDTO[];
-  available_work: string[];
+  available_work: AvailableWorkDTO[];
   finished_phase: boolean;
 }
 

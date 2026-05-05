@@ -5,7 +5,7 @@ import { JoinableGameDTO } from "../../../dtos";
 
 const Play: React.FC = () => {
   const navigate = useNavigate();
-  const [hasConsented, setHasConsented] = useState(false);
+  const [hasConsented, setHasConsented] = useState(true);
   const [is18Plus, setIs18Plus] = useState(true);
   const [joinableGames, setJoinableGames] = useState<JoinableGameDTO[]>([]);
 
@@ -107,7 +107,7 @@ const Play: React.FC = () => {
       >
         <h3>Create a Village</h3>
         <p style={{ color: "#666", marginBottom: "2rem" }}>
-          Initialize a new game instance. You will be the first settler.
+          Initialize a new game instance.
         </p>
         <button className='btn' onClick={startNewGame}>
           Start New Game
@@ -128,6 +128,25 @@ const Play: React.FC = () => {
             borderRadius: "4px",
           }}
         >
+
+          {/* MOCK GAME BUTTON FOR UI TESTING */}
+          <div
+            onClick={() => navigate("/game/test-render")}
+            style={{
+              padding: "15px",
+              borderBottom: "1px solid #eee",
+              cursor: "pointer",
+              display: "flex",
+              justifyContent: "space-between",
+              backgroundColor: "#e0f7fa", // Give it a subtle highlight to stand out
+              borderLeft: "4px solid #00acc1"
+            }}
+          >
+            <strong>🧪 UI Test Render</strong>
+            <span style={{ fontSize: "0.85rem", color: "#00acc1", fontWeight: "bold" }}>
+              Offline
+            </span>
+          </div>
           {joinableGames.length === 0 ? (
             <p
               style={{ color: "#999", textAlign: "center", marginTop: "50px" }}

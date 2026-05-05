@@ -80,13 +80,7 @@ const MessageBoard: React.FC<MessageBoardProps> = ({
         flexDirection: "column",
       }}
     >
-      <h3
-        style={{
-          borderBottom: "1px solid #eee",
-          paddingBottom: "10px",
-          margin: "0 0 10px 0",
-        }}
-      >
+      <h3>
         Communications
       </h3>
 

@@ -61,14 +61,15 @@ const StatusCards: React.FC<Props> = ({ state, map, onAction }) => {
               </p>
             ) : (
               <ul style={{ paddingLeft: "20px" }}>
-                {me.available_work.map((devId) => {
-                  const tile = map.find((t) => t.id === devId);
+                {/* Update the map to handle the object instead of a raw string */}
+                {me.available_work.map((work) => {
+                  const tile = map.find((t) => t.id === work.dev_id);
 
                   if (!tile) return null;
 
                   return (
                     <li
-                      key={devId}
+                      key={work.dev_id} // Update the key
                       style={{
                         marginBottom: "5px",
                         display: "flex",
@@ -95,7 +96,8 @@ const StatusCards: React.FC<Props> = ({ state, map, onAction }) => {
                             padding: "2px 8px",
                             fontSize: "0.7rem",
                           }}
-                          onClick={() => onAction("WORK_DEV", { dev_id: devId })}
+                          // Use the mapped property for the payload
+                          onClick={() => onAction("WORK_DEV", { dev_id: work.dev_id })}
                         >
                           Work
                         </button>

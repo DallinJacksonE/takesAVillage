@@ -9,6 +9,12 @@ import {
   GameplayPresenter,
   GameplayView,
 } from "../presenters/GameplayPresenter";
+import PlayerStatusCard from "../components/PlayerStatusCard";
+import DevelopmentsCard from "../components/DevelopmentsCard";
+import AvailableWorkCard from "../components/AvailableWorkCard";
+import { MOCK_STATE, MOCK_ME } from "./mockData";
+import PlayerRoster from "../components/PlayerRoster";
+
 
 const Gameplay: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -19,6 +25,25 @@ const Gameplay: React.FC = () => {
   const [userId, setUserId] = useState("");
 
   useEffect(() => {
+
+    if (gameId === "test-render") {
+      setGameState(MOCK_STATE);
+      setPlayerCount(MOCK_STATE.player_list.length); // Dynamically set to 8 based on the mock array
+      setTimeLeft(MOCK_STATE.time_remaining);
+      setUserId(MOCK_ME.id);
+
+      const dummyPresenter = {
+        handleStartGame: () => console.log("[MOCK] Start Game triggered"),
+        handleUserAction: (action: string, payload: any) => console.log(`[MOCK] Action: ${action}`, payload),
+        handleSendMessage: (payload: any) => console.log("[MOCK] Send Message:", payload),
+        destroy: () => console.log("[MOCK] Cleanup"),
+      } as unknown as GameplayPresenter;
+
+      setPresenter(dummyPresenter);
+      return;
+    }
+
+
     if (gameId) {
       const view: GameplayView = {
         setGameState,
@@ -80,25 +105,38 @@ const Gameplay: React.FC = () => {
       </div>
 
       <PlayerProvider players={gameState.player_list || []}>
-        <div style={{ width: "100%", marginBottom: "20px" }}>
-          <StatusCards
-            state={gameState}
-            map={gameState.map}
-            onAction={(action, payload) =>
-              presenter.handleUserAction(action, payload)
-            }
-          />
-        </div>
 
-        <MessageBoard
-          phase={phase}
-          messages={gameState.messages || []}
-          playerId={userId}
-          myDevelopments={gameState.me.developments || []}
-          myResources={gameState.me.resources}
-          players={gameState.player_list || []}
-          onSend={(payload) => presenter.handleSendMessage(payload)}
-        />
+        {/* NEW PLACEMENT: PlayerStatusCard directly below header */}
+        <PlayerStatusCard state={gameState} />
+
+        {/* NEW LAYOUT: Flex container for the side-by-side split */}
+        <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
+
+          {/* LEFT COLUMN: Stacked Developments and Available Work (flex: 1 keeps it narrower) */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 1 }}>
+            <DevelopmentsCard state={gameState} />
+            <AvailableWorkCard
+              state={gameState}
+              map={gameState.map}
+              onAction={(action, payload) => presenter.handleUserAction(action, payload)}
+            />
+            <PlayerRoster />
+          </div>
+
+          {/* RIGHT COLUMN: Wider Message Board (flex: 2 makes it twice as wide as the left column) */}
+          <div style={{ flex: 2 }}>
+            <MessageBoard
+              phase={phase}
+              messages={gameState.messages || []}
+              playerId={userId}
+              myDevelopments={gameState.me.developments || []}
+              myResources={gameState.me.resources}
+              players={gameState.player_list || []}
+              onSend={(payload) => presenter.handleSendMessage(payload)}
+            />
+          </div>
+
+        </div>
 
         {phase === "TRADE" && (
           <>
