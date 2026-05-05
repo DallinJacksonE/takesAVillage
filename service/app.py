@@ -32,16 +32,22 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 active_games = {}
 
 
+def broadcast_state(game):
+    """Helper to send individualized states to all players in a game."""
+    for pid in game.players.keys():
+        socketio.emit(
+            'game_state',
+            game.get_state_for_player(pid),
+            to=pid
+        )
+
+
 def game_loop():
     while True:
         for game in list(active_games.values()):
             if game.state == "RUNNING":
                 if game.check_timer():
-                    socketio.emit(
-                        'game_started',
-                        {"day": game.day},
-                        to=game.game_id
-                    )
+                    broadcast_state(game)
         time.sleep(1)
 
 
@@ -70,16 +76,30 @@ def get_active_games():
         return jsonify({"error": "Invalid or expired session"}), 403
 
     games_list = []
-    # Fixed unused game_id variable by iterating values
+    rejoinable_games = []  # Store separately to push to the top
+
     for game in active_games.values():
-        if game.state == "WAITING":
+        is_user_in_game = user_cookie in game.players
+
+        # Check if the user is already in this game
+        if is_user_in_game and game.state in ["WAITING", "RUNNING"]:
+            rejoinable_games.append(JoinableGameDTO(
+                id=game.game_id,
+                name=f"Village {game.game_id}",
+                players=f"{len(game.players)}/10",
+                isRejoinable=True
+            ))
+        # Otherwise, standard check for joinable waiting games
+        elif game.state == "WAITING" and not is_user_in_game:
             games_list.append(JoinableGameDTO(
                 id=game.game_id,
                 name=f"Village {game.game_id}",
-                players=f"{len(game.players)}/10"
+                players=f"{len(game.players)}/10",
+                isRejoinable=False
             ))
 
-    active_games_dto = ActiveGamesDTO(games=games_list)
+    # Combine lists: Rejoinable games go first
+    active_games_dto = ActiveGamesDTO(games=rejoinable_games + games_list)
     return jsonify(asdict(active_games_dto))
 
 
@@ -144,7 +164,11 @@ def on_join(data):
     if game_id in active_games:
         game = active_games[game_id]
         game.add_player(user_id)
+
         join_room(game_id)
+        # NEW: Player joins a private room for targeted updates
+        join_room(user_id)
+
         emit('room_update', {"player_count": len(game.players)}, to=game_id)
         emit('game_state', game.get_state_for_player(user_id))
     else:
@@ -182,7 +206,7 @@ def on_send_message(data):
     if game_id in active_games:
         game = active_games[game_id]
         if game.handle_message_action(user_id, data):
-            emit('game_started', {}, to=game_id)
+            broadcast_state(game)
 
 
 @socketio.on('user_action')
@@ -195,7 +219,7 @@ def on_user_action(data):
     if game_id in active_games:
         game = active_games[game_id]
         if game.handle_user_action(user_id, action, payload):
-            emit('game_started', {}, to=game_id)
+            broadcast_state(game)
 
 
 if __name__ == '__main__':

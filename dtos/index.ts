@@ -7,6 +7,7 @@ export interface PlayerDTO {
   id: string;
   name: string;
   health: "healthy" | "sick" | "recovering";
+  fire_status: "COLD" | "HOST" | "GUEST";
   sickness_chance: number;
   resources: {
     wood: number;
@@ -112,6 +113,7 @@ export interface JoinableGameDTO {
   id: string;
   name: string;
   players: string;
+  isRejoinable?: boolean;
 }
 
 export interface NewGameDTO {

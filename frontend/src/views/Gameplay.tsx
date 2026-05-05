@@ -14,7 +14,9 @@ import DevelopmentsCard from "../components/DevelopmentsCard";
 import AvailableWorkCard from "../components/AvailableWorkCard";
 import { MOCK_STATE, MOCK_ME } from "./mockData";
 import PlayerRoster from "../components/PlayerRoster";
-
+import TradeDesk from "../components/TradeDesk";
+import TabbedCommunicator from "../components/TabbedCommunicator";
+import CampfireRing from "../components/CampfireRing";
 
 const Gameplay: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -105,39 +107,57 @@ const Gameplay: React.FC = () => {
       </div>
 
       <PlayerProvider players={gameState.player_list || []}>
-
-        {/* NEW PLACEMENT: PlayerStatusCard directly below header */}
         <PlayerStatusCard state={gameState} />
-
         {/* NEW LAYOUT: Flex container for the side-by-side split */}
-        <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
+        <div style={{ display: "flex", gap: "20px", height: "650px", marginBottom: "20px", minWidth: 0 }}>
 
-          {/* LEFT COLUMN: Stacked Developments and Available Work (flex: 1 keeps it narrower) */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 1 }}>
-            <DevelopmentsCard state={gameState} />
-            <AvailableWorkCard
-              state={gameState}
-              map={gameState.map}
-              onAction={(action, payload) => presenter.handleUserAction(action, payload)}
-            />
-            <PlayerRoster />
+          {/* MAIN COLUMN (flex: 2) - Dynamic Phase Cards */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 3, minWidth: 0 }}>
+
+            {phase === "WORK" && (
+              <div style={{ display: "flex", gap: "20px", height: "100%" }}>
+                {/* We pass onSend down so these cards can interact directly with the Message API */}
+                <DevelopmentsCard
+                  state={gameState}
+                  onSend={(payload) => presenter.handleSendMessage(payload)}
+                />
+                <AvailableWorkCard
+                  state={gameState}
+                  map={gameState.map || []}
+                  onAction={(action, payload) => presenter.handleUserAction(action, payload)}
+                  onSend={(payload) => presenter.handleSendMessage(payload)}
+                />
+              </div>
+            )}
+
+            {phase === "TRADE" && (
+              <TradeDesk
+                state={gameState}
+                onSend={(payload) => presenter.handleSendMessage(payload)}
+              />
+            )}
+
+            {phase === "NIGHT" && (
+              <CampfireRing
+                state={gameState}
+                onSend={(payload) => presenter.handleSendMessage(payload)}
+                onAction={(action, payload) => presenter.handleUserAction(action, payload)}
+              />
+            )}
+
           </div>
 
-          {/* RIGHT COLUMN: Wider Message Board (flex: 2 makes it twice as wide as the left column) */}
-          <div style={{ flex: 2 }}>
-            <MessageBoard
-              phase={phase}
+          {/* RIGHT COLUMN (flex: 2) - Roster and Tabbed Chat */}
+          <div style={{ flex: 2, display: "flex", flexDirection: "column", gap: "10px", minWidth: 0 }}>
+            <PlayerRoster />
+            <TabbedCommunicator
               messages={gameState.messages || []}
               playerId={userId}
-              myDevelopments={gameState.me.developments || []}
-              myResources={gameState.me.resources}
               players={gameState.player_list || []}
               onSend={(payload) => presenter.handleSendMessage(payload)}
             />
           </div>
-
         </div>
-
         {phase === "TRADE" && (
           <>
             {!gameState.me.finished_phase ? (

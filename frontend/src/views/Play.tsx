@@ -164,16 +164,26 @@ const Play: React.FC = () => {
                   cursor: "pointer",
                   display: "flex",
                   justifyContent: "space-between",
+                  // Apply distinct styling if it's a rejoinable game
+                  backgroundColor: game.isRejoinable ? "#e8f5e9" : "transparent",
+                  borderLeft: game.isRejoinable ? "4px solid #4caf50" : "none",
                   transition: "background 0.2s",
                 }}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = "#e8e8e8")
+                  (e.currentTarget.style.backgroundColor = game.isRejoinable ? "#c8e6c9" : "#e8e8e8")
                 }
                 onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor = "transparent")
+                  (e.currentTarget.style.backgroundColor = game.isRejoinable ? "#e8f5e9" : "transparent")
                 }
               >
-                <strong>{game.name || `Game ${game.id}`}</strong>
+                <div>
+                  <strong>{game.name || `Game ${game.id}`}</strong>
+                  {game.isRejoinable && (
+                    <span style={{ marginLeft: "10px", fontSize: "0.8rem", color: "#4caf50", fontWeight: "bold" }}>
+                      (Rejoin)
+                    </span>
+                  )}
+                </div>
                 <span style={{ fontSize: "0.85rem", color: "#888" }}>
                   {game.players}
                 </span>

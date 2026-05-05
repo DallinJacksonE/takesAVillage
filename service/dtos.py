@@ -150,6 +150,7 @@ class PlayerDTO:
     developments: List[DevelopmentDTO]
     available_work: List[AvailableWorkDTO]
     finished_phase: bool
+    fire_status: str  # <-- NEW PROPERTY
 
     @classmethod
     def from_model(cls, player, full_dev_objects: List[Any]) -> 'PlayerDTO':
@@ -164,7 +165,9 @@ class PlayerDTO:
             ],
             available_work=[AvailableWorkDTO(
                 dev_id=work_id) for work_id in player.available_work],
-            finished_phase=player.finished_phase
+            finished_phase=player.finished_phase,
+            fire_status=getattr(player, 'fire_status',
+                                'COLD')  # Default to COLD
         )
 
 
@@ -191,6 +194,7 @@ class JoinableGameDTO:
     id: str
     name: str
     players: str
+    isRejoinable: bool = False
 
 
 @dataclass

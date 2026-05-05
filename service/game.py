@@ -48,6 +48,7 @@ class Game:
             p.finished_phase = False
             if phase_name == "NIGHT":
                 p.current_fire_host = None
+                p.fire_status = "COLD"  # Reset everyone to cold
             if phase_name == "WORK" and p.health in ['sick', 'recovering']:
                 self.action_finish_phase(p)
         if phase_name == "TRADE":
@@ -84,6 +85,18 @@ class Game:
             return self.action_work_development(player, payload)
         if action == 'FINISH_PHASE':
             return self.action_finish_phase(player)
+
+        # NEW ACTION
+        if action == 'START_FIRE':
+            if player.resources.get('wood', 0) >= 1 and getattr(player, 'fire_status', 'COLD') == 'COLD':
+                player.resources['wood'] -= 1
+                player.fire_status = 'HOST'
+
+                # Cleanup: Cancel any outgoing requests they sent before committing
+                for msg in list(player.messages.values()):
+                    if msg.type == 'FIRE' and getattr(msg, 'action', '') == 'REQUEST' and msg.from_id == player.session_id and msg.status == 'PENDING':
+                        msg.status = 'DENIED'
+                return True
         return False
 
     def action_work_development(self, player, payload):
@@ -189,12 +202,37 @@ class Game:
                         sender.resources.get(res, 0) + actual_amt
                     )
 
+        elif (status == "ACCEPTED" or status == "ACCEPTED_CAMPFIRE") and getattr(msg, 'type', '') == "FIRE":
+            action_type = getattr(msg, 'action', 'OFFER')
+
+            if action_type == "OFFER":
+                host_id = getattr(msg, 'from_id', None)
+                guest_id = getattr(msg, 'to_id', None)
+            else:
+                host_id = getattr(msg, 'to_id', None)
+                guest_id = getattr(msg, 'from_id', None)
+
+            host = self.players.get(host_id)
+            guest = self.players.get(guest_id)
+
+            if host and guest:
+                # Count current guests
+                current_guests = sum(1 for p in self.players.values() if getattr(
+                    p, 'current_fire_host', None) == host_id)
+
+                if current_guests < 2:
+                    guest.current_fire_host = host_id
+                    guest.fire_status = "GUEST"
+                else:
+                    # Enforce Maximum Capacity
+                    msg.status = "DENIED"
+                    return True  # Allow state broadcast to show it was denied
+
         valid_statuses = [
             "CREATED", "UPDATED", "ACCEPTED_EMPLOYMENT",
-            "BARTER", "TRADE_COMPLETED"
+            "BARTER", "TRADE_COMPLETED", "ACCEPTED", "ACCEPTED_CAMPFIRE", "DENIED"
         ]
         return status in valid_statuses
-
     # --- Phase Resolution ---
 
     def resolve_work_phase(self):
