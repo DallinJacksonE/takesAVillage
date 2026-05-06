@@ -10,9 +10,10 @@ class Player:
 
         # Phase specific states
         self.hosting_fire = False
-        self.current_fire_host = None  # ID of player sharing fire with messages
+        self.current_fire_host = None
         self.available_work = self.developments
         self.finished_phase = False
+        self.committed_action = None
 
     def consume_daily(self):
         """Logic for nightly consumption and sickness calculation."""

@@ -281,4 +281,4 @@ export const MOCK_STATE_NIGHT: GameStateDTO = {
 // ========================================================
 // ACTIVE EXPORT: Change this to test different phases
 // ========================================================
-export const MOCK_STATE: GameStateDTO = MOCK_STATE_TRADE; // Change to MOCK_STATE_TRADE or MOCK_STATE_NIGHT
+export const MOCK_STATE: GameStateDTO = MOCK_STATE_WORK; // Change to MOCK_STATE_TRADE or MOCK_STATE_NIGHT

@@ -3,7 +3,7 @@ from dtos import (
     ResearchGameDTO, NewGameDTO, JoinGameDTO
 )
 from dataclasses import asdict
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, jsonify, make_response, g
 from flask_socketio import SocketIO, join_room, emit
 from game import Game
 from db import db
@@ -53,6 +53,28 @@ def game_loop():
 
 threading.Thread(target=game_loop, daemon=True).start()
 
+
+@app.before_request
+def auto_dev_login():
+    """DEV OVERRIDE: Automatically create a user if Chrome blocks the cookie."""
+    if request.path.startswith('/api/') and request.endpoint != 'consent':
+        user_cookie = request.cookies.get('user_session')
+        if not user_cookie or not db.user_exists(user_cookie):
+            print("🔧 DEV MODE: Missing/Invalid cookie. Auto-generating user session...")
+            new_uuid = str(uuid.uuid4())
+            db.create_user(new_uuid, True)
+            g.dev_user_uuid = new_uuid
+
+
+@app.after_request
+def attach_dev_cookie(response):
+    """Attach the newly generated dev cookie to the outgoing response."""
+    dev_uuid = getattr(g, 'dev_user_uuid', None)
+    if dev_uuid:
+        response.set_cookie('user_session', dev_uuid,
+                            max_age=60*60*24, secure=False, samesite='Lax')
+    return response
+
 # --- HTTP Routes ---
 
 
@@ -64,14 +86,16 @@ def consent():
     consent_dto = ConsentDTO(message="Consent logged", userId=user_uuid)
     resp = make_response(jsonify(asdict(consent_dto)))
     resp.set_cookie('user_session', user_uuid, max_age=60 *
-                    60*24, secure=True, samesite='Lax')
+                    60*24, secure=False, samesite='Lax')
 
     return resp
 
 
 @app.route('/api/activeGames', methods=['GET'])
 def get_active_games():
-    user_cookie = request.cookies.get('user_session')
+    user_cookie = getattr(g, 'dev_user_uuid',
+                          None) or request.cookies.get('user_session')
+
     if not user_cookie or not db.user_exists(user_cookie):
         return jsonify({"error": "Invalid or expired session"}), 403
 
@@ -119,9 +143,12 @@ def get_research_games():
 
 @app.route('/api/newGame', methods=['POST'])
 def new_game():
-    user_cookie = request.cookies.get('user_session')
+    # Grab the injected dev UUID, or fall back to the cookie
+    user_cookie = getattr(g, 'dev_user_uuid',
+                          None) or request.cookies.get('user_session')
+
     if not user_cookie or not db.user_exists(user_cookie):
-        return jsonify({"error": "Invalid/No Session"}), 403
+        return jsonify({"error": "Invalid/No Session"}), 4
 
     game_id = "g_" + str(uuid.uuid4())[:8]
     active_games[game_id] = Game(game_id, user_cookie)

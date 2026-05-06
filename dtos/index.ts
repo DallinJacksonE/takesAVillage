@@ -1,6 +1,21 @@
+// --- Core Types ---
+export type Resource = "wood" | "food" | "iron";
 
-export interface AvailableWorkDTO {
-  dev_id: string;
+export interface DevelopmentDTO {
+  id: string;
+  type: "Farm" | "Woods" | "Mine";
+  level: number;
+  maintenence_days: number;
+  owner_id: string;
+}
+
+// Replaces AvailableWorkDTO
+export interface WorkAction {
+  development: DevelopmentDTO;
+  wage: number; // For inherent devs, this can represent the base output (e.g., Lvl 2 Farm = 2)
+  wage_type: Resource;
+  employer_id: string; // The ID of the player paying the wage (or the worker's own ID if working for themselves)
+  message_id?: string; // Optional: Links back to the accepted Employment message, making backend cleanup easy
 }
 
 export interface PlayerDTO {
@@ -9,22 +24,12 @@ export interface PlayerDTO {
   health: "healthy" | "sick" | "recovering";
   fire_status: "COLD" | "HOST" | "GUEST";
   sickness_chance: number;
-  resources: {
-    wood: number;
-    food: number;
-    iron: number;
-  };
+  // IMPROVEMENT: Use the Resource type here for strict dictionary mapping
+  resources: Record<Resource, number>;
   developments: DevelopmentDTO[];
-  available_work: AvailableWorkDTO[];
+  available_work: WorkAction[]; // Now houses inherent work AND accepted job offers
+  committed_action?: WorkAction; // Set when they lock in their choice for the day
   finished_phase: boolean;
-}
-
-export interface DevelopmentDTO {
-  id: string;
-  type: "Farm" | "Woods" | "Mine";
-  level: number;
-  maintenence_days: number;
-  owner_id: string;
 }
 
 export interface MapTileDTO {
@@ -61,16 +66,17 @@ export interface EmploymentMessageDTO extends BaseMessageDTO {
   type: "EMPLOYMENT";
   dev_id?: string;
   wage_offer?: number;
-  wage_type?: string;
+  wage_type?: Resource; // Updated to strict Resource type
   bartered?: boolean;
 }
 
 export interface TradeMessageDTO extends BaseMessageDTO {
   type: "TRADE";
-  offer_items?: Record<string, number>;
-  request_items?: Record<string, number>;
-  actual_offer_items?: Record<string, number>;
-  actual_request_items?: Record<string, number>;
+  // IMPROVEMENT: Use strict Resource records instead of generic strings
+  offer_items?: Partial<Record<Resource, number>>;
+  request_items?: Partial<Record<Resource, number>>;
+  actual_offer_items?: Partial<Record<Resource, number>>;
+  actual_request_items?: Partial<Record<Resource, number>>;
   sender_finalized?: boolean;
   recipient_finalized?: boolean;
   bartered?: boolean;
@@ -78,10 +84,9 @@ export interface TradeMessageDTO extends BaseMessageDTO {
 
 export interface ShareFireMessageDTO extends BaseMessageDTO {
   type: "FIRE";
-  action?: string;
+  action?: "OFFER" | "REQUEST"; // Strict typing based on our earlier campfire chat
 }
 
-// This union type tells TypeScript that a MessageDTO is exactly ONE of these shapes
 export type MessageDTO =
   | TextMessageDTO
   | EmploymentMessageDTO
@@ -102,6 +107,8 @@ export interface GameStateDTO {
   messages: MessageDTO[];
   session_id?: string;
 }
+
+// ... Rest of your network DTOs (JoinableGameDTO, ConsentDTO, etc.) remain the same
 
 export interface ResearchGameDTO {
   game_id: string;
