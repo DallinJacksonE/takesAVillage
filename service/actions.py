@@ -143,6 +143,12 @@ class ActionFactory:
             action_copy.status = 'DENIED'
         elif action_command == 'ACCEPT':
             action_copy.status = 'ACCEPTED'
+        elif action_command == 'BARTER':
+            action_copy.offer_items = data.get(
+                'offer_items', action_copy.offer_items)
+            action_copy.request_items = data.get(
+                'request_items', action_copy.request_items)
+            action_copy.initiator_id, action_copy.target_id = action_copy.target_id, action_copy.initiator_id
         elif action_command == 'CANCEL':
             action_copy.status = 'CANCELED'
         elif action_command == 'FINALIZE':

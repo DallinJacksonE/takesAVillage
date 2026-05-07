@@ -128,7 +128,7 @@ const Gameplay: React.FC = () => {
 
           {/* RIGHT COLUMN: Roster & Social Chat */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "20px" }}>
-            <PlayerRoster players={gameState.player_list} />
+            <PlayerRoster />
             <TabbedCommunicator
               messages={gameState.chat_messages as any} // Cast if needed depending on how your interface is strictly set
               playerId={userId}

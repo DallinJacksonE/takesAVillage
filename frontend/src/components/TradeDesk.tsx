@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { GameStateDTO, TradeMessageDTO } from "../../../dtos/index";
+import { GameStateDTO, TradeActionDTO, Resource } from "../../../dtos/index";
 import { usePlayerName } from "./hooks/usePlayerName";
 
 interface Props {
@@ -7,231 +7,176 @@ interface Props {
   onSend: (payload: Record<string, any>) => void;
 }
 
-const TradeDesk: React.FC<Props> = ({ state, onSend }) => {
-  const { me, messages, player_list } = state;
-  const getPlayerName = usePlayerName();
+// Helper to neatly format resource bundles
+const renderItems = (items?: Partial<Record<Resource, number>>) => {
+  if (!items || Object.keys(items).length === 0) return "Nothing";
+  return Object.entries(items)
+    .filter(([_, val]) => (val as number) > 0)
+    .map(([res, val]) => `${val} ${res}`)
+    .join(", ") || "Nothing";
+};
 
-  // State for drafting a new trade
-  const [draftingWith, setDraftingWith] = useState<string | null>(null);
-  const [offerAmount, setOfferAmount] = useState(1);
-  const [offerType, setOfferType] = useState("food");
-  const [requestAmount, setRequestAmount] = useState(1);
-  const [requestType, setRequestType] = useState("wood");
+// --- SUB-COMPONENT: The Shipping Window ---
+const ShippingWindow: React.FC<{ trade: TradeActionDTO; meId: string; onSend: Props["onSend"]; getPlayerName: (id: string) => string }> = ({ trade, meId, onSend, getPlayerName }) => {
+  const isInitiator = meId === trade.initiator_id;
+  const expectedToSend = isInitiator ? trade.offer_items : trade.request_items;
+  const expectedToReceive = isInitiator ? trade.request_items : trade.offer_items;
+  const otherPersonId = isInitiator ? trade.target_id : trade.initiator_id;
+  const hasFinalized = isInitiator ? trade.initiator_finalized : trade.target_finalized;
 
-  // State for drafting a counter-offer
-  const [counteringMsgId, setCounteringMsgId] = useState<string | null>(null);
-  const [counterOfferAmount, setCounterOfferAmount] = useState(1);
-  const [counterOfferType, setCounterOfferType] = useState("food");
-  const [counterRequestAmount, setCounterRequestAmount] = useState(1);
-  const [counterRequestType, setCounterRequestType] = useState("wood");
+  // Local state for what the player *actually* decides to send
+  const [actualItems, setActualItems] = useState<Record<string, number>>(expectedToSend || {});
 
-  // Filter out trades from the message list
-  const tradeMessages = (messages || []).filter((m) => m.type === "TRADE") as TradeMessageDTO[];
-
-  const needsAttention = tradeMessages.filter(
-    (m) => (m.status === "PENDING" || m.status === "BARTERING") && m.pending_action_from === me.id
-  );
-
-  const waitingOnThem = tradeMessages.filter(
-    (m) => (m.status === "PENDING" || m.status === "BARTERING") && m.pending_action_from !== me.id
-  );
-
-  const handleSendDraft = () => {
-    if (!draftingWith) return;
+  const handleShip = () => {
     onSend({
-      to_id: draftingWith,
-      from_id: me.id,
-      type: "TRADE",
-      offer_items: { [offerType]: offerAmount },
-      request_items: { [requestType]: requestAmount },
+      actionCommand: "FINALIZE",
+      actionId: trade.id,
+      actual_items: actualItems,
     });
-    setDraftingWith(null); // Close draft box after sending
   };
 
-  const handleStartCounter = (msg: TradeMessageDTO) => {
-    const isSender = msg.from_id === me.id;
-    // Pre-fill the counter offer with what the other player originally requested/offered
-    const theirOffer = isSender ? msg.request_items : msg.offer_items;
-    const theirRequest = isSender ? msg.offer_items : msg.request_items;
-
-    const oType = Object.keys(theirRequest || {})[0] || "food";
-    const oAmt = (theirRequest || {})[oType] || 1;
-    const rType = Object.keys(theirOffer || {})[0] || "wood";
-    const rAmt = (theirOffer || {})[rType] || 1;
-
-    setCounterOfferType(oType);
-    setCounterOfferAmount(oAmt);
-    setCounterRequestType(rType);
-    setCounterRequestAmount(rAmt);
-
-    setCounteringMsgId(msg.id);
-  };
-
-  const handleSendCounter = (msgId: string) => {
-    onSend({
-      id: msgId,
-      action: "BARTER",
-      offer_items: { [counterOfferType]: counterOfferAmount },
-      request_items: { [counterRequestType]: counterRequestAmount }
-    });
-    setCounteringMsgId(null);
-  };
-
-  // Helper to visually render the trade: [ 2 Food ] ➔ [ 1 Wood ]
-  const renderTradeVisual = (offer: Record<string, number>, request: Record<string, number>) => {
-    const oType = Object.keys(offer)[0] || "food";
-    const oAmt = offer[oType] || 0;
-    const rType = Object.keys(request)[0] || "wood";
-    const rAmt = request[rType] || 0;
-
+  if (hasFinalized) {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: "10px", fontWeight: "bold" }}>
-        <span style={{ background: "#e8f5e9", padding: "4px 8px", borderRadius: "4px", border: "1px solid #c8e6c9" }}>
-          {oAmt} {oType}
-        </span>
-        <span style={{ color: "#888" }}>➔</span>
-        <span style={{ background: "#e3f2fd", padding: "4px 8px", borderRadius: "4px", border: "1px solid #bbdefb" }}>
-          {rAmt} {rType}
-        </span>
+      <div style={{ background: "#e8f5e9", padding: "10px", borderRadius: "6px", marginBottom: "10px", border: "1px solid #a5d6a7" }}>
+        <strong style={{ color: "#2e7d32" }}>Goods Shipped!</strong>
+        <div style={{ fontSize: "0.85rem", marginTop: "5px" }}>Waiting for {getPlayerName(otherPersonId || "")} to send their goods...</div>
       </div>
     );
+  }
+
+  return (
+    <div style={{ background: "#fff3e0", padding: "10px", borderRadius: "6px", marginBottom: "10px", border: "1px solid #ffcc80" }}>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <strong>Ship to {getPlayerName(otherPersonId || "")}</strong>
+        <span style={{ fontSize: "0.8rem", color: "#666" }}>Expected from them: {renderItems(expectedToReceive)}</span>
+      </div>
+
+      <div style={{ fontSize: "0.85rem", color: "#555", marginTop: "5px" }}>Agreed to send: {renderItems(expectedToSend)}</div>
+
+      <div style={{ display: "flex", gap: "10px", marginTop: "10px", alignItems: "center" }}>
+        {["food", "wood", "iron"].map((res) => (
+          <div key={res} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+            <span style={{ fontSize: "0.8rem", textTransform: "capitalize" }}>{res}:</span>
+            <input
+              type="number"
+              min="0"
+              style={{ width: "40px", padding: "2px" }}
+              value={actualItems[res] || 0}
+              onChange={(e) => setActualItems({ ...actualItems, [res]: parseInt(e.target.value) || 0 })}
+            />
+          </div>
+        ))}
+        <button className="btn success" style={{ marginLeft: "auto", padding: "4px 10px" }} onClick={handleShip}>Ship Goods</button>
+      </div>
+    </div>
+  );
+};
+
+// --- MAIN COMPONENT ---
+const TradeDesk: React.FC<Props> = ({ state, onSend }) => {
+  const { me, player_list } = state;
+  const getPlayerName = usePlayerName();
+
+  // Drafting State
+  const [targetId, setTargetId] = useState<string>(player_list.find(p => p.id !== me.id)?.id || "");
+  const [giveAmt, setGiveAmt] = useState(1);
+  const [giveRes, setGiveRes] = useState<Resource>("food");
+  const [reqAmt, setReqAmt] = useState(1);
+  const [reqRes, setReqRes] = useState<Resource>("wood");
+
+  // Filtering Actions
+  const tradeActions = (me.actions || []).filter((a): a is TradeActionDTO => a.type === "TRADE");
+  const pendingTrades = tradeActions.filter(t => t.status === "PENDING");
+  const acceptedTrades = tradeActions.filter(t => t.status === "ACCEPTED");
+
+  const handleDraftTrade = () => {
+    if (!targetId) return;
+    onSend({
+      actionCommand: "TRADE",
+      type: "TRADE",
+      target_id: targetId,
+      offer_items: { [giveRes]: giveAmt },
+      request_items: { [reqRes]: reqAmt }
+    });
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px", height: "100%" }}>
+    <div className="card" style={{ flex: 1, display: "flex", flexDirection: "column", gap: "20px" }}>
+      <h3>Trade Desk</h3>
 
-      {/* TOP ROW: Initiate New Trades */}
-      <div className="card" style={{ margin: 0 }}>
-        <h3 style={{ marginTop: 0 }}>The Trading Post</h3>
-        <p style={{ fontSize: "0.8rem", color: "#666" }}>Select a villager to propose a trade</p>
+      {/* --- SECTION 1: DRAFT NEW TRADE --- */}
+      <div style={{ background: "#f1f3f4", padding: "15px", borderRadius: "8px" }}>
+        <strong>Propose a Trade</strong>
+        <div style={{ display: "flex", gap: "10px", marginTop: "10px", alignItems: "center", flexWrap: "wrap" }}>
+          <select value={targetId} onChange={e => setTargetId(e.target.value)} style={{ padding: "5px" }}>
+            {player_list.filter(p => p.id !== me.id).map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <span>I give:</span>
+          <input type="number" min="0" value={giveAmt} onChange={e => setGiveAmt(parseInt(e.target.value) || 0)} style={{ width: "40px" }} />
+          <select value={giveRes} onChange={e => setGiveRes(e.target.value as Resource)}>
+            <option value="food">Food</option>
+            <option value="wood">Wood</option>
+            <option value="iron">Iron</option>
+          </select>
+          <span>for:</span>
+          <input type="number" min="0" value={reqAmt} onChange={e => setReqAmt(parseInt(e.target.value) || 0)} style={{ width: "40px" }} />
+          <select value={reqRes} onChange={e => setReqRes(e.target.value as Resource)}>
+            <option value="food">Food</option>
+            <option value="wood">Wood</option>
+            <option value="iron">Iron</option>
+          </select>
+          <button className="btn" style={{ background: "#2196F3", color: "white" }} onClick={handleDraftTrade}>Propose</button>
+        </div>
+      </div>
 
-        <div style={{ display: "flex", gap: "10px", overflowX: "auto", paddingBottom: "10px" }}>
-          {player_list?.filter(p => p.id !== me.id).map((player) => (
-            <button
-              key={player.id}
-              className="btn-sm"
-              style={{ background: draftingWith === player.id ? "#2196F3" : "#f0f0f0", color: draftingWith === player.id ? "white" : "#333" }}
-              onClick={() => setDraftingWith(draftingWith === player.id ? null : player.id)}
-            >
-              {player.name}
-            </button>
+      {/* --- SECTION 2: BARTERING (PENDING) --- */}
+      {pendingTrades.length > 0 && (
+        <div>
+          <strong style={{ color: "#1976d2", borderBottom: "2px solid #1976d2", paddingBottom: "4px", display: "block" }}>Active Negotiations</strong>
+          {pendingTrades.map(trade => {
+            const isInitiator = me.id === trade.initiator_id;
+            const otherPersonId = isInitiator ? trade.target_id : trade.initiator_id;
+
+            return (
+              <div key={trade.id} style={{ padding: "10px", borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ fontSize: "0.85rem" }}>
+                  <strong>{getPlayerName(otherPersonId)}</strong>
+                  <div>They Give: {renderItems(isInitiator ? trade.request_items : trade.offer_items)}</div>
+                  <div>You Give: {renderItems(isInitiator ? trade.offer_items : trade.request_items)}</div>
+                </div>
+
+                <div style={{ display: "flex", gap: "5px" }}>
+                  {isInitiator ? (
+                    <span style={{ fontSize: "0.8rem", color: "#888", fontStyle: "italic", alignSelf: "center", marginRight: "10px" }}>Awaiting their response...</span>
+                  ) : (
+                    <>
+                      {/* Notice we pass the 'BARTER' command here. It allows the target to flip the terms and become the initiator! */}
+                      <button className="btn-sm warning" onClick={() => onSend({ actionCommand: "BARTER", actionId: trade.id, offer_items: trade.request_items, request_items: trade.offer_items })}>Counter</button>
+                      <button className="btn-sm success" onClick={() => onSend({ actionCommand: "ACCEPT", actionId: trade.id })}>Accept</button>
+                    </>
+                  )}
+                  <button className="btn-sm danger" onClick={() => onSend({ actionCommand: isInitiator ? "CANCEL" : "DENY", actionId: trade.id })}>
+                    {isInitiator ? "Revoke" : "Reject"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* --- SECTION 3: THE SHIPPING WINDOW (ACCEPTED) --- */}
+      {acceptedTrades.length > 0 && (
+        <div>
+          <strong style={{ color: "#f57c00", borderBottom: "2px solid #f57c00", paddingBottom: "4px", display: "block", marginBottom: "10px" }}>Shipping Bay</strong>
+          {acceptedTrades.map(trade => (
+            <ShippingWindow key={trade.id} trade={trade} meId={me.id} onSend={onSend} getPlayerName={getPlayerName} />
           ))}
         </div>
+      )}
 
-        {/* DRAFTING BOX */}
-        {draftingWith && (
-          <div style={{ marginTop: "15px", padding: "15px", background: "#f9f9f9", borderRadius: "6px", border: "2px solid #2196F3" }}>
-            <h4 style={{ margin: "0 0 10px 0" }}>Drafting Trade with {getPlayerName(draftingWith)}</h4>
-            <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-              <span>I will give:</span>
-              <input type="number" min="1" style={{ width: "50px" }} value={offerAmount} onChange={(e) => setOfferAmount(Number(e.target.value))} />
-              <select value={offerType} onChange={(e) => setOfferType(e.target.value)}>
-                <option value="food">Food</option>
-                <option value="wood">Wood</option>
-                <option value="iron">Iron</option>
-              </select>
-
-              <span>for their:</span>
-              <input type="number" min="1" style={{ width: "50px" }} value={requestAmount} onChange={(e) => setRequestAmount(Number(e.target.value))} />
-              <select value={requestType} onChange={(e) => setRequestType(e.target.value)}>
-                <option value="food">Food</option>
-                <option value="wood">Wood</option>
-                <option value="iron">Iron</option>
-              </select>
-
-              <button className="btn success" onClick={handleSendDraft}>Send Offer</button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* DASHBOARD COLUMNS */}
-      <div style={{ display: "flex", gap: "20px", flex: 1 }}>
-
-        {/* LEFT COLUMN: Needs Attention */}
-        <div className="card" style={{ flex: 1, margin: 0, overflowY: "auto", borderTop: "4px solid #FF9800" }}>
-          <h3 style={{ marginTop: 0 }}>Needs Your Attention</h3>
-          {needsAttention.length === 0 ? (
-            <p style={{ color: "#888", fontStyle: "italic", fontSize: "0.85rem" }}>All caught up!</p>
-          ) : (
-            needsAttention.map(msg => {
-              const isSender = msg.from_id === me.id;
-              const give = isSender ? msg.offer_items : msg.request_items;
-              const receive = isSender ? msg.request_items : msg.offer_items;
-              const otherPersonId = isSender ? msg.to_id : msg.from_id;
-
-              return (
-                <div key={msg.id} style={{ background: "#fff", padding: "10px", marginBottom: "10px", borderRadius: "6px", border: "1px solid #ddd", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-                  <div style={{ fontSize: "0.8rem", color: "#666", marginBottom: "5px" }}>
-                    From <strong>{getPlayerName(otherPersonId)}</strong>
-                  </div>
-                  {renderTradeVisual(give || {}, receive || {})}
-
-                  {/* Action Buttons OR Counter Input */}
-                  {counteringMsgId === msg.id ? (
-                    <div style={{ marginTop: "10px", padding: "10px", background: "#fff3e0", borderRadius: "4px", border: "1px solid #ffcc80" }}>
-                      <div style={{ display: "flex", gap: "5px", alignItems: "center", flexWrap: "wrap", fontSize: "0.85rem" }}>
-                        <span>Give:</span>
-                        <input type="number" min="1" style={{ width: "40px", padding: "2px" }} value={counterOfferAmount} onChange={(e) => setCounterOfferAmount(Number(e.target.value))} />
-                        <select style={{ padding: "2px" }} value={counterOfferType} onChange={(e) => setCounterOfferType(e.target.value)}>
-                          <option value="food">Food</option>
-                          <option value="wood">Wood</option>
-                          <option value="iron">Iron</option>
-                        </select>
-                        <span>for:</span>
-                        <input type="number" min="1" style={{ width: "40px", padding: "2px" }} value={counterRequestAmount} onChange={(e) => setCounterRequestAmount(Number(e.target.value))} />
-                        <select style={{ padding: "2px" }} value={counterRequestType} onChange={(e) => setCounterRequestType(e.target.value)}>
-                          <option value="food">Food</option>
-                          <option value="wood">Wood</option>
-                          <option value="iron">Iron</option>
-                        </select>
-                      </div>
-                      <div style={{ display: "flex", gap: "5px", marginTop: "10px" }}>
-                        <button className="btn-sm warning" onClick={() => handleSendCounter(msg.id)}>Send Counter</button>
-                        <button className="btn-sm" onClick={() => setCounteringMsgId(null)}>Cancel</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ display: "flex", gap: "5px", marginTop: "10px" }}>
-                      <button className="btn-sm success" onClick={() => onSend({ id: msg.id, action: "ACCEPT" })}>Accept</button>
-                      <button className="btn-sm warning" onClick={() => handleStartCounter(msg)}>Counter</button>
-                      <button className="btn-sm danger" onClick={() => onSend({ id: msg.id, action: "DENY" })}>Deny</button>
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* RIGHT COLUMN: Waiting on Them */}
-        <div className="card" style={{ flex: 1, margin: 0, overflowY: "auto", borderTop: "4px solid #2196F3" }}>
-          <h3 style={{ marginTop: 0 }}>Pending (Waiting on Them)</h3>
-          {waitingOnThem.length === 0 ? (
-            <p style={{ color: "#888", fontStyle: "italic", fontSize: "0.85rem" }}>No outgoing trades.</p>
-          ) : (
-            waitingOnThem.map(msg => {
-              const isSender = msg.from_id === me.id;
-              const give = isSender ? msg.offer_items : msg.request_items;
-              const receive = isSender ? msg.request_items : msg.offer_items;
-              const otherPersonId = isSender ? msg.to_id : msg.from_id;
-
-              return (
-                <div key={msg.id} style={{ background: "#fafafa", padding: "10px", marginBottom: "10px", borderRadius: "6px", border: "1px dashed #ccc" }}>
-                  <div style={{ fontSize: "0.8rem", color: "#666", marginBottom: "5px" }}>
-                    Sent to <strong>{getPlayerName(otherPersonId)}</strong>
-                  </div>
-                  {renderTradeVisual(give || {}, receive || {})}
-                  <div style={{ fontSize: "0.75rem", color: "#888", marginTop: "8px", fontStyle: "italic" }}>
-                    Awaiting response...
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-      </div>
     </div>
   );
 };

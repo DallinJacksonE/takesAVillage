@@ -16,11 +16,19 @@ export const PlayerProvider: React.FC<{
     React.createElement(PlayerContext.Provider, { value: { players } }, children);
 
 export const usePlayerName = () => {
-  const context = useContext(PlayerContext);
-  if (context === undefined)
-    throw new Error("usePlayerName must be used within a PlayerProvider");
-  return (id: string) =>
-    context.players.find((p) => p.id === id)?.name || id.substring(0, 4);
+  // Destructure your players array from the context [cite: 161]
+  const { players } = usePlayers();
+
+  return (playerId: string | undefined): string => {
+    // 1. Instantly catch undefined, null, or empty strings
+    if (!playerId) return "Unknown Villager";
+
+    // 2. Look up the player
+    const player = players.find(p => p.id === playerId);
+
+    // 3. Return their name, or a fallback if the ID isn't in the lobby
+    return player ? player.name : "Unknown Villager";
+  };
 };
 
 export const usePlayers = () => {

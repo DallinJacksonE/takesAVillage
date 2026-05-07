@@ -45,7 +45,7 @@ def broadcast_state(game):
 def game_loop():
     while True:
         for game in list(active_games.values()):
-            if game.state == "RUNNING":
+            if game.status == "RUNNING":
                 if game.check_timer():
                     broadcast_state(game)
         time.sleep(1)
@@ -106,18 +106,18 @@ def get_active_games():
         is_user_in_game = user_cookie in game.players
 
         # Check if the user is already in this game
-        if is_user_in_game and game.state in ["WAITING", "RUNNING"]:
+        if is_user_in_game and game.status in ["WAITING", "RUNNING"]:
             rejoinable_games.append(JoinableGameDTO(
-                id=game.game_id,
-                name=f"Village {game.game_id}",
+                id=game.id,
+                name=f"Village {game.id}",
                 players=f"{len(game.players)}/10",
                 isRejoinable=True
             ))
         # Otherwise, standard check for joinable waiting games
         elif game.state == "WAITING" and not is_user_in_game:
             games_list.append(JoinableGameDTO(
-                id=game.game_id,
-                name=f"Village {game.game_id}",
+                id=game.id,
+                name=f"Village {game.id}",
                 players=f"{len(game.players)}/10",
                 isRejoinable=False
             ))
@@ -150,7 +150,7 @@ def new_game():
     if not user_cookie or not db.user_exists(user_cookie):
         return jsonify({"error": "Invalid/No Session"}), 4
 
-    game_id = "g_" + str(uuid.uuid4())[:8]
+    game_id = "g_" + str(uuid.uuid4())[:4]
     active_games[game_id] = Game(game_id, user_cookie)
 
     new_game_dto = NewGameDTO(gameId=game_id)

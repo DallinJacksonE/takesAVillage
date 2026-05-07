@@ -5,7 +5,7 @@ import { JoinableGameDTO } from "../../../dtos";
 
 const Play: React.FC = () => {
   const navigate = useNavigate();
-  const [hasConsented, setHasConsented] = useState(true);
+  const [hasConsented, setHasConsented] = useState(false);
   const [is18Plus, setIs18Plus] = useState(true);
   const [joinableGames, setJoinableGames] = useState<JoinableGameDTO[]>([]);
 

@@ -254,8 +254,6 @@ class GameStateDTO:
     def to_dict(self) -> dict:
         return asdict(self)
 
-# ... [Standard JoinableGameDTO, ActiveGamesDTO, etc. remain unchanged below] ...
-
 
 @dataclass
 class JoinableGameDTO:

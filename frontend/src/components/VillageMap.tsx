@@ -5,7 +5,7 @@ import PlayerInfo from "./PlayerInfo";
 
 interface Props {
   mapData: MapTileDTO[];
-  onAction: (action: string, payload: any) => void;
+  onAction: (actionCommand: string, payload: any) => void;
   playerId: string;
 }
 
@@ -17,184 +17,209 @@ const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-  const HEX_SIZE = 50;
+  // Correct Pointy-Topped Hex Math
+  const HEX_SIZE = 45;
+  const hexWidth = HEX_SIZE * Math.sqrt(3);
+  const hexHeight = HEX_SIZE * 2;
+  const pointyClipPath = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
 
   const hexToPixel = (q: number, r: number) => {
-    const x = HEX_SIZE * (Math.sqrt(3) * q + (Math.sqrt(3) / 2) * r);
-    const y = HEX_SIZE * ((3 / 2) * r);
+    const x = HEX_SIZE * Math.sqrt(3) * (q + r / 2);
+    const y = HEX_SIZE * (3 / 2) * r;
     return { x, y };
   };
 
   const getPlayerName = (id: string) => {
-    if (id === playerId) {
-      return "Your";
-    }
+    if (id === playerId) return "Your";
     const name = getPlayerNameFromHook(id);
     return `${name}'s`;
   };
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  // --- Styling Helpers ---
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "Farm": return "#FFF59D"; // Light Yellow/Gold
+      case "Woods": return "#A5D6A7"; // Light Green
+      case "Mine": return "#B0BEC5"; // Blue-Gray
+      default: return "#e0e0e0";
+    }
+  };
+
+  const getOwnerColor = (ownerId?: string) => {
+    if (!ownerId) return "#ffffff"; // Unowned: White border
+    if (ownerId === playerId) return "#2196F3"; // Mine: Blue border
+    return "#f44336"; // Opponent: Red border
+  };
+
+  // --- Dragging Handlers ---
+  const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
   };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
     setOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
   };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  if (!mapData || mapData.length === 0) {
-    return (
-      <div style={{ padding: "20px", textAlign: "center", color: "#888" }}>
-        Map generating...
-      </div>
-    );
-  }
+  const handleMouseUp = () => setIsDragging(false);
 
   return (
     <div
-      className='card'
-      style={{ height: "500px", display: "flex", flexDirection: "column" }}
+      className="card"
+      style={{
+        height: "500px",
+        position: "relative",
+        overflow: "hidden",
+        background: "#e3f2fd",
+        cursor: isDragging ? "grabbing" : "grab",
+        userSelect: "none",
+      }}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
     >
-      <h3 style={{ borderBottom: "1px solid #eee", paddingBottom: "10px" }}>
-        Village Map
-      </h3>
-
       <div
         style={{
-          flex: 1,
-          position: "relative",
-          overflow: "hidden",
-          background: "#e0e5ec",
-          cursor: isDragging ? "grabbing" : "grab",
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
         }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
       >
-        {/* Map Viewport - Centered and Translated */}
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
-          }}
-        >
-          {mapData.map((tile) => {
-            const { x, y } = hexToPixel(tile.q, tile.r);
+        {mapData.map((tile) => {
+          const { x, y } = hexToPixel(tile.q, tile.r);
+          const isSelected = selectedTile?.id === tile.id;
 
-            // Color based on type
-            let bg = "#ccc";
-            if (tile.type === "Farm") bg = "#8bc34a";
-            if (tile.type === "Woods") bg = "#795548";
-            if (tile.type === "Mine") bg = "#607d8b";
-
-            return (
+          return (
+            <div
+              key={tile.id}
+              onClick={() => setSelectedTile(tile)}
+              style={{
+                position: "absolute",
+                left: x,
+                top: y,
+                width: hexWidth,
+                height: hexHeight,
+                background: getOwnerColor(tile.owner_id),
+                clipPath: pointyClipPath,
+                cursor: "pointer",
+                transform: `translate(-50%, -50%) ${isSelected ? "scale(1.15)" : "scale(1)"}`,
+                transition: "transform 0.15s ease-in-out",
+                zIndex: isSelected ? 10 : 1,
+              }}
+            >
+              {/* Inner Hex to create colored border effect */}
               <div
-                key={tile.id}
-                onClick={() => setSelectedTile(tile)}
                 style={{
                   position: "absolute",
-                  left: x,
-                  top: y,
-                  width: `${HEX_SIZE * 1.6}px`,
-                  height: `${HEX_SIZE * 1.6}px`,
-                  backgroundColor: bg,
-                  clipPath:
-                    "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
+                  top: "4px", left: "4px", right: "4px", bottom: "4px",
+                  background: getTypeColor(tile.type),
+                  clipPath: pointyClipPath,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  cursor: "pointer",
-                  fontSize: "0.7rem",
-                  color: "white",
-                  fontWeight: "bold",
-                  boxShadow: "inset 0 0 10px rgba(0,0,0,0.2)",
-                  border:
-                    selectedTile?.id === tile.id ? "3px solid white" : "none",
-                  zIndex: 10,
+                  flexDirection: "column",
+                  color: "#333",
                 }}
               >
-                {tile.type[0]}
+                <span style={{ fontSize: "0.8rem", fontWeight: "bold" }}>{tile.type}</span>
+                {tile.owner_id && <span style={{ fontSize: "0.6rem" }}>{getPlayerName(tile.owner_id)}</span>}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
 
-        {/* Floating Tooltip / Info Panel */}
+        {/* --- TOOLTIP POPUP --- */}
         {selectedTile && (
           <div
+            className="card"
             style={{
               position: "absolute",
-              bottom: "20px",
-              right: "20px",
-              width: "200px",
-              background: "white",
-              padding: "15px",
-              borderRadius: "8px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
               zIndex: 100,
+              width: "220px",
+              padding: "15px",
+              boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
+              transform: "translate(-50%, -110%)",
+              left: hexToPixel(selectedTile.q, selectedTile.r).x,
+              top: hexToPixel(selectedTile.q, selectedTile.r).y,
+              background: "white",
+              cursor: "default",
             }}
+            onMouseDown={(e) => e.stopPropagation()} // Prevent dragging when clicking buttons
           >
-            <h4 style={{ margin: "0 0 5px 0" }}>{selectedTile.type} Plot</h4>
-            <div style={{ fontSize: "0.85rem", color: "#666" }}>
-              ID: {selectedTile.id}
-              <br />
-              Coords: {selectedTile.q}, {selectedTile.r}
-            </div>
-            <hr
-              style={{
-                margin: "10px 0",
-                border: "0",
-                borderTop: "1px solid #eee",
-              }}
-            />
+            <h4 style={{ margin: "0 0 10px 0" }}>{selectedTile.type}</h4>
+
             {selectedTile.owner_id ? (
-              <div>
-                <strong>Owner:</strong>
-                <br />
-                <PlayerInfo playerId={selectedTile.owner_id} />
-              </div>
-            ) : (
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: "5px" }}
-              >
-                <div
-                  style={{
-                    color: "#2e7d32",
-                    fontStyle: "italic",
-                    marginBottom: "5px",
-                  }}
-                >
-                  Available for Development
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div>
+                  <strong style={{ fontSize: "0.8rem", color: "#666" }}>OWNER:</strong>
+                  <br />
+                  <PlayerInfo playerId={selectedTile.owner_id} />
                 </div>
 
-                {/* NEW BUILD BUTTON */}
+                {selectedTile.owner_id !== playerId && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "5px", marginTop: "5px" }}>
+                    <button
+                      className="btn success"
+                      style={{ fontSize: "0.75rem", padding: "6px" }}
+                      onClick={() => {
+                        onAction("EMPLOYMENT", {
+                          type: "EMPLOYMENT",
+                          target_id: selectedTile.owner_id,
+                          dev_id: selectedTile.id,
+                          is_application: true,
+                          wage: 1,
+                          wage_type: "food",
+                        });
+                        setSelectedTile(null);
+                      }}
+                    >
+                      Apply for Job
+                    </button>
+                    <button
+                      className="btn danger"
+                      style={{ fontSize: "0.75rem", padding: "6px" }}
+                      onClick={() => {
+                        onAction("CONTEST", {
+                          type: "CONTEST",
+                          target_id: selectedTile.owner_id,
+                          dev_id: selectedTile.id,
+                        });
+                        setSelectedTile(null);
+                      }}
+                    >
+                      Contest Ownership
+                    </button>
+                  </div>
+                )}
+
+                {selectedTile.owner_id === playerId && (
+                  <div style={{ fontSize: "0.8rem", color: "#2196F3", fontStyle: "italic" }}>
+                    This is your property.
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                <div style={{ color: "#2e7d32", fontStyle: "italic", marginBottom: "5px", fontSize: "0.85rem" }}>
+                  Available for Development
+                </div>
                 <button
-                  className='btn'
-                  style={{
-                    background: "#795548",
-                    color: "white",
-                    fontSize: "0.8rem",
-                  }}
+                  className="btn"
+                  style={{ background: "#795548", color: "white", fontSize: "0.8rem" }}
                   onClick={() => {
                     onAction("BUILD_DEV", { dev_id: selectedTile.id });
-                    setSelectedTile(null); // Close popup after clicking
+                    setSelectedTile(null);
                   }}
                 >
                   Build Dev (2 Wood)
                 </button>
               </div>
             )}
+
             <button
-              className='btn btn-secondary'
-              style={{ marginTop: "10px", width: "100%", padding: "5px" }}
+              className="btn btn-secondary"
+              style={{ marginTop: "10px", width: "100%", padding: "5px", fontSize: "0.75rem" }}
               onClick={() => setSelectedTile(null)}
             >
               Close
