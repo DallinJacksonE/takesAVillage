@@ -222,30 +222,30 @@ def on_request_update(data):
         state = game.get_state_for_player(user_id)
         emit('game_state', state)
 
-# --- UNIFIED MESSAGE HANDLER ---
+# --- SEPARATED WEBSOCKET ROUTING ---
 
 
-@socketio.on('send_message')
-def on_send_message(data):
+@socketio.on('send_chat')
+def on_send_chat(data):
+    """Handles pure social interactions."""
     game_id = data.get('gameId')
-    user_id = data.get('from_id') or data.get('userId')
+    user_id = data.get('userId') or data.get('from_id')
 
     if game_id in active_games:
         game = active_games[game_id]
-        if game.handle_message_action(user_id, data):
+        if game.handle_chat(user_id, data):
             broadcast_state(game)
 
 
-@socketio.on('user_action')
-def on_user_action(data):
+@socketio.on('submit_action')
+def on_submit_action(data):
+    """Handles all game state changes (building, committing, contracts)."""
     game_id = data.get('gameId')
     user_id = data.get('userId')
-    action = data.get('action')
-    payload = data.get('payload')
 
     if game_id in active_games:
         game = active_games[game_id]
-        if game.handle_user_action(user_id, action, payload):
+        if game.handle_action(user_id, data):
             broadcast_state(game)
 
 

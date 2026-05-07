@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import StatusCards from "../components/StatusCards";
 import VillageMap from "../components/VillageMap";
-import MessageBoard from "../components/MessageBoard";
 import { GameStateDTO } from "../../../dtos";
 import { PlayerProvider } from "../components/hooks/usePlayerName";
 import {
@@ -27,105 +25,71 @@ const Gameplay: React.FC = () => {
   const [userId, setUserId] = useState("");
 
   useEffect(() => {
-
     if (gameId === "test-render") {
       setGameState(MOCK_STATE);
-      setPlayerCount(MOCK_STATE.player_list.length); // Dynamically set to 8 based on the mock array
+      setPlayerCount(MOCK_STATE.player_list.length);
       setTimeLeft(MOCK_STATE.time_remaining);
       setUserId(MOCK_ME.id);
 
       const dummyPresenter = {
-        handleStartGame: () => console.log("[MOCK] Start Game triggered"),
-        handleUserAction: (action: string, payload: any) => console.log(`[MOCK] Action: ${action}`, payload),
-        handleSendMessage: (payload: any) => console.log("[MOCK] Send Message:", payload),
-        destroy: () => console.log("[MOCK] Cleanup"),
+        submitAction: (action: string, payload: any) =>
+          console.log("Mock Action Submitted:", action, payload),
+        sendChat: (content: string, toId: string) =>
+          console.log("Mock Chat Sent:", content, "to", toId),
+        destroy: () => { },
       } as unknown as GameplayPresenter;
 
       setPresenter(dummyPresenter);
       return;
     }
 
+    const view: GameplayView = {
+      setGameState,
+      setPlayerCount,
+      setTimeLeft,
+      setUserId,
+      showAlert: (msg: string) => alert(msg),
+    };
 
-    if (gameId) {
-      const view: GameplayView = {
-        setGameState,
-        setPlayerCount,
-        setTimeLeft,
-        setUserId,
-        showAlert: (message: string) => alert(message),
-      };
-      const gameplayPresenter = new GameplayPresenter(view, gameId);
-      setPresenter(gameplayPresenter);
+    const newPresenter = new GameplayPresenter(view, gameId || "");
+    setPresenter(newPresenter);
 
-      return () => {
-        gameplayPresenter.destroy();
-      };
-    }
+    return () => newPresenter.destroy();
   }, [gameId]);
 
-  if (!presenter || !gameState) return <div>Connecting...</div>;
+  if (!gameState || !presenter) return <div>Loading...</div>;
 
-  if (gameState.status === "WAITING") {
-    return (
-      <div
-        className="container"
-        style={{ textAlign: "center", marginTop: "50px" }}
-      >
-        <h1>Waiting for Players...</h1>
-        <h2>Game ID: {gameId}</h2>
-        <p>Players: {playerCount}</p>
-        {gameState.is_host && (
-          <button className="btn" onClick={() => presenter.handleStartGame()}>
-            Start Game
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  const { day, phase } = gameState;
+  const { phase } = gameState;
 
   return (
-    <div style={{ width: "100%", display: "flex", flexDirection: "column", height: "100%" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          borderBottom: "2px solid #333",
-          paddingBottom: "10px",
-          marginBottom: "20px",
-        }}
-      >
-        <h2>{gameState.me.name}</h2>
-        <h2 style={{ color: "#2e7d32" }}>
-          Day {day}: {phase}
-        </h2>
-        <h3>
-          {Math.floor(timeLeft / 60)}:
-          {(timeLeft % 60).toString().padStart(2, "0")}
-        </h3>
-      </div>
+    <div style={{ padding: "20px" }}>
+      <PlayerProvider players={gameState.player_list}>
+        {/* --- HEADER --- */}
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+          <h2>Village: {gameId} (Players: {playerCount})</h2>
+          <div>
+            <strong>Day {gameState.day}</strong> | Phase: {phase} | Time:{" "}
+            {timeLeft}s
+          </div>
+        </div>
 
-      <PlayerProvider players={gameState.player_list || []}>
-        <PlayerStatusCard state={gameState} />
-        {/* NEW LAYOUT: Flex container for the side-by-side split */}
-        <div style={{ display: "flex", gap: "20px", height: "650px", marginBottom: "20px", minWidth: 0 }}>
+        {/* --- MAIN DASHBOARD GRID --- */}
+        <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
 
-          {/* MAIN COLUMN (flex: 2) - Dynamic Phase Cards */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 3, minWidth: 0 }}>
+          {/* LEFT COLUMN: Player Stats & Phase Mechanics */}
+          <div style={{ flex: 2, display: "flex", flexDirection: "column", gap: "20px" }}>
+            <PlayerStatusCard state={gameState} />
 
+            {/* Phase Routing */}
             {phase === "WORK" && (
-              <div style={{ display: "flex", gap: "20px", height: "100%" }}>
-                {/* We pass onSend down so these cards can interact directly with the Message API */}
+              <div style={{ display: "flex", gap: "20px" }}>
                 <DevelopmentsCard
                   state={gameState}
-                  onSend={(payload) => presenter.handleSendMessage(payload)}
+                  onSend={(payload) => presenter.submitAction(payload.actionCommand || payload.action, payload)}
                 />
                 <AvailableWorkCard
                   state={gameState}
-                  map={gameState.map || []}
-                  onAction={(action, payload) => presenter.handleUserAction(action, payload)}
-                  onSend={(payload) => presenter.handleSendMessage(payload)}
+                  onSend={(payload) => presenter.submitAction(payload.actionCommand || payload.action, payload)}
                 />
               </div>
             )}
@@ -133,104 +97,54 @@ const Gameplay: React.FC = () => {
             {phase === "TRADE" && (
               <TradeDesk
                 state={gameState}
-                onSend={(payload) => presenter.handleSendMessage(payload)}
+                onSend={(payload) => presenter.submitAction(payload.actionCommand || payload.action, payload)}
               />
             )}
 
             {phase === "NIGHT" && (
               <CampfireRing
                 state={gameState}
-                onSend={(payload) => presenter.handleSendMessage(payload)}
-                onAction={(action, payload) => presenter.handleUserAction(action, payload)}
+                onSend={(payload) => presenter.submitAction(payload.actionCommand || payload.action, payload)}
+                onAction={(actionCommand, payload) => presenter.submitAction(actionCommand, payload)}
               />
             )}
 
+            {/* End Phase Lock-In */}
+            {!gameState.me.finished_phase ? (
+              <div className="card" style={{ background: "#333", color: "white", textAlign: "center" }}>
+                <button
+                  className="btn"
+                  onClick={() => presenter.submitAction("FINISH_PHASE")}
+                >
+                  {phase === "NIGHT" ? "End Day" : "End Phase"}
+                </button>
+              </div>
+            ) : (
+              <div className="card" style={{ background: "#e59f71", textAlign: "center" }}>
+                Waiting For Others To Finish
+              </div>
+            )}
           </div>
 
-          {/* RIGHT COLUMN (flex: 2) - Roster and Tabbed Chat */}
-          <div style={{ flex: 2, display: "flex", flexDirection: "column", gap: "10px", minWidth: 0 }}>
-            <PlayerRoster />
+          {/* RIGHT COLUMN: Roster & Social Chat */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "20px" }}>
+            <PlayerRoster players={gameState.player_list} />
             <TabbedCommunicator
-              messages={gameState.messages || []}
+              messages={gameState.chat_messages as any} // Cast if needed depending on how your interface is strictly set
               playerId={userId}
-              players={gameState.player_list || []}
-              onSend={(payload) => presenter.handleSendMessage(payload)}
+              players={gameState.player_list}
+              onSend={(content: string, toId: string) => presenter.sendChat(content, toId)}
             />
           </div>
         </div>
-        {phase === "TRADE" && (
-          <>
-            {!gameState.me.finished_phase ? (
-              <div
-                className="card"
-                style={{
-                  background: "#D4ECD6",
-                  textAlign: "center",
-                  margin: "20px 0",
-                }}
-              >
-                <button
-                  className="btn"
-                  onClick={() => presenter.handleUserAction("FINISH_PHASE", {})}
-                >
-                  Finish Trading
-                </button>
-              </div>
-            ) : (
-              <div
-                className="card"
-                style={{
-                  background: "#e59f71",
-                  textAlign: "center",
-                  margin: "20px 0",
-                }}
-              >
-                Waiting For Others To Finish
-              </div>
-            )}
-          </>
-        )}
 
-        {phase === "NIGHT" && (
-          <>
-            {!gameState.me.finished_phase ? (
-              <div
-                className="card"
-                style={{
-                  background: "#333",
-                  color: "white",
-                  textAlign: "center",
-                  margin: "20px 0",
-                }}
-              >
-                <button
-                  className="btn"
-                  onClick={() => presenter.handleUserAction("FINISH_PHASE", {})}
-                >
-                  End Day
-                </button>
-              </div>
-            ) : (
-              <div
-                className="card"
-                style={{
-                  background: "#e59f71",
-                  textAlign: "center",
-                  margin: "20px 0",
-                }}
-              >
-                Waiting For Others To Finish
-              </div>
-            )}
-          </>
-        )}
-
+        {/* --- MAP --- */}
         {gameState.map && (
           <VillageMap
             mapData={gameState.map}
             playerId={userId}
-            onAction={(action, payload) =>
-              presenter.handleUserAction(action, payload)
+            onAction={(actionCommand, payload) =>
+              presenter.submitAction(actionCommand, payload)
             }
           />
         )}

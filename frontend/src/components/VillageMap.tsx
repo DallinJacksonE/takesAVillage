@@ -184,7 +184,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId }) => {
                     fontSize: "0.8rem",
                   }}
                   onClick={() => {
-                    onAction("BUILD_DEV", { tile_id: selectedTile.id });
+                    onAction("BUILD_DEV", { dev_id: selectedTile.id });
                     setSelectedTile(null); // Close popup after clicking
                   }}
                 >
