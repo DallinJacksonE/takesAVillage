@@ -10,15 +10,15 @@ const PlayerRoster = () => {
 
   return (
     <div className="card">
-      <h3>Player Roster</h3>
-      <ul>
+      <h3>Villagers</h3>
+      <ul style={{ listStyleType: 'none' }}>
         {players.map((player) => (
           <li key={player.id} style={{ marginBottom: "8px" }}>
             <PlayerInfo playerId={player.id} />
           </li>
         ))}
       </ul>
-    </div>
+    </div >
   )
 };
 

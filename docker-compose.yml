@@ -13,40 +13,28 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
-      # Using the specific village user to ping ensures the DB is 100% ready for Flask
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "village", "-pvillage_db"]
       interval: 10s
       timeout: 10s
       retries: 15
-      start_period: 90s # Gives MySQL a massive 90-second runway to finish building
+      start_period: 90s 
 
   web:
     build: .
     container_name: village_web
     restart: always
-    expose:
-      - "5000"
+    ports:
+      - "5000:5000"  # <-- Changed from 'expose' to 'ports' to open it to your host
     environment:
       - DB_HOST=db
       - DB_USER=village
       - DB_PASSWORD=village_db
       - DB_NAME=village_db
     volumes:
-      - ./service:/app/service  # <--- ADD THIS LINE
+      - ./service:/app/service
     depends_on:
       db:
         condition: service_healthy
-  nginx:
-    image: nginx:alpine
-    container_name: village_nginx
-    restart: always
-    ports:
-      - "5000:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - web
 
 volumes:
   db_data:

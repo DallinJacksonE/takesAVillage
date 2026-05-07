@@ -45,7 +45,8 @@ const AvailableWorkCard: React.FC<Props> = ({ state, onSend }) => {
                 </div>
               </div>
               <button
-                className="btn success"
+                style={{ background: "grey", color: "white" }}
+                className="btn-secondary"
                 disabled={me.finished_phase}
                 onClick={() => onSend({ actionCommand: "COMMIT_WORK", work_action: work })}
               >
@@ -64,8 +65,8 @@ const AvailableWorkCard: React.FC<Props> = ({ state, onSend }) => {
             <div key={offer.id} style={{ background: "#e3f2fd", padding: "8px", borderRadius: "4px", marginTop: "5px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem" }}>
               <span>{getPlayerName(offer.initiator_id)} is offering {offer.wage} {offer.wage_type}.</span>
               <div style={{ display: "flex", gap: "5px" }}>
-                <button className="btn-sm" style={{ background: "#2196F3", color: "white" }} onClick={() => onSend({ actionCommand: "ACCEPT", actionId: offer.id })}>Accept</button>
-                <button className="btn-sm danger" onClick={() => onSend({ actionCommand: "DENY", actionId: offer.id })}>Reject</button>
+                <button className="btn-secondary" style={{ background: "#2196F3", color: "white" }} onClick={() => onSend({ actionCommand: "ACCEPT", actionId: offer.id })}>Accept</button>
+                <button className="btn-secondary danger" onClick={() => onSend({ actionCommand: "DENY", actionId: offer.id })}>Reject</button>
               </div>
             </div>
           ))}

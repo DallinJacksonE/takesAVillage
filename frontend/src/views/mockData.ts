@@ -14,6 +14,10 @@ export const MOCK_MAP: MapTileDTO[] = [
   { id: "tile-1", q: 0, r: 0, type: "Farm", owner_id: "mock-user-1" },
   { id: "tile-2", q: 1, r: -1, type: "Woods", owner_id: "mock-user-3" },
   { id: "tile-3", q: -1, r: 1, type: "Mine", owner_id: "mock-user-4" },
+  { id: "tile-4", q: -1, r: 0, type: "Farm" },
+  { id: "tile-5", q: -1, r: -1, type: "Woods" },
+  { id: "tile-6", q: 0, r: -1, type: "Woods" },
+  { id: "tile-7", q: 0, r: 1, type: "Mine" },
 ];
 
 const MOCK_CHATS: ChatMessageDTO[] = [
@@ -59,9 +63,19 @@ const WORK_ACTIONS: ActionDTO[] = [
     wage_type: "wood",
     is_application: false,
     status: "ACCEPTED" // They accepted, waiting for you to commit!
+  },
+  {
+    id: "action-work-3",
+    type: "EMPLOYMENT",
+    initiator_id: "mock-user-3", // Lumberjack Larry is the initiator
+    target_id: "mock-user-1", // He is offering YOU a job
+    dev_id: "tile-2", // At his Woods development
+    wage: 3,
+    wage_type: "wood",
+    is_application: false, // This is an offer, not an application
+    status: "PENDING" // Waiting for your response (Accept/Deny/Counter)
   }
 ];
-
 const TRADE_ACTIONS: ActionDTO[] = [
   {
     id: "action-trade-1",
@@ -110,8 +124,8 @@ export const MOCK_ME: PlayerDTO = {
 
 const MOCK_OPPONENTS: PlayerDTO[] = [
   { ...MOCK_ME, id: "mock-user-2", name: "Farmer Fran", actions: [] },
-  { ...MOCK_ME, id: "mock-user-3", name: "Lumberjack Larry", actions: [] },
-  { ...MOCK_ME, id: "mock-user-4", name: "Miner Mike", actions: [] },
+  { ...MOCK_ME, id: "mock-user-3", name: "Lumberjack Larry", health: "recovering" },
+  { ...MOCK_ME, id: "mock-user-4", name: "Miner Mike", health: "sick" },
 ];
 
 const BASE_STATE: GameStateDTO = {
@@ -149,4 +163,4 @@ export const MOCK_STATE_NIGHT: GameStateDTO = {
 };
 
 // Change this line to test different phases in your UI!
-export const MOCK_STATE = MOCK_STATE_NIGHT;
+export const MOCK_STATE = MOCK_STATE_WORK;

@@ -55,7 +55,7 @@ const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
               {/* System Actions: Maintenance & Upgrade */}
               <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
                 <button
-                  className="btn-sm"
+                  className="btn-secondary"
                   style={{ background: "#795548", color: "white" }}
                   onClick={() =>
                     onSend({
@@ -70,7 +70,7 @@ const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
                   Maintain (1 Wood)
                 </button>
                 <button
-                  className="btn-sm"
+                  className="btn-secondary"
                   style={{ background: "#f57c00", color: "white" }}
                   onClick={() =>
                     onSend({

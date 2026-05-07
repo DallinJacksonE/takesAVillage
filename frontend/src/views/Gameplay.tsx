@@ -61,6 +61,34 @@ const Gameplay: React.FC = () => {
 
   const { phase } = gameState;
 
+  if (gameState.status === "WAITING") {
+    return (
+      <div style={{ padding: "40px", textAlign: "center" }}>
+        <h2>Waiting Room: Village {gameId}</h2>
+        <p>Players Joined: {playerCount} / 10</p>
+
+        {/* Render Host Controls */}
+        {gameState.is_host ? (
+          <div>
+            <button
+              onClick={() => presenter.handleStartGame()}
+              disabled={playerCount < 2}
+              style={{ padding: "10px 20px", fontSize: "16px", cursor: playerCount >= 2 ? "pointer" : "not-allowed" }}
+            >
+              Start Game
+            </button>
+            {playerCount < 2 && <p style={{ color: "red" }}>Need at least 2 players to start.</p>}
+          </div>
+        ) : (
+          /* Render Guest View */
+          <div>
+            <p>Waiting for the host to start the game...</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: "20px" }}>
       <PlayerProvider players={gameState.player_list}>
@@ -140,13 +168,17 @@ const Gameplay: React.FC = () => {
 
         {/* --- MAP --- */}
         {gameState.map && (
-          <VillageMap
-            mapData={gameState.map}
-            playerId={userId}
-            onAction={(actionCommand, payload) =>
-              presenter.submitAction(actionCommand, payload)
-            }
-          />
+          <div className="card">
+            <h3>Village Map</h3>
+            <VillageMap
+              mapData={gameState.map}
+              playerId={userId}
+              onAction={(actionCommand, payload) =>
+                presenter.submitAction(actionCommand, payload)
+              }
+            />
+
+          </div>
         )}
       </PlayerProvider>
     </div>

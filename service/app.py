@@ -114,7 +114,7 @@ def get_active_games():
                 isRejoinable=True
             ))
         # Otherwise, standard check for joinable waiting games
-        elif game.state == "WAITING" and not is_user_in_game:
+        elif game.status == "WAITING" and not is_user_in_game:
             games_list.append(JoinableGameDTO(
                 id=game.id,
                 name=f"Village {game.id}",

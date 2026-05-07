@@ -2,24 +2,6 @@ from dataclasses import dataclass, asdict
 from typing import List, Optional, Dict, Any
 
 
-@dataclass
-class MapTileDTO:
-    id: str
-    q: int
-    r: int
-    type: str
-    owner_id: Optional[str]
-
-    @classmethod
-    def from_dict(cls, tile_dict: dict) -> 'MapTileDTO':
-        return cls(
-            id=str(tile_dict.get('id', '')),
-            q=int(tile_dict.get('q', 0)),
-            r=int(tile_dict.get('r', 0)),
-            type=str(tile_dict.get('type', '')),
-            owner_id=tile_dict.get('owner_id')
-        )
-
 # --- Chat DTO (Pure Social) ---
 
 
@@ -139,6 +121,37 @@ class DevelopmentDTO:
             level=dev.level,
             maintenence_days=dev.maintenence_days,
             owner_id=dev.owner
+        )
+
+
+@dataclass
+class MapTileDTO:
+    id: str
+    q: int
+    r: int
+    type: str
+    owner_id: Optional[str]
+    development: Optional[DevelopmentDTO] = None
+
+    @classmethod
+    def from_dict(cls, tile_dict: dict) -> 'MapTileDTO':
+        # 2. Safely extract and convert the nested development data
+        dev_data = tile_dict.get('development')
+
+        if isinstance(dev_data, dict):
+            # If it's a raw dictionary, instantiate the DTO
+            dev_obj = DevelopmentDTO(**dev_data)
+        else:
+            # If it's already an object or None, pass it through
+            dev_obj = dev_data
+
+        return cls(
+            id=str(tile_dict.get('id', '')),
+            q=int(tile_dict.get('q', 0)),
+            r=int(tile_dict.get('r', 0)),
+            type=str(tile_dict.get('type', '')),
+            owner_id=tile_dict.get('owner_id'),
+            development=dev_obj
         )
 
 

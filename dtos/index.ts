@@ -80,8 +80,9 @@ export interface MapTileDTO {
   id: string;
   q: number;
   r: number;
-  type: "Farm" | "Woods" | "Mine"; // Reverted to strict resource types
+  type: "Farm" | "Woods" | "Mine";
   owner_id?: string;
+  development?: DevelopmentDTO;
 }
 
 export interface WorkActionDTO {

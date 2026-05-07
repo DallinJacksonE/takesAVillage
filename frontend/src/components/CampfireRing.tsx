@@ -35,7 +35,7 @@ const CampfireRing: React.FC<Props> = ({ state, onAction }) => {
 
   return (
     <div className="card" style={{ flex: 1, display: "flex", flexDirection: "column", gap: "20px" }}>
-      <h3>The Campfire</h3>
+      <h3>Campfire</h3>
 
       <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
 

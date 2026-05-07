@@ -5,7 +5,7 @@ import uuid
 from models.player import Player
 from actions import ActionFactory
 from dtos import ChatMessageDTO
-
+from models.map import MapFactory
 # Extracted Utilities
 from utils.name_generator import get_random_name
 from serializers.state_builder import build_player_state
@@ -37,8 +37,30 @@ class Game:
             self.players[session_id] = Player(session_id, name)
 
     def start_game(self):
+        # Enforce the minimum player requirement
+        if len(self.players) < 2:
+            return False
+
+        # 1. Generate the map tiles based on the final player count
+        factory = MapFactory(len(self.players))
+
+        # 2. Populate map_data by converting the MapTile objects into dictionaries
+        # so your MapTileDTO.from_dict() can safely parse them later.
+        self.map_data = [
+            {
+                "id": tile.id,
+                "q": tile.q,
+                "r": tile.r,
+                "tile_type": tile.type,
+                "owner_id": tile.owner_id,
+                "development": None
+            }
+            for tile in factory.map_tiles
+        ]
+
         self.status = 'ACTIVE'
         self.start_phase('WORK')
+        return True
 
     # ==========================================
     # 2. PHASE MANAGEMENT

@@ -29,6 +29,15 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
     };
   }, [isOpen]);
 
+  const getPlayerEmoji = (health: string) => {
+    switch (health) {
+      case "healthy": return "😎";
+      case "sick": return "🤧";
+      case "recovering": return "🤒";
+      default: return "🫥";
+    }
+  }
+
   if (!player) {
     return <span style={{ color: "#999", fontStyle: "italic" }}>Unknown Player</span>;
   }
@@ -49,7 +58,7 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
           textUnderlineOffset: "3px",
         }}
       >
-        {player.name}
+        {getPlayerEmoji(player.health)} {player.name}
       </span>
 
       {/* The Floating Tooltip */}

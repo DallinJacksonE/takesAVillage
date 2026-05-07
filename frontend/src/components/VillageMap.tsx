@@ -2,7 +2,13 @@ import React, { useState } from "react";
 import { MapTileDTO } from "../../../dtos/index";
 import { usePlayerName } from "./hooks/usePlayerName";
 import PlayerInfo from "./PlayerInfo";
-
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faWheatAwn, // Good for Farm
+  faTree,     // Good for Woods
+  faMountain, // Good for Mine
+  faHouseFlag // Good for an owned development
+} from '@fortawesome/free-solid-svg-icons';
 interface Props {
   mapData: MapTileDTO[];
   onAction: (actionCommand: string, payload: any) => void;
@@ -36,19 +42,45 @@ const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId }) => {
   };
 
   // --- Styling Helpers ---
+
+  const mapBackground: string = "#68503B";
+  const woodsBackground: string = "#184E24";
+  const farmBackground = "#AF9631";
+  const mineBackground = "#4E5355";
+  const openBorder = "#F7F3E3";
+  const opponentBorder = "#F58066";
+  const myBorder = "#53CA6D";
+
   const getTypeColor = (type: string) => {
     switch (type) {
-      case "Farm": return "#FFF59D"; // Light Yellow/Gold
-      case "Woods": return "#A5D6A7"; // Light Green
-      case "Mine": return "#B0BEC5"; // Blue-Gray
+      case "Farm": return farmBackground;
+      case "Woods": return woodsBackground;
+      case "Mine": return mineBackground;
       default: return "#e0e0e0";
     }
   };
 
   const getOwnerColor = (ownerId?: string) => {
-    if (!ownerId) return "#ffffff"; // Unowned: White border
-    if (ownerId === playerId) return "#2196F3"; // Mine: Blue border
-    return "#f44336"; // Opponent: Red border
+    if (!ownerId) return openBorder;
+    if (ownerId === playerId) return myBorder;
+    return opponentBorder;
+  };
+
+  const getTileContents = (type: string, ownerId?: string): React.ReactNode => {
+    if (ownerId) {
+      return <FontAwesomeIcon icon={faHouseFlag} />;
+    }
+
+    switch (type) {
+      case "Farm":
+        return <FontAwesomeIcon icon={faWheatAwn} />;
+      case "Woods":
+        return <FontAwesomeIcon icon={faTree} />;
+      case "Mine":
+        return <FontAwesomeIcon icon={faMountain} />;
+      default:
+        return null;
+    }
   };
 
   // --- Dragging Handlers ---
@@ -69,7 +101,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId }) => {
         height: "500px",
         position: "relative",
         overflow: "hidden",
-        background: "#e3f2fd",
+        background: mapBackground,
         cursor: isDragging ? "grabbing" : "grab",
         userSelect: "none",
       }}
@@ -122,8 +154,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId }) => {
                   color: "#333",
                 }}
               >
-                <span style={{ fontSize: "0.8rem", fontWeight: "bold" }}>{tile.type}</span>
-                {tile.owner_id && <span style={{ fontSize: "0.6rem" }}>{getPlayerName(tile.owner_id)}</span>}
+                <span style={{ fontSize: "0.8rem", fontWeight: "bold", color: "white" }}>{getTileContents(tile.type, tile.owner_id)}</span>
               </div>
             </div>
           );

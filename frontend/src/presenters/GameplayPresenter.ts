@@ -84,10 +84,6 @@ export class GameplayPresenter extends Presenter<GameplayView> {
     });
   }
 
-  // ==========================================
-  // --- NEW SEPARATED ROUTING PIPELINES ---
-  // ==========================================
-
   /**
    * Pipeline for pure social interactions.
    * Bypasses the strict game state validator on the backend.
