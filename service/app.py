@@ -1,22 +1,24 @@
-from dtos import (
-    ConsentDTO, ActiveGamesDTO, JoinableGameDTO,
-    ResearchGameDTO, NewGameDTO, JoinGameDTO
-)
-from dataclasses import asdict
-from flask import Flask, request, jsonify, make_response, g
-from flask_socketio import SocketIO, join_room, emit
-from game import Game
-from db import db
-import uuid
-import json
-import os
-import threading
-import time
-from typing import Dict, Any, cast
+if True:
+    from gevent import monkey
+    monkey.patch_all()
 
-app = Flask(__name__,
-            static_folder='../frontend/dist',
-            static_url_path='/')
+from game import Game
+from dtos import (
+    ActiveGamesDTO, ConsentDTO, JoinableGameDTO,
+    JoinGameDTO, NewGameDTO, ResearchGameDTO
+)
+from db import db
+from flask_socketio import SocketIO, emit, join_room
+from flask import Flask, g, jsonify, make_response, request
+from typing import Any, Dict, cast
+import uuid
+import time
+import os
+import json
+from dataclasses import asdict
+
+
+app = Flask(__name__)
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(base_dir, 'config.json')
@@ -28,7 +30,7 @@ try:
 except (FileNotFoundError, KeyError):
     app.config['SECRET_KEY'] = 'dev_fallback_key'
 
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, async_mode='gevent', cors_allowed_origins="*")
 active_games = {}
 
 
@@ -45,13 +47,14 @@ def broadcast_state(game):
 def game_loop():
     while True:
         for game in list(active_games.values()):
-            if game.status == "RUNNING":
+            if game.status == "ACTIVE":
                 if game.check_timer():
+                    print("Next phase")
                     broadcast_state(game)
         time.sleep(1)
 
 
-threading.Thread(target=game_loop, daemon=True).start()
+socketio.start_background_task(game_loop)
 
 
 @app.before_request
@@ -106,7 +109,7 @@ def get_active_games():
         is_user_in_game = user_cookie in game.players
 
         # Check if the user is already in this game
-        if is_user_in_game and game.status in ["WAITING", "RUNNING"]:
+        if is_user_in_game and game.status in ["WAITING", "ACTIVE"]:
             rejoinable_games.append(JoinableGameDTO(
                 id=game.id,
                 name=f"Village {game.id}",
@@ -167,19 +170,10 @@ def join_game():
     return jsonify({"error": "Game not found"}), 404
 
 
-@app.route('/')
-def serve_root():
-    return app.send_static_file('index.html')
-
-
 @app.errorhandler(404)
 def not_found(e):
-    # If a frontend route is requested (like /instructions), serve React.
-    # If a missing API route is requested, return a proper JSON error.
-    if request.path.startswith('/api/'):
-        return jsonify({"error": "API route not found"}), 404
+    return jsonify({"error": "API route not found"}), 404
 
-    return app.send_static_file('index.html')
 
 # --- WebSocket Events ---
 

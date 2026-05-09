@@ -1,0 +1,27 @@
+# -- Stage 1: Build the React Frontend --
+FROM node:18-alpine AS frontend-builder
+
+WORKDIR /app
+COPY dtos/ ./dtos/
+
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+
+COPY frontend/ ./
+RUN npm run build
+
+# -- Stage 2: Setup Express Production Server --
+FROM node:18-alpine
+WORKDIR /app/frontend
+
+# Install express for the server file
+RUN npm install express
+
+# Copy the built assets and the server file
+COPY --from=frontend-builder /app/frontend/dist ./dist
+COPY frontend/server.js ./
+COPY frontend/package.json ./ 
+
+EXPOSE 3000
+CMD ["node", "server.js"]

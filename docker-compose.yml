@@ -19,22 +19,39 @@ services:
       retries: 15
       start_period: 90s 
 
-  web:
-    build: .
-    container_name: village_web
+  backend:
+    build: 
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: village_backend
     restart: always
     ports:
-      - "5000:5000"  # <-- Changed from 'expose' to 'ports' to open it to your host
+      - "5000:5000"
     environment:
+      - PYTHONUNBUFFERED=1
+      - DB_TYPE=memory  # <-- Set this to 'memory' to bypass MySQL
       - DB_HOST=db
       - DB_USER=village
       - DB_PASSWORD=village_db
       - DB_NAME=village_db
     volumes:
       - ./service:/app/service
+    # If DB_TYPE=memory, it won't crash if the DB container isn't up, 
+    # but depends_on is still good practice for when you switch back.
     depends_on:
       db:
         condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: village_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
 
 volumes:
   db_data:

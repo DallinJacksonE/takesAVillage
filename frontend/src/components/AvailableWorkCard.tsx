@@ -11,24 +11,25 @@ const AvailableWorkCard: React.FC<Props> = ({ state, onSend }) => {
   const { me } = state;
   const getPlayerName = usePlayerName();
 
-  // Filter actions for employment interactions
   const employmentActions = (me.actions || []).filter(
     (a): a is EmploymentActionDTO => a.type === "EMPLOYMENT"
   );
 
-  // Offers sent TO me by an owner
+  const contestActions = (me.actions || []).filter(
+    (a) => a.type === "CONTEST" || a.type === "JOIN_CONTEST"
+  );
+
   const pendingOffers = employmentActions.filter(
     (a) => a.target_id === me.id && !a.is_application && a.status === "PENDING"
   );
 
-  // Applications I sent out waiting for an owner's reply
   const pendingApplications = employmentActions.filter(
     (a) => a.initiator_id === me.id && a.is_application && a.status === "PENDING"
   );
 
   return (
     <div className="card" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-      <h3>Work Phase</h3>
+      <h3 style={{ marginTop: 0 }}>Work Phase Dashboard</h3>
 
       {/* --- Section 1: Ready to Commit (Inherent + Accepted) --- */}
       <div style={{ marginBottom: "15px" }}>
@@ -45,8 +46,8 @@ const AvailableWorkCard: React.FC<Props> = ({ state, onSend }) => {
                 </div>
               </div>
               <button
-                style={{ background: "grey", color: "white" }}
                 className="btn-secondary"
+                style={{ background: "#388e3c", color: "white" }}
                 disabled={me.finished_phase}
                 onClick={() => onSend({ actionCommand: "COMMIT_WORK", work_action: work })}
               >
@@ -57,23 +58,45 @@ const AvailableWorkCard: React.FC<Props> = ({ state, onSend }) => {
         )}
       </div>
 
-      {/* --- Section 2: Incoming Job Offers --- */}
+      {/* --- Section 2: Active Contests (Lock-In) --- */}
+      {contestActions.length > 0 && (
+        <div style={{ marginBottom: "15px", borderTop: "1px solid #eee", paddingTop: "10px" }}>
+          <strong style={{ color: "#c62828" }}>Active Conflicts</strong>
+          {contestActions.map((contest) => (
+            <div key={contest.id} style={{ background: "#ffebee", padding: "8px", borderRadius: "4px", marginTop: "5px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontSize: "0.85rem", color: "#c62828" }}>
+                <strong>Contesting Property</strong>
+              </div>
+              <button
+                className="btn danger"
+                style={{ padding: "4px 10px", fontSize: "0.85rem" }}
+                disabled={me.finished_phase}
+                onClick={() => onSend({ actionCommand: "COMMIT_WORK", actionId: contest.id })}
+              >
+                Commit to Fight
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* --- Section 3: Incoming Job Offers --- */}
       {pendingOffers.length > 0 && (
         <div style={{ marginBottom: "15px", borderTop: "1px solid #eee", paddingTop: "10px" }}>
           <strong style={{ color: "#1976d2" }}>Job Offers</strong>
           {pendingOffers.map((offer) => (
             <div key={offer.id} style={{ background: "#e3f2fd", padding: "8px", borderRadius: "4px", marginTop: "5px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem" }}>
-              <span>{getPlayerName(offer.initiator_id)} is offering {offer.wage} {offer.wage_type}.</span>
+              <span>{getPlayerName(offer.initiator_id)} offering {offer.wage} {offer.wage_type}.</span>
               <div style={{ display: "flex", gap: "5px" }}>
-                <button className="btn-secondary" style={{ background: "#2196F3", color: "white" }} onClick={() => onSend({ actionCommand: "ACCEPT", actionId: offer.id })}>Accept</button>
-                <button className="btn-secondary danger" onClick={() => onSend({ actionCommand: "DENY", actionId: offer.id })}>Reject</button>
+                <button className="btn-sm" style={{ background: "#2196F3", color: "white" }} onClick={() => onSend({ actionCommand: "ACCEPT", actionId: offer.id })}>Accept</button>
+                <button className="btn-sm danger" onClick={() => onSend({ actionCommand: "DENY", actionId: offer.id })}>Reject</button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* --- Section 3: Pending Applications --- */}
+      {/* --- Section 4: Pending Applications --- */}
       {pendingApplications.length > 0 && (
         <div style={{ borderTop: "1px solid #eee", paddingTop: "10px" }}>
           <strong style={{ color: "#f57c00" }}>Awaiting Reply</strong>

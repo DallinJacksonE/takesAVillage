@@ -18,6 +18,7 @@ class Player:
 
         # Phase specific states
         self.fire_status = "COLD"  # COLD, HOST, GUEST
+        self.fire_guests = []
         self.available_work = self.developments
         self.finished_phase = False
         self.committed_action = None
@@ -79,6 +80,7 @@ class Player:
     def reset_phase(self):
         self.available_work = self.developments
         self.finished_phase = False
+        self.fire_guests = []
 
     def to_dict(self):
         return {

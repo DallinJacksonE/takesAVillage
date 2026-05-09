@@ -1,0 +1,10 @@
+FROM python:3.10-slim
+WORKDIR /app/service
+
+RUN pip install --no-cache-dir flask flask-socketio gevent gevent-websocket mysql-connector-python matplotlib uuid
+
+# Copy the backend source
+COPY service/ .
+
+EXPOSE 5000
+CMD ["python3", "app.py"]

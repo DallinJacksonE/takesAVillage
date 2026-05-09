@@ -4,7 +4,7 @@ import { usePlayerName } from "./hooks/usePlayerName";
 
 interface Props {
   state: GameStateDTO;
-  onSend: (payload: Record<string, any>) => void; // Keeping for compatibility if needed
+  onSend: (payload: Record<string, any>) => void;
   onAction: (actionCommand: string, payload: any) => void;
 }
 
@@ -12,20 +12,16 @@ const CampfireRing: React.FC<Props> = ({ state, onAction }) => {
   const { me, player_list } = state;
   const getPlayerName = usePlayerName();
 
-  // Filter actions down to only Campfire Contracts
   const fireActions = (me.actions || []).filter(
     (a): a is CampfireActionDTO => a.type === "CAMPFIRE"
   );
 
-  // Incoming to me
   const incomingOffers = fireActions.filter(a => a.target_id === me.id && !a.is_request && a.status === "PENDING");
   const incomingRequests = fireActions.filter(a => a.target_id === me.id && a.is_request && a.status === "PENDING");
 
-  // Outgoing from me (waiting for reply)
   const outgoingOffers = fireActions.filter(a => a.initiator_id === me.id && !a.is_request && a.status === "PENDING");
   const outgoingRequests = fireActions.filter(a => a.initiator_id === me.id && a.is_request && a.status === "PENDING");
 
-  // Calculate my current guests to enforce UI limits (Capacity of 2)
   const myGuests = fireActions.filter(a =>
     ((a.initiator_id === me.id && !a.is_request) || (a.target_id === me.id && a.is_request)) &&
     a.status === "ACCEPTED"
@@ -50,7 +46,6 @@ const CampfireRing: React.FC<Props> = ({ state, onAction }) => {
               </span>
 
               <div style={{ display: "flex", gap: "5px" }}>
-                {/* Request a seat if they are hosting and I am freezing */}
                 {p.fire_status === "HOST" && me.fire_status === "COLD" && (
                   <button
                     className="btn-sm"
@@ -61,7 +56,6 @@ const CampfireRing: React.FC<Props> = ({ state, onAction }) => {
                   </button>
                 )}
 
-                {/* Offer a seat if I'm not a guest and they aren't already a host */}
                 {me.fire_status !== "GUEST" && p.fire_status !== "HOST" && (
                   <button
                     className="btn-sm"
@@ -82,10 +76,26 @@ const CampfireRing: React.FC<Props> = ({ state, onAction }) => {
 
           {/* My Current Status */}
           <div style={{ marginBottom: "20px" }}>
-            <strong>My Status:</strong>{" "}
-            <span style={{ color: me.fire_status === "COLD" ? "#1976d2" : "#d32f2f", fontWeight: "bold" }}>
-              {me.fire_status} {me.fire_status === "HOST" && "🔥"}
-            </span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <strong>My Status:</strong>{" "}
+                <span style={{ color: me.fire_status === "COLD" ? "#1976d2" : "#d32f2f", fontWeight: "bold" }}>
+                  {me.fire_status} {me.fire_status === "HOST" && "🔥"}
+                </span>
+              </div>
+
+              {/* Start Fire Button */}
+              {me.fire_status === "COLD" && (
+                <button
+                  className="btn success"
+                  style={{ padding: "6px 12px", fontSize: "0.85rem", background: "#d32f2f" }}
+                  disabled={me.resources.wood < 1}
+                  onClick={() => onAction("START_FIRE", { type: "START_FIRE" })}
+                >
+                  Start Fire (1 Wood)
+                </button>
+              )}
+            </div>
 
             {me.fire_status === "HOST" && myGuests.length > 0 && (
               <ul style={{ marginTop: "5px", paddingLeft: "20px", fontSize: "0.85rem", color: "#666" }}>

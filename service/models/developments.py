@@ -7,6 +7,12 @@ class Development:
         self.owner = dev_owner
         self.maintenence_days = 7
 
+        # --- Conflict Flags ---
+        self.is_contested = False
+        self.contester_id = None
+        self.contester_supporters = []
+        self.owner_supporters = []
+
     def degrade(self):
         self.maintenence_days -= 1
         if self.maintenence_days < 0:

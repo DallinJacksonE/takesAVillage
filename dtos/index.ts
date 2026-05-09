@@ -40,7 +40,7 @@ export interface EmploymentActionDTO extends BaseActionDTO {
 }
 
 export interface TradeActionDTO extends BaseActionDTO {
-  type: "TRADE";
+  type: "TRADE" | "BARTER";
   offer_items?: Partial<ResourceBundle>;
   request_items?: Partial<ResourceBundle>;
   actual_offer_items?: Partial<ResourceBundle>;
@@ -50,7 +50,7 @@ export interface TradeActionDTO extends BaseActionDTO {
 }
 
 export interface CampfireActionDTO extends BaseActionDTO {
-  type: "CAMPFIRE";
+  type: "CAMPFIRE" | "START_FIRE";
   is_request: boolean;
 }
 
@@ -61,8 +61,18 @@ export interface SystemActionDTO extends BaseActionDTO {
   cost_type?: Resource;
 }
 
+export interface ContestActionDTO extends BaseActionDTO {
+  type: "CONTEST" | "JOIN_CONTEST";
+  dev_id: string;
+}
+
 // Discriminated Union
-export type ActionDTO = EmploymentActionDTO | TradeActionDTO | CampfireActionDTO | SystemActionDTO;
+export type ActionDTO =
+  | EmploymentActionDTO
+  | TradeActionDTO
+  | CampfireActionDTO
+  | SystemActionDTO
+  | ContestActionDTO;
 
 // ----------------------
 // --- Core Game DTOs ---
@@ -74,6 +84,10 @@ export interface DevelopmentDTO {
   level: number;
   maintenence_days: number;
   owner_id: string;
+  is_contested?: boolean;
+  contester_id?: string;
+  contester_supporters?: string[];
+  owner_supporters?: string[];
 }
 
 export interface MapTileDTO {
@@ -93,16 +107,23 @@ export interface WorkActionDTO {
   action_id?: string;
 }
 
+export interface DevelopmentCostConfig {
+  build: Partial<ResourceBundle>;
+  maintain: Partial<ResourceBundle>;
+  upgrade: Partial<ResourceBundle>;
+}
+
 export interface PlayerDTO {
   id: string;
   name: string;
   health: "healthy" | "sick" | "recovering";
   sickness_chance: number;
   fire_status: "COLD" | "HOST" | "GUEST";
+  fire_guests?: string[];
   resources: ResourceBundle;
   developments: DevelopmentDTO[];
   available_work: WorkActionDTO[];
-  committed_action: WorkActionDTO | null;
+  committed_action: WorkActionDTO | ContestActionDTO | null;
   actions: ActionDTO[];
   timeline: any[]; // Lightweight research log left as any[]
   finished_phase: boolean;
@@ -117,7 +138,9 @@ export interface GameStateDTO {
   time_remaining: number;
   player_list: PlayerDTO[];
   map: MapTileDTO[];
+  developments: DevelopmentDTO[];
   chat_messages: ChatMessageDTO[];
+  economy_config: Record<"Farm" | "Woods" | "Mine", DevelopmentCostConfig>;
   session_id?: string;
 }
 

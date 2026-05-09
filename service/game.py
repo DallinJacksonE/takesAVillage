@@ -1,3 +1,4 @@
+from constants import DEVELOPMENT_COSTS
 import time
 import uuid
 
@@ -9,6 +10,12 @@ from models.map import MapFactory
 # Extracted Utilities
 from utils.name_generator import get_random_name
 from serializers.state_builder import build_player_state
+from models.developments import Development
+from dtos import DevelopmentDTO
+from dataclasses import asdict
+from systems.economy import EconomySystem
+from systems.conflict import ConflictSystem
+from systems.social import SocialSystem
 
 
 class Game:
@@ -46,17 +53,7 @@ class Game:
 
         # 2. Populate map_data by converting the MapTile objects into dictionaries
         # so your MapTileDTO.from_dict() can safely parse them later.
-        self.map_data = [
-            {
-                "id": tile.id,
-                "q": tile.q,
-                "r": tile.r,
-                "tile_type": tile.type,
-                "owner_id": tile.owner_id,
-                "development": None
-            }
-            for tile in factory.map_tiles
-        ]
+        self.map_data = factory.map_tiles
 
         self.status = 'ACTIVE'
         self.start_phase('WORK')
@@ -68,6 +65,8 @@ class Game:
     def check_timer(self):
         if time.time() >= self.phase_end_time:
             self.next_phase()
+            return True
+        return False
 
     def check_all_players_locked(self):
         if all(p.finished_phase for p in self.players.values()):
@@ -97,7 +96,6 @@ class Game:
     # ==========================================
 
     def handle_chat(self, user_id, data):
-        """Pure social chat pipeline. Bypasses game logic entirely."""
         content = data.get('content')
         # Default to global chat if no target
         to_id = data.get('to_id', 'GLOBAL')
@@ -126,7 +124,6 @@ class Game:
         return True
 
     def handle_action(self, user_id, data):
-        """Unified game state pipeline for System Actions and Player Contracts."""
         player = self.players.get(user_id)
         if not player:
             return False
@@ -134,27 +131,66 @@ class Game:
         action_command = data.get('action_command') or data.get('action')
         payload = data.get('payload', data)
 
-        # Prevent actions if locked (unless they are trying to finish the phase)
         if player.finished_phase and action_command != 'FINISH_PHASE':
             return False
 
-        # --- Branch A: Hardcoded System Actions ---
+        # --- Branch A: System Actions (Routed to Systems) ---
         if action_command == 'BUILD_DEV':
-            return self.action_build_development(player, payload)
+            success = EconomySystem.build_development(self, player, payload)
+            if success:
+                return self.action_finish_phase(player)
+            return False
+
+        elif action_command == 'MAINTAIN_DEV':
+            success = EconomySystem.maintain_development(self, player, payload)
+            if success:
+                return self.action_finish_phase(player)
+            return False
+
+        elif action_command == 'UPGRADE_DEV':
+            success = EconomySystem.upgrade_development(self, player, payload)
+            if success:
+                return self.action_finish_phase(player)
+            return False
+
+        elif action_command == 'CONTEST_DEV':
+            success = ConflictSystem.action_contest_development(
+                self, player, payload)
+            if success:
+                return self.action_finish_phase(player)
+            return False
+
         elif action_command == 'COMMIT_WORK':
             return self.action_commit_work(player, payload)
+
+        elif action_command == 'START_FIRE':
+            success = SocialSystem.start_fire(self, player)
+            if success:
+                return True
+            return False
+
         elif action_command == 'FINISH_PHASE':
             return self.action_finish_phase(player)
 
-        # --- Branch B: Dynamic Contracts (Trade, Employment, Campfire) ---
         status, action_obj = self.action_factory.process_action(
             user_id, payload)
 
-        if status != "ERROR" and status != "ILLEGAL":
-            player.add_timeline_event(f"ACTION_{status}", {
-                "action_id": action_obj.id,
-                "type": action_obj.type
-            })
+        if status not in ["ERROR", "ILLEGAL"]:
+
+            # --- NEW: Real-time Contract Intercepts ---
+            if status == "UPDATED_COMPLETED" and action_obj.type == "TRADE":
+                # Instantly swap items so they can trade again this phase
+                SocialSystem.execute_trade(self, action_obj)
+
+            elif status == "UPDATED_ACCEPTED" and action_obj.type == "CAMPFIRE":
+                # The target of the request is the host
+                host = self.players.get(action_obj.target_id)
+                if host:
+                    SocialSystem.seat_guest(self, host, action_obj)
+            # ------------------------------------------
+
+            player.add_timeline_event(
+                f"ACTION_{status}", {"action_id": action_obj.id, "type": action_obj.type})
             return True
 
         return False
@@ -162,13 +198,19 @@ class Game:
     # ==========================================
     # 4. ACTION EXECUTORS
     # ==========================================
-    def action_build_development(self, player, payload):
-        pass
 
     def action_commit_work(self, player, payload):
         """Locks in the worker's choice and cleans up the action array."""
         work_action = payload.get('work_action')
         if not work_action:
+            return False
+
+        dev_data = work_action.get('development', {})
+        dev_id = dev_data.get('id')
+        live_dev = self.developments.get(dev_id)
+
+        # If the development is under hold, no new work can be committed here.
+        if live_dev and getattr(live_dev, 'is_contested', False):
             return False
 
         player.committed_action = work_action
@@ -197,21 +239,12 @@ class Game:
     # 5. PHASE RESOLUTIONS & EXPORT
     # ==========================================
     def resolve_work_phase(self):
-        for player in self.players.values():
-            ca = getattr(player, 'committed_action', None)
 
-            if ca and isinstance(ca, dict):
-                employer_id = ca.get('employer_id')
-                wage = int(ca.get('wage', 0))
-                wage_type = ca.get('wage_type', 'food')
+        # 1. Resolve conflicts and stalemates FIRST
+        ConflictSystem.resolve_contests(self)
 
-                # Self-Employment Generation
-                if employer_id == player.session_id:
-                    player.resources[wage_type] = player.resources.get(
-                        wage_type, 0) + wage
-
-            player.committed_action = None
-            player.reset_phase()
+        # 2. Generate yields for uncontested developments SECOND
+        EconomySystem.resolve_work_phase(self)
 
     def resolve_trade_phase(self):
         for player in self.players.values():
@@ -221,6 +254,8 @@ class Game:
         for player in self.players.values():
             player.consume_daily()
             player.reset_phase()
+        for dev in self.developments.values():
+            dev.degrade()
 
     def get_state_for_player(self, session_id):
         return build_player_state(self, session_id)

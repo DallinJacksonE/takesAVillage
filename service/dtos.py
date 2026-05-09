@@ -192,6 +192,8 @@ class PlayerDTO:
         }
 
         for dev in my_devs_full:
+            if getattr(dev, 'is_contested', False):
+                continue
             res_type = DEV_OUTPUT_MAP.get(dev.type, "food")
             wage = dev.level
 
@@ -207,9 +209,8 @@ class PlayerDTO:
             for action in player.actions.values():
                 if action.type == "EMPLOYMENT" and action.status == "ACCEPTED":
                     target_dev = game_devs.get(action.dev_id)
-                    if target_dev:
+                    if target_dev and not getattr(target_dev, 'is_contested', False):
                         employer_id = action.target_id if action.is_application else action.initiator_id
-
                         available_work.append(WorkActionDTO(
                             development=DevelopmentDTO.from_model(target_dev),
                             wage=action.wage,
@@ -261,7 +262,8 @@ class GameStateDTO:
     time_remaining: int
     player_list: List[PlayerDTO]
     map: List[MapTileDTO]
-    chat_messages: List[ChatMessageDTO]  # The dedicated UI chat array
+    chat_messages: List[ChatMessageDTO]
+    economy_config: Dict[str, Any]
     session_id: Optional[str] = None
 
     def to_dict(self) -> dict:

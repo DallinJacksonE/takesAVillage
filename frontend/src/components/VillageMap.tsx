@@ -4,11 +4,12 @@ import { usePlayerName } from "./hooks/usePlayerName";
 import PlayerInfo from "./PlayerInfo";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faWheatAwn, // Good for Farm
-  faTree,     // Good for Woods
-  faMountain, // Good for Mine
-  faHouseFlag // Good for an owned development
+  faWheatAwn,
+  faTree,
+  faMountain,
+  faHouseFlag
 } from '@fortawesome/free-solid-svg-icons';
+
 interface Props {
   mapData: MapTileDTO[];
   onAction: (actionCommand: string, payload: any) => void;
@@ -140,7 +141,6 @@ const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId }) => {
                 zIndex: isSelected ? 10 : 1,
               }}
             >
-              {/* Inner Hex to create colored border effect */}
               <div
                 style={{
                   position: "absolute",
@@ -176,7 +176,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId }) => {
               background: "white",
               cursor: "default",
             }}
-            onMouseDown={(e) => e.stopPropagation()} // Prevent dragging when clicking buttons
+            onMouseDown={(e) => e.stopPropagation()}
           >
             <h4 style={{ margin: "0 0 10px 0" }}>{selectedTile.type}</h4>
 
@@ -187,42 +187,6 @@ const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId }) => {
                   <br />
                   <PlayerInfo playerId={selectedTile.owner_id} />
                 </div>
-
-                {selectedTile.owner_id !== playerId && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "5px", marginTop: "5px" }}>
-                    <button
-                      className="btn success"
-                      style={{ fontSize: "0.75rem", padding: "6px" }}
-                      onClick={() => {
-                        onAction("EMPLOYMENT", {
-                          type: "EMPLOYMENT",
-                          target_id: selectedTile.owner_id,
-                          dev_id: selectedTile.id,
-                          is_application: true,
-                          wage: 1,
-                          wage_type: "food",
-                        });
-                        setSelectedTile(null);
-                      }}
-                    >
-                      Apply for Job
-                    </button>
-                    <button
-                      className="btn danger"
-                      style={{ fontSize: "0.75rem", padding: "6px" }}
-                      onClick={() => {
-                        onAction("CONTEST", {
-                          type: "CONTEST",
-                          target_id: selectedTile.owner_id,
-                          dev_id: selectedTile.id,
-                        });
-                        setSelectedTile(null);
-                      }}
-                    >
-                      Contest Ownership
-                    </button>
-                  </div>
-                )}
 
                 {selectedTile.owner_id === playerId && (
                   <div style={{ fontSize: "0.8rem", color: "#2196F3", fontStyle: "italic" }}>

@@ -1,4 +1,5 @@
 from dtos import GameStateDTO, PlayerDTO, MapTileDTO
+from constants import DEVELOPMENT_COSTS
 
 
 def build_player_state(game, session_id):
@@ -14,7 +15,7 @@ def build_player_state(game, session_id):
         player_list_dto.append(PlayerDTO.from_model(
             p, p.developments, game.developments))
 
-    map_dto = [MapTileDTO.from_dict(tile) for tile in game.map_data]
+    map_dto = [MapTileDTO.from_dict(vars(tile)) for tile in game.map_data]
 
     # Construct and return final State DTO
     state_dto = GameStateDTO(
@@ -26,7 +27,8 @@ def build_player_state(game, session_id):
         time_remaining=game.get_time_remaining(),
         player_list=player_list_dto,
         map=map_dto,
-        chat_messages=game.chat_messages,  # The new pure chat array!
+        chat_messages=game.chat_messages,
+        economy_config=DEVELOPMENT_COSTS,
         session_id=session_id
     )
 
