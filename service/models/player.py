@@ -4,10 +4,10 @@ import random
 
 
 class Player:
-    def __init__(self, session_id, name):
+    def __init__(self, session_id, name, starting_resources):
         self.session_id = session_id
         self.name = name
-        self.resources = {"food": 5, "wood": 2, "iron": 0}
+        self.resources = starting_resources
         self.health = "healthy"  # healthy, sick, recovering
         self.sickness_chance = 0.05
         self.developments = []  # List of IDs owned by this player

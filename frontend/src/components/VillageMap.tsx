@@ -23,7 +23,6 @@ const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId }) => {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-
   // Correct Pointy-Topped Hex Math
   const HEX_SIZE = 45;
   const hexWidth = HEX_SIZE * Math.sqrt(3);
@@ -119,7 +118,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId }) => {
           transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
         }}
       >
-        {mapData.map((tile) => {
+        {Object.values(mapData).map((tile) => {
           const { x, y } = hexToPixel(tile.q, tile.r);
           const isSelected = selectedTile?.id === tile.id;
 
@@ -203,7 +202,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId }) => {
                   className="btn"
                   style={{ background: "#795548", color: "white", fontSize: "0.8rem" }}
                   onClick={() => {
-                    onAction("BUILD_DEV", { dev_id: selectedTile.id });
+                    onAction("BUILD_DEV", { tile_id: selectedTile.id });
                     setSelectedTile(null);
                   }}
                 >

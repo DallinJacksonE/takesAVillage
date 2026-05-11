@@ -5,7 +5,7 @@ class Development:
         self.type = dev_type
         self.level = 2
         self.owner = dev_owner
-        self.maintenence_days = 7
+        self.maintenance_days = 7
 
         # --- Conflict Flags ---
         self.is_contested = False
@@ -14,19 +14,19 @@ class Development:
         self.owner_supporters = []
 
     def degrade(self):
-        self.maintenence_days -= 1
-        if self.maintenence_days < 0:
+        self.maintenance_days -= 1
+        if self.maintenance_days < 0:
             if self.level > 1:
                 self.level -= 1
-                self.maintenence_days += 7
+                self.maintenance_days += 7
             else:
                 self.level = 1
-                self.maintenence_days = 1
+                self.maintenance_days = 1
 
     def upgrade(self):
         if self.level >= 3:
             self.level = 3
-            self.maintenence_days += 10
+            self.maintenance_days += 10
         else:
             self.level += 1
-            self.maintenence_days = 7
+            self.maintenance_days = 7

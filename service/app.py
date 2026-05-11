@@ -40,7 +40,8 @@ def broadcast_state(game):
         socketio.emit(
             'game_state',
             game.get_state_for_player(pid),
-            to=pid
+            # STRICT SEPARATION: Scoped to this specific game
+            to=f"{game.id}_{pid}"
         )
 
 
@@ -182,16 +183,29 @@ def not_found(e):
 def on_join(data):
     game_id = data.get('gameId')
     user_id = data.get('userId')
+
+    # 1. PURGE: Remove the player from any other active games to prevent zombie loops
+    for g_id, g in list(active_games.items()):
+        if g_id != game_id and user_id in g.players:
+            del g.players[user_id]
+
+            # Optional Memory Cleanup: If the old game is now empty, delete it
+            if len(g.players) == 0:
+                del active_games[g_id]
+
     if game_id in active_games:
         game = active_games[game_id]
         game.add_player(user_id)
 
         join_room(game_id)
-        # NEW: Player joins a private room for targeted updates
-        join_room(user_id)
+        # 2. SCOPE: Player joins a private room specifically for this game instance
+        join_room(f"{game_id}_{user_id}")
 
         emit('room_update', {"player_count": len(game.players)}, to=game_id)
-        emit('game_state', game.get_state_for_player(user_id))
+
+        # 3. DIRECT EMIT: Ensure the initial state goes to the scoped room
+        emit('game_state', game.get_state_for_player(
+            user_id), to=f"{game_id}_{user_id}")
     else:
         emit('error', {'message': 'Game not found.'})
 

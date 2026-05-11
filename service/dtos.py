@@ -110,8 +110,15 @@ class DevelopmentDTO:
     id: str
     type: str
     level: int
-    maintenence_days: int
+    # Note: Kept your spelling to avoid breaking existing frontend logic
+    maintenance_days: int
     owner_id: str
+
+    # --- Conflict Flags ---
+    is_contested: bool
+    contester_id: Optional[str]
+    contester_supporters: List[str]
+    owner_supporters: List[str]
 
     @classmethod
     def from_model(cls, dev):
@@ -119,9 +126,31 @@ class DevelopmentDTO:
             id=dev.id,
             type=dev.type,
             level=dev.level,
-            maintenence_days=dev.maintenence_days,
-            owner_id=dev.owner
+            maintenance_days=dev.maintenance_days,
+            owner_id=dev.owner,
+            is_contested=dev.is_contested,
+            contester_id=dev.contester_id,
+            # We use list() here to ensure we pass a copy of the list,
+            # preventing accidental reference mutations
+            contester_supporters=list(dev.contester_supporters),
+            owner_supporters=list(dev.owner_supporters)
         )
+
+    def to_dict(self) -> dict:
+        """
+        Serializes the DTO into a standard Python dictionary for JSON conversion.
+        """
+        return {
+            "id": self.id,
+            "type": self.type,
+            "level": self.level,
+            "maintenence_days": self.maintenence_days,
+            "owner_id": self.owner_id,
+            "is_contested": self.is_contested,
+            "contester_id": self.contester_id,
+            "contester_supporters": self.contester_supporters,
+            "owner_supporters": self.owner_supporters
+        }
 
 
 @dataclass
@@ -131,11 +160,46 @@ class MapTileDTO:
     r: int
     type: str
     owner_id: Optional[str]
-    development: Optional[DevelopmentDTO] = None
+    development: Optional['DevelopmentDTO'] = None
+
+    @classmethod
+    def from_model(cls, tile_model, development_model=None) -> 'MapTileDTO':
+        """
+        Creates a DTO directly from the backend MapTile model.
+        Optionally accepts a development model if one exists on this tile.
+        """
+        # Convert the development model to a DTO if it was passed in
+        dev_dto = None
+        if development_model:
+            # Assuming DevelopmentDTO also has a from_model method
+            dev_dto = DevelopmentDTO.from_model(development_model)
+
+        return cls(
+            id=tile_model.id,
+            q=tile_model.q,
+            r=tile_model.r,
+            type=tile_model.type,
+            owner_id=tile_model.owner_id,
+            development=dev_dto
+        )
+
+    def to_dict(self) -> dict:
+        """
+        Serializes the DTO into a standard Python dictionary for JSON conversion.
+        """
+        return {
+            "id": self.id,
+            "q": self.q,
+            "r": self.r,
+            "type": self.type,
+            "owner_id": self.owner_id,
+            # Recursively call to_dict() on the nested development if it exists
+            "development": self.development.to_dict() if self.development else None
+        }
 
     @classmethod
     def from_dict(cls, tile_dict: dict) -> 'MapTileDTO':
-        # 2. Safely extract and convert the nested development data
+        # Safely extract and convert the nested development data
         dev_data = tile_dict.get('development')
 
         if isinstance(dev_data, dict):
@@ -178,6 +242,44 @@ class PlayerDTO:
     actions: List[ActionDTO]
     timeline: List[dict]
     finished_phase: bool
+
+    def to_dict(self) -> dict:
+        """
+        Serializes the PlayerDTO into a dictionary, ensuring all nested DTOs 
+        (like DevelopmentDTO) call their specific to_dict() methods to maintain 
+        naming consistency and prevent JSON errors.
+        """
+        return {
+            "id": self.id,
+            "name": self.name,
+            "health": self.health,
+            "fire_status": self.fire_status,
+            "sickness_chance": self.sickness_chance,
+            "resources": self.resources,
+            # Explicitly call to_dict on Developments to maintain naming parity
+            "developments": [d.to_dict() for d in self.developments],
+            # Simple dataclasses like ActionDTOs can safely use asdict()
+            "actions": [asdict(a) for a in self.actions],
+            "timeline": self.timeline,
+            "finished_phase": self.finished_phase,
+            # Manually map WorkActionDTOs to ensure their nested DevelopmentDTOs are serialized
+            "available_work": [
+                {
+                    "development": w.development.to_dict(),
+                    "wage": w.wage,
+                    "wage_type": w.wage_type,
+                    "employer_id": w.employer_id,
+                    "action_id": w.action_id
+                } for w in self.available_work
+            ],
+            "committed_action": {
+                "development": self.committed_action.development.to_dict(),
+                "wage": self.committed_action.wage,
+                "wage_type": self.committed_action.wage_type,
+                "employer_id": self.committed_action.employer_id,
+                "action_id": self.committed_action.action_id
+            } if self.committed_action else None
+        }
 
     @classmethod
     def from_model(cls, player, my_devs_full, game_devs=None):
@@ -261,13 +363,82 @@ class GameStateDTO:
     phase: str
     time_remaining: int
     player_list: List[PlayerDTO]
-    map: List[MapTileDTO]
+    map: Dict[str, MapTileDTO]
     chat_messages: List[ChatMessageDTO]
-    economy_config: Dict[str, Any]
+    development_costs: Dict[str, Any]
+    campfire_cost: int
+    max_fire_seats: int
+    ruleset: dict  # Keeps a backup of the full ruleset
     session_id: Optional[str] = None
 
+    @classmethod
+    def from_model(cls, game, current_player_id: str) -> 'GameStateDTO':
+        player_dtos = []
+        me_dto = None
+
+        for p_id, player_model in game.players.items():
+            my_devs = [dev for dev in game.developments.values()
+                       if dev.owner == p_id]
+            p_dto = PlayerDTO.from_model(
+                player_model, my_devs, game.developments)
+            player_dtos.append(p_dto)
+            if p_id == current_player_id:
+                me_dto = p_dto
+
+        map_dtos = {
+            tile_id: MapTileDTO.from_model(
+                tile, game.developments.get(tile_id))
+            for tile_id, tile in game.map_data.items()
+        }
+
+        # Ensure every field expected by the dataclass is passed here [cite: 418]
+        return cls(
+            status=game.status,
+            is_host=(getattr(game, 'host_id', '') == current_player_id),
+            me=me_dto,  # Ensure 'me' is passed!
+            day=game.day,
+            phase=game.phase,
+            time_remaining=game.get_time_remaining(),
+            player_list=player_dtos,
+            map=map_dtos,
+            chat_messages=[
+                msg if isinstance(
+                    msg, ChatMessageDTO) else ChatMessageDTO(**msg)
+                for msg in game.chat_messages
+            ],
+            # Separated values for the frontend [cite: 141, 386]
+            development_costs=game.rules.DEVELOPMENT_COSTS,
+            campfire_cost=game.rules.CAMPFIRE_COST,
+            max_fire_seats=game.rules.MAX_FIRE_SEATS,
+            ruleset={
+                "development_costs": game.rules.DEVELOPMENT_COSTS,
+                "campfire_cost": game.rules.CAMPFIRE_COST,
+                "max_fire_seats": game.rules.MAX_FIRE_SEATS,
+                "starting_inventory": getattr(game.rules, 'STARTING_INVENTORY', {})
+            },
+            session_id=current_player_id
+        )
+
     def to_dict(self) -> dict:
-        return asdict(self)
+        """
+        Manually serializes everything to prevent 'MapTile is not JSON serializable'[cite: 147, 419].
+        """
+        return {
+            "status": self.status,
+            "is_host": self.is_host,
+            "me": self.me.to_dict() if self.me else None,  # Added 'me' serialization
+            "day": self.day,
+            "phase": self.phase,
+            "time_remaining": self.time_remaining,
+            "player_list": [p.to_dict() for p in self.player_list],
+            "map": {t_id: tile.to_dict() for t_id, tile in self.map.items()},
+            "chat_messages": [asdict(m) for m in self.chat_messages],
+            "development_costs": self.development_costs,
+            "campfire_cost": self.campfire_cost,
+            "max_fire_seats": self.max_fire_seats,
+            "ruleset": self.ruleset,
+            "session_id": self.session_id
+        }
 
 
 @dataclass

@@ -18,7 +18,7 @@ class MapTile:
 
 class MapFactory:
     def __init__(self, player_count):
-        self.map_tiles = []
+        self.map_tiles = {}
         self.generate_map(player_count)
 
     def generate_map(self, player_count):
@@ -33,7 +33,7 @@ class MapFactory:
         random.shuffle(tiles_to_place)
 
         # 2. Generate Hex Spiral Coordinates (q, r)
-        self.map_tiles = []
+        self.map_tiles = {}
         q, r = 0, 0
 
         # Spiral directions for flat-topped hexes
@@ -42,12 +42,14 @@ class MapFactory:
             (-1, 0), (-1, +1), (0, +1)
         ]
 
+        def addtile(map_tiles, new_tile):
+            map_tiles.update({new_tile.id: new_tile})
+
         # Add center tile
         if tiles_to_place:
-            self.map_tiles.append(
-                MapTile(tile_id="t_0_0", q=0, r=0,
-                        tile_type=tiles_to_place.pop(0))
-            )
+            addtile(self.map_tiles,
+                    MapTile(tile_id="t_0_0", q=0, r=0,
+                            tile_type=tiles_to_place.pop(0)))
 
         # Spiral outwards
         radius = 1
@@ -64,10 +66,10 @@ class MapFactory:
                     r += dy
 
                     # Add tile
-                    self.map_tiles.append(
-                        MapTile(tile_id=f"t_{q}_{r}", q=q, r=r,
-                                tile_type=tiles_to_place.pop(0))
-                    )
+                    addtile(self.map_tiles,
+                            MapTile(tile_id=f"t_{q}_{r}", q=q, r=r,
+                                    tile_type=tiles_to_place.pop(0))
+                            )
                 if not tiles_to_place:
                     break
             radius += 1
