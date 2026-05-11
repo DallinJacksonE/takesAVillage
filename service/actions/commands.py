@@ -33,30 +33,35 @@ class Command:
 
 class BuildDevelopmentCommand(Command):
     def execute(self, game_state, player):
+        print("Building Development")
+        print("payload: ", self.payload)
         if game_state.phase != 'WORK':
             return False
 
         tile_id = self.payload.get('tile_id')
-        dev_type = game_state.map_data.get(tile_id)
+        target_tile = game_state.map_data.get(tile_id)
+        if not target_tile or not tile_id:
+            print("No tile or id found")
+            return False
+        dev_type = target_tile.type
+        print("dev type: ", dev_type)
 
         if not tile_id or not dev_type:
-            return False
-
-        target_tile = next((t for t in game_state.map_data if (t.get(
-            'id') if isinstance(t, dict) else getattr(t, 'id', None))
-            == tile_id), None)
-        if not target_tile:
             return False
 
         existing_dev = target_tile.get('development') if isinstance(
             target_tile, dict) else getattr(target_tile, 'development', None)
         if existing_dev is not None:
+            print("build failed, existing_dev is not None")
             return False
 
         build_costs = game_state.development_costs.get(
             dev_type, {}).get("build", {})
         if not build_costs or not self._deduct_resources(player, build_costs):
+            print("Build failed, insufficent resources")
             return False
+
+        print("Passed Development Checks")
 
         dev_id = str(uuid.uuid4())
         new_dev = Development(

@@ -144,7 +144,7 @@ class DevelopmentDTO:
             "id": self.id,
             "type": self.type,
             "level": self.level,
-            "maintenence_days": self.maintenence_days,
+            "maintenance_days": self.maintenance_days,
             "owner_id": self.owner_id,
             "is_contested": self.is_contested,
             "contester_id": self.contester_id,
