@@ -106,10 +106,10 @@ const TradeDesk: React.FC<Props> = ({
   const [counterReqAmt, setCounterReqAmt] = useState(1);
   const [counterReqRes, setCounterReqRes] = useState<Resource>("wood");
 
-  // Filtering Actions
+  // Filtering Actions: Use waiting_on_id to determine Inbox vs Outbox
   const tradeActions = (me.actions || []).filter((a): a is TradeActionDTO => a.type === "TRADE" || a.type === "BARTER");
-  const incomingTrades = tradeActions.filter(t => t.status === "PENDING" && t.target_id === me.id);
-  const outgoingTrades = tradeActions.filter(t => t.status === "PENDING" && t.initiator_id === me.id);
+  const incomingTrades = tradeActions.filter(t => t.status === "PENDING" && t.waiting_on_id === me.id);
+  const outgoingTrades = tradeActions.filter(t => t.status === "PENDING" && t.waiting_on_id !== me.id);
   const acceptedTrades = tradeActions.filter(t => t.status === "ACCEPTED");
 
   const otherPlayers = player_list.filter(p => p.id !== me.id);
@@ -126,23 +126,41 @@ const TradeDesk: React.FC<Props> = ({
 
   const handleOpenCounter = (trade: TradeActionDTO) => {
     setCounteringId(trade.id);
-    // Pre-fill with flipped terms (what they asked for is now what I might give)
-    const reqKey = Object.keys(trade.offer_items || {})[0] as Resource;
-    const reqVal = Object.values(trade.offer_items || {})[0] as number;
-    const giveKey = Object.keys(trade.request_items || {})[0] as Resource;
-    const giveVal = Object.values(trade.request_items || {})[0] as number;
+
+    const isInitiator = me.id === trade.initiator_id;
+    // Determine what *I* am currently expected to give/receive
+    const myExpectedGive = isInitiator ? trade.offer_items : trade.request_items;
+    const myExpectedReq = isInitiator ? trade.request_items : trade.offer_items;
+
+    const giveKey = Object.keys(myExpectedGive || {})[0] as Resource;
+    const giveVal = Object.values(myExpectedGive || {})[0] as number;
+    const reqKey = Object.keys(myExpectedReq || {})[0] as Resource;
+    const reqVal = Object.values(myExpectedReq || {})[0] as number;
 
     setCounterReqRes(reqKey || "wood");
     setCounterReqAmt(reqVal || 1);
     setCounterGiveRes(giveKey || "food");
     setCounterGiveAmt(giveVal || 1);
   };
-
   const handleSubmitCounter = (tradeId: string) => {
+    const trade = tradeActions.find(t => t.id === tradeId);
+    if (!trade) return;
+
+    const isInitiator = me.id === trade.initiator_id;
+
+    // Map the local state back to absolute initiator/target properties
+    const absoluteOfferItems = isInitiator
+      ? { [counterGiveRes]: counterGiveAmt }
+      : { [counterReqRes]: counterReqAmt };
+
+    const absoluteRequestItems = isInitiator
+      ? { [counterReqRes]: counterReqAmt }
+      : { [counterGiveRes]: counterGiveAmt };
+
     onCounterTrade(
       tradeId,
-      { [counterGiveRes]: counterGiveAmt },
-      { [counterReqRes]: counterReqAmt }
+      absoluteOfferItems,
+      absoluteRequestItems
     );
     setCounteringId(null);
   };
@@ -204,19 +222,21 @@ const TradeDesk: React.FC<Props> = ({
           <strong style={{ color: "#1976d2", borderBottom: "2px solid #1976d2", paddingBottom: "4px", display: "block", marginBottom: "10px" }}>
             Inbox ({incomingTrades.length})
           </strong>
-          {incomingTrades.length === 0 ? (
-            <div style={{ fontSize: "0.85rem", color: "#888", fontStyle: "italic" }}>No incoming offers.</div>
-          ) : (
-            incomingTrades.map(trade => (
+          {incomingTrades.map(trade => {
+            const isInitiator = me.id === trade.initiator_id;
+            const otherPersonId = isInitiator ? trade.target_id : trade.initiator_id;
+            const theyGive = isInitiator ? trade.request_items : trade.offer_items;
+            const theyWant = isInitiator ? trade.offer_items : trade.request_items;
+
+            return (
               <div key={trade.id} style={{ background: "#fafafa", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", marginBottom: "10px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                  <strong>{getPlayerName(trade.initiator_id)}</strong>
+                  <strong>{getPlayerName(otherPersonId || "")}</strong>
                 </div>
                 <div style={{ fontSize: "0.85rem", marginBottom: "10px" }}>
-                  <div>They Give: <strong>{renderItems(trade.offer_items)}</strong></div>
-                  <div>They Want: <strong>{renderItems(trade.request_items)}</strong></div>
+                  <div>They Give: <strong>{renderItems(theyGive)}</strong></div>
+                  <div>They Want: <strong>{renderItems(theyWant)}</strong></div>
                 </div>
-
                 {/* Inline Counter Form */}
                 {counteringId === trade.id ? (
                   <div style={{ background: "#fff", padding: "10px", borderRadius: "4px", border: "1px dashed #2196F3", marginBottom: "10px" }}>
@@ -250,8 +270,9 @@ const TradeDesk: React.FC<Props> = ({
                   </div>
                 )}
               </div>
-            ))
-          )}
+
+            );
+          })}
         </div>
 
         {/* RIGHT COLUMN: PENDING / OUTBOX */}
@@ -259,22 +280,25 @@ const TradeDesk: React.FC<Props> = ({
           <strong style={{ color: "#888", borderBottom: "2px solid #ccc", paddingBottom: "4px", display: "block", marginBottom: "10px" }}>
             Awaiting Reply ({outgoingTrades.length})
           </strong>
-          {outgoingTrades.length === 0 ? (
-            <div style={{ fontSize: "0.85rem", color: "#888", fontStyle: "italic" }}>No outgoing offers.</div>
-          ) : (
-            outgoingTrades.map(trade => (
+          {outgoingTrades.map(trade => {
+            const isInitiator = me.id === trade.initiator_id;
+            const otherPersonId = isInitiator ? trade.target_id : trade.initiator_id;
+            const iGive = isInitiator ? trade.offer_items : trade.request_items;
+            const iWant = isInitiator ? trade.request_items : trade.offer_items;
+
+            return (
               <div key={trade.id} style={{ padding: "10px", borderRadius: "6px", border: "1px dashed #ccc", marginBottom: "10px", opacity: 0.8 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
-                  <strong>To: {getPlayerName(trade.target_id || "")}</strong>
+                  <strong>To: {getPlayerName(otherPersonId || "")}</strong>
                   <button className="btn-sm danger" style={{ padding: "2px 6px", fontSize: "0.7rem" }} onClick={() => onCancelTrade(trade.id)}>Revoke</button>
                 </div>
                 <div style={{ fontSize: "0.8rem", color: "#555" }}>
-                  <div>I Give: {renderItems(trade.offer_items)}</div>
-                  <div>I Want: {renderItems(trade.request_items)}</div>
+                  <div>I Give: {renderItems(iGive)}</div>
+                  <div>I Want: {renderItems(iWant)}</div>
                 </div>
               </div>
-            ))
-          )}
+            );
+          })}
         </div>
       </div>
 
