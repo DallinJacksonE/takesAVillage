@@ -37,6 +37,9 @@ class Game:
         self.starting_inventory = self.rules.STARTING_INVENTORY
         self.phase_length = self.rules.PHASE_LENGTH
         self.game_length = self.rules.GAME_LENGTH
+        self.starting_sickness_chance = self.rules.DEFAULT_SICKNESS
+        self.hunger_sickness_increase = self.rules.HUNGER_SICKNESS_INCREASE
+        self.cold_sickness_increase = self.rules.COLD_SICKNESS_INCREASE
 
         self.players = {}
         self.developments = {}
@@ -141,6 +144,8 @@ class Game:
         return True
 
     def handle_action(self, user_id, data):
+        if self.players[user_id].health == "dead":
+            return False  # Dead players can't act
         return ActionDispatcher.dispatch(self, user_id, data)
 
     def action_finish_phase(self, player):
@@ -168,7 +173,7 @@ class Game:
         self.contract_factory.cleanup_campfire_contracts()
         self.contract_factory.cleanup_pending_contracts()
         for player in self.players.values():
-            player.consume_daily()
+            player.consume_daily(self)
             player.reset_phase()
         for dev in self.developments.values():
             dev.degrade()
