@@ -9,7 +9,7 @@ class Player:
         self.name = name
         self.resources = starting_resources
         self.health = "healthy"  # healthy, sick, recovering, dead
-        self.sickness_chance = 0.05
+        self.sickness_chance = None
         self.developments = []  # List of IDs owned by this player
 
         # --- The New Unified Action & Research Data ---
@@ -52,6 +52,8 @@ class Player:
             warm = True
 
         # 3. Health Calc
+        if self.sickness_chance is None:
+            self.sickness_chance = gamestate.starting_sickness_chance
         if not ate:
             self.sickness_chance += gamestate.hunger_sickness_increase
         if not warm:
