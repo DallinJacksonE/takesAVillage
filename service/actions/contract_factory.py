@@ -34,6 +34,7 @@ class ContractFactory:
 
         initiator_id = user_id
         target_id = data.get('target_id') or data.get('to_id')
+        initiator = self.players.get(initiator_id)
 
         if contract_type == 'EMPLOYMENT':
             return EmploymentContract(
@@ -47,7 +48,11 @@ class ContractFactory:
                 data.get('offer_items', {}), data.get('request_items', {})
             )
         elif contract_type == 'CAMPFIRE':
-            return CampfireContract(initiator_id, target_id, data.get('is_request', False))
+            is_request = data.get('is_request', False)
+            # Only allow HOST players to offer seats (is_request=False)
+            if not is_request and initiator and getattr(initiator, 'fire_status', 'COLD') != 'HOST':
+                raise ValueError("Only hosts can offer seats")
+            return CampfireContract(initiator_id, target_id, is_request)
         else:
             raise ValueError(f"Unknown contract type: {contract_type}")
 
@@ -120,6 +125,24 @@ class ContractFactory:
             initiator.actions[contract_obj.id] = contract_obj
         if target:
             target.actions[contract_obj.id] = contract_obj
+
+    def cleanup_campfire_contracts(self):
+        campfire_ids = {
+            contract.id
+            for player in self.players.values()
+            for contract in player.actions.values()
+            if getattr(contract, 'type', None) == 'CAMPFIRE'
+        }
+
+        if not campfire_ids:
+            return 0
+
+        for player in self.players.values():
+            for action_id in list(player.actions.keys()):
+                if action_id in campfire_ids:
+                    del player.actions[action_id]
+
+        return len(campfire_ids)
 
     def find_contract(self, contract_id):
         for player in self.players.values():

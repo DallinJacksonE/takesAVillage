@@ -37,6 +37,31 @@ const CampfireRing: React.FC<Props> = ({
     a.status === "ACCEPTED"
   );
 
+  const acceptedFireActions = fireActions.filter(a => a.status === "ACCEPTED");
+  const fireSessions = acceptedFireActions.reduce<Record<string, { hostId: string; guestIds: string[] }>>((sessions, action) => {
+    const hostId = action.is_request ? action.target_id : action.initiator_id;
+    const guestId = action.is_request ? action.initiator_id : action.target_id;
+
+    if (!hostId || !guestId) {
+      return sessions;
+    }
+
+    const session = sessions[hostId] || { hostId, guestIds: [] };
+    if (!session.guestIds.includes(guestId)) {
+      session.guestIds = [...session.guestIds, guestId];
+    }
+    sessions[hostId] = session;
+    return sessions;
+  }, {});
+
+  const myFireSession = me.fire_status === "HOST"
+    ? fireSessions[me.id]
+    : Object.values(fireSessions).find(session => session.guestIds.includes(me.id));
+
+  const fireParticipantIds = myFireSession
+    ? [myFireSession.hostId, ...myFireSession.guestIds].filter((id, index, arr) => id && arr.indexOf(id) === index)
+    : [];
+
   const isAtCapacity = myGuests.length >= 2;
 
   return (
@@ -66,7 +91,7 @@ const CampfireRing: React.FC<Props> = ({
                   </button>
                 )}
 
-                {me.fire_status !== "GUEST" && p.fire_status !== "HOST" && (
+                {me.fire_status === "HOST" && p.fire_status !== "HOST" && p.fire_status !== "GUEST" && (
                   <button
                     className="btn-sm"
                     style={{ background: "#f57c00", color: "white" }}
@@ -92,6 +117,22 @@ const CampfireRing: React.FC<Props> = ({
                 <span style={{ color: me.fire_status === "COLD" ? "#1976d2" : "#d32f2f", fontWeight: "bold" }}>
                   {me.fire_status} {me.fire_status === "HOST" && "🔥"}
                 </span>
+                {me.fire_status === "GUEST" && (() => {
+                  const hostAction = fireActions.find(a => 
+                    a.status === "ACCEPTED" && (
+                      (a.is_request && a.initiator_id === me.id) || 
+                      (!a.is_request && a.target_id === me.id)
+                    )
+                  );
+                  const hostId = hostAction ? 
+                    (hostAction.is_request ? hostAction.target_id : hostAction.initiator_id) : 
+                    "";
+                  return (
+                    <div style={{ marginTop: "5px", fontSize: "0.85rem", color: "#666" }}>
+                      Warming by <strong>{getPlayerName(hostId)}</strong>'s fire
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Start Fire Button */}
@@ -107,13 +148,17 @@ const CampfireRing: React.FC<Props> = ({
               )}
             </div>
 
-            {me.fire_status === "HOST" && myGuests.length > 0 && (
-              <ul style={{ marginTop: "5px", paddingLeft: "20px", fontSize: "0.85rem", color: "#666" }}>
-                {myGuests.map(a => {
-                  const guestId = a.is_request ? a.initiator_id : a.target_id || "";
-                  return <li key={a.id}><strong>{getPlayerName(guestId)}</strong></li>;
-                })}
-              </ul>
+            {fireParticipantIds.length > 0 && (
+              <div style={{ marginTop: "15px", padding: "10px", background: "#fafafa", borderRadius: "8px", border: "1px solid #ddd" }}>
+                <h4 style={{ margin: "0 0 8px 0", fontSize: "0.9rem", color: "#444" }}>At the fire</h4>
+                <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "0.85rem", color: "#666" }}>
+                  {fireParticipantIds.map(id => (
+                    <li key={id} style={{ marginBottom: "4px" }}>
+                      <strong>{getPlayerName(id)}</strong> {id === me.id ? "(You)" : ""} {id === myFireSession?.hostId ? "— Host" : ""}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
 

@@ -164,6 +164,7 @@ class Game:
         if self.day >= self.game_length:
             self.status = 'ENDED'
             return
+        self.contract_factory.cleanup_campfire_contracts()
         for player in self.players.values():
             player.consume_daily()
             player.reset_phase()

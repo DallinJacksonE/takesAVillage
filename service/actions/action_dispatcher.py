@@ -56,9 +56,7 @@ class ActionDispatcher:
             if status == "UPDATED_COMPLETED" and contract_obj.type == "TRADE":
                 SocialResolvers.execute_trade(game_state, contract_obj)
             elif status == "UPDATED_ACCEPTED" and contract_obj.type == "CAMPFIRE":
-                host = game_state.players.get(contract_obj.target_id)
-                if host:
-                    SocialResolvers.seat_guest(game_state, host, contract_obj)
+                SocialResolvers.seat_guest(game_state, contract_obj)
 
             player.add_timeline_event(
                 f"ACTION_{status}", {"action_id": contract_obj.id,

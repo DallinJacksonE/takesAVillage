@@ -1,9 +1,18 @@
 
 class SocialResolvers:
     @staticmethod
-    def seat_guest(game_state, host_player, action_obj):
-        guest_player = game_state.players.get(action_obj.initiator_id)
-        if not guest_player:
+    def seat_guest(game_state, contract_obj):
+        # Determine host and guest based on whether this is a request or offer
+        # Offer (is_request=False): initiator is host, target is guest
+        # Request (is_request=True): target is host, initiator is guest
+        if getattr(contract_obj, 'is_request', False):
+            host_player = game_state.players.get(contract_obj.target_id)
+            guest_player = game_state.players.get(contract_obj.initiator_id)
+        else:
+            host_player = game_state.players.get(contract_obj.initiator_id)
+            guest_player = game_state.players.get(contract_obj.target_id)
+
+        if not host_player or not guest_player:
             return False
         if getattr(host_player, 'fire_status', 'COLD') != "HOST":
             return False
