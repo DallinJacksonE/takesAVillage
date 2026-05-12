@@ -93,7 +93,7 @@ class InMemoryDB(DatabaseProvider):
             "player_data": player_hist,
             "finished_at": datetime.now()
         })
-        print(self.history)
+        # print(self.history)
 
     def get_all_game_history(self) -> list:
         # Return sorted by finished_at descending to mimic SQL ORDER BY DESC

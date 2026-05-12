@@ -6,13 +6,16 @@ class ContractFactory:
     def __init__(self, players):
         self.players = players
 
-    def process_contract(self, user_id, data):
+    def process_contract(self, user_id, data, action_command=None):
         """Unified entry point for drafting or updating a contract."""
-        contract_id = data.get('id') or data.get(
-            'contractId') or data.get('actionId')
+
+        # Add 'action_id' to the list of keys
+        contract_id = data.get('action_id') or data.get(
+            'id') or data.get('contractId') or data.get('actionId')
 
         if contract_id and self.find_contract(contract_id):
-            return self._update_contract(user_id, contract_id, data)
+            # Pass action_command down to the update logic
+            return self._update_contract(user_id, contract_id, data, action_command)
         else:
             return self._create_contract(user_id, data)
 
@@ -48,7 +51,7 @@ class ContractFactory:
         else:
             raise ValueError(f"Unknown contract type: {contract_type}")
 
-    def _update_contract(self, user_id, contract_id, data):
+    def _update_contract(self, user_id, contract_id, data, provided_action_command=None):
         original_contract = self.find_contract(contract_id)
         if not original_contract:
             return "NOT_FOUND", None
@@ -56,9 +59,10 @@ class ContractFactory:
         contract_copy = copy.deepcopy(original_contract)
         actor = self.players.get(user_id)
 
-        action_command = data.get(
+        # Use the provided command first, fallback to data dict for older calls
+        action_command = provided_action_command or data.get(
             'action_command') or data.get('actionCommand')
-        print(action_command)
+        print(f"Executing Contract Action: {action_command}")
 
         # Apply Lifecycle Changes
         if action_command == 'DENY':

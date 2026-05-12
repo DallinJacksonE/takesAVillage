@@ -49,7 +49,7 @@ class ActionDispatcher:
 
         # 2. Route Contract/Drafting Actions
         status, contract_obj = game_state.contract_factory.process_contract(
-            user_id, payload)
+            user_id, payload, action_command)
 
         if status not in ["ERROR", "ILLEGAL"]:
             # Real-time Contract Intercepts using new Resolvers
