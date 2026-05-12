@@ -158,13 +158,14 @@ class Game:
             player.reset_phase()
 
     def resolve_night_phase(self):
+        add_map_hist(self)
+        for player in self.players.values():
+            add_player_hist(self, player.session_id)
         if self.day >= self.game_length:
             self.status = 'ENDED'
             return
         for player in self.players.values():
             player.consume_daily()
-            add_player_hist(self, player.session_id)
-        add_map_hist(self)
             player.reset_phase()
         for dev in self.developments.values():
             dev.degrade()

@@ -86,15 +86,14 @@ class InMemoryDB(DatabaseProvider):
     def initialize_database(self):
         print("✅ InMemoryDB ready. (Note: Data wipes on container restart)")
 
-    def store_game_result(self, game_id: str, game_data_json: str):
+    def store_game_result(self, map_hist, player_hist):
         # Convert JSON string to dict for storage to mimic how MySQL handles JSON columns
-        parsed_data = json.loads(game_data_json) if isinstance(
-            game_data_json, str) else game_data_json
         self.history.append({
-            "game_id": game_id,
-            "data": parsed_data,
-            "finished_at": datetime.now().isoformat()
+            "map_data": map_hist,
+            "player_data": player_hist,
+            "finished_at": datetime.now()
         })
+        print(self.history)
 
     def get_all_game_history(self) -> list:
         # Return sorted by finished_at descending to mimic SQL ORDER BY DESC

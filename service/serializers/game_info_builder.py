@@ -74,7 +74,7 @@ def add_map_hist(game):
             'q': tile.q,
             'r': tile.r,
             'type': tile.type,
-            'owner_id': tile.owner_id
+            'owner_id': tile.owner_id,
             'development': tile.development
         }
 
