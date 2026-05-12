@@ -1,6 +1,7 @@
 import time
 import uuid
 import random
+import
 
 
 class Player:
@@ -8,7 +9,7 @@ class Player:
         self.session_id = session_id
         self.name = name
         self.resources = starting_resources
-        self.health = "healthy"  # healthy, sick, recovering
+        self.health = "healthy"  # healthy, sick, recovering, dead
         self.sickness_chance = 0.05
         self.developments = []  # List of IDs owned by this player
 
@@ -35,7 +36,7 @@ class Player:
             "data": data
         })
 
-    def consume_daily(self):
+    def consume_daily(self, gamestate):
         """Logic for nightly consumption and sickness calculation."""
         # 1. Food
         ate = False
@@ -53,18 +54,21 @@ class Player:
 
         # 3. Health Calc
         if not ate:
-            self.sickness_chance += 0.2
+            self.sickness_chance += gamestate.hunger_sickness_increase
         if not warm:
-            self.sickness_chance += 0.1
+            self.sickness_chance += gamestate.cold_sickness_increase
 
         # Chance to get sick
-        if random.random() < self.sickness_chance:
+        check = random.random()
+        if check < self.sickness_chance and self.health == "sick" and (not ate or not warm):
+            self.health = "dead"
+        if check < self.sickness_chance:
             self.health = "sick"
         elif self.health == "sick" and ate and warm:
             self.health = "recovering"
         elif self.health == "recovering" and ate and warm:
             self.health = "healthy"
-            self.sickness_chance = 0.05  # Reset base chance
+            self.sickness_chance = gamestate.starting_sickness_chance  # Reset base chance
 
         # Log the end of day state for the research timeline
         self.add_timeline_event("END_OF_DAY_STATE", {
