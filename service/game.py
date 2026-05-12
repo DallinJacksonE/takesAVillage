@@ -2,6 +2,7 @@ import time
 import uuid
 import importlib
 import copy
+import random
 # Core Models
 from models.player import Player
 from dtos import ChatMessageDTO
@@ -35,6 +36,7 @@ class Game:
         self.max_fire_seats = self.rules.MAX_FIRE_SEATS
         self.starting_inventory = self.rules.STARTING_INVENTORY
         self.phase_length = self.rules.PHASE_LENGTH
+        self.game_length = self.rules.GAME_LENGTH
 
         self.players = {}
         self.developments = {}
@@ -54,6 +56,8 @@ class Game:
                 session_id, name, copy.deepcopy(self.starting_inventory))
 
     def start_game(self):
+        # Determine game length
+        self.game_length += random.randint(-4, 4)
         # Enforce the minimum player requirement
         if len(self.players) < 1:
             return False
@@ -91,6 +95,7 @@ class Game:
             self.resolve_night_phase()
             self.day += 1
             self.start_phase('WORK')
+            
 
     def start_phase(self, phase_name):
         self.phase = phase_name
@@ -150,6 +155,9 @@ class Game:
             player.reset_phase()
 
     def resolve_night_phase(self):
+        if self.day >= self.game_length:
+            self.status = 'ENDED'
+            return
         for player in self.players.values():
             player.consume_daily()
             player.reset_phase()

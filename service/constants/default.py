@@ -27,3 +27,5 @@ MAX_FIRE_SEATS = 3
 
 # seconds
 PHASE_LENGTH = 120
+
+GAME_LENGTH = 15

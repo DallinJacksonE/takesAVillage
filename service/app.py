@@ -52,6 +52,16 @@ def game_loop():
                 if game.check_timer():
                     print("Next phase")
                     broadcast_state(game)
+            elif game.status == "ENDED":
+                # Store game result in DB
+                db.store_game_result(game.id, json.dumps(game.get_full_game_data()))
+
+                # Optional: Move ended games to a separate dict for research access
+                # ended_games[game.id] = game
+
+                # Remove from active games
+                del active_games[game.id]
+
         time.sleep(1)
 
 
