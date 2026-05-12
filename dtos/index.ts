@@ -202,7 +202,7 @@ export interface DevelopmentCostConfig {
 export interface PlayerDTO {
   id: string;
   name: string;
-  health: "healthy" | "sick" | "recovering";
+  health: "healthy" | "sick" | "recovering" | "dead";
   sickness_chance: number;
   fire_status: "COLD" | "HOST" | "GUEST";
   fire_guests?: string[];

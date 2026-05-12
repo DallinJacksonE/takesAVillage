@@ -79,14 +79,13 @@ class ContractFactory:
             contract_copy.status = 'ACCEPTED'
             contract_copy.waiting_on_id = None
 
-            # NEW: Handle Employment binding
-            if getattr(contract_copy, 'type', None) == 'EMPLOYMENT':
-                dev_id = getattr(contract_copy, 'dev_id', None)
-                if dev_id and dev_id in self.developments:
-                    development = self.developments[dev_id]
-                    # If it's an application, the initiator is the worker.
-                    # If it's an offer, the target is the worker.
-                    if getattr(contract_copy, 'is_application', False):
+            # Strictly match the properties established by the Employment payload DTO
+            if contract_copy.type == 'EMPLOYMENT':
+                # Fetch the development using the exact dev_id from the contract
+                development = self.developments.get(contract_copy.dev_id)
+
+                if development:
+                    if contract_copy.is_application:
                         development.worker_id = contract_copy.initiator_id
                     else:
                         development.worker_id = contract_copy.target_id

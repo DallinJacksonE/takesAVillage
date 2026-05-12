@@ -46,7 +46,7 @@ class Game:
         self.chat_messages = []
         self.player_history = {}
         self.map_history = {}
-        self.names = AVAILABLE_NAMES.copy()
+        self.names = self.rules.AVAILABLE_NAMES.copy()
 
         # Time and Phase state
         self.day = 1
