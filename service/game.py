@@ -42,7 +42,8 @@ class Game:
         self.players = {}
         self.developments = {}
         self.map_data = {}
-        self.contract_factory = ContractFactory(self.players)
+        self.contract_factory = ContractFactory(
+            self.players, self.developments)
         self.chat_messages = []
         self.player_history = {}
         self.map_history = {}
@@ -100,7 +101,6 @@ class Game:
             self.resolve_night_phase()
             self.day += 1
             self.start_phase('WORK')
-            
 
     def start_phase(self, phase_name):
         self.phase = phase_name
