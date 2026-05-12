@@ -46,6 +46,7 @@ class Game:
         self.chat_messages = []
         self.player_history = {}
         self.map_history = {}
+        self.names = AVAILABLE_NAMES.copy()
 
         # Time and Phase state
         self.day = 1
@@ -54,7 +55,8 @@ class Game:
 
     def add_player(self, session_id):
         if session_id not in self.players:
-            name = get_random_name()
+            name = random.choice(self.names)
+            self.names.remove(name)
             self.players[session_id] = Player(
                 session_id, name, copy.deepcopy(self.starting_inventory))
 
