@@ -32,6 +32,7 @@ class ActionDTO:
     target_id: str
     type: str
     status: str
+    waiting_on_id: str
 
 
 @dataclass
@@ -71,7 +72,8 @@ def action_dto_factory(action) -> ActionDTO:
         "initiator_id": action.initiator_id,
         "target_id": action.target_id,
         "type": action.type,
-        "status": action.status
+        "status": action.status,
+        "waiting_on_id": getattr(action, 'waiting_on_id', action.target_id)
     }
 
     if action.type == 'EMPLOYMENT':

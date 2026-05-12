@@ -55,6 +55,7 @@ export interface TradeActionDTO extends BaseActionDTO {
   actual_request_items?: Partial<ResourceBundle>;
   initiator_finalized: boolean;
   target_finalized: boolean;
+  waiting_on_id: string;
 }
 
 export interface CampfireActionDTO extends BaseActionDTO {
