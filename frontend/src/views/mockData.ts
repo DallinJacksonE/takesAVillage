@@ -88,7 +88,8 @@ const TRADE_ACTIONS: ActionDTO[] = [
     request_items: { wood: 1 },
     initiator_finalized: false,
     target_finalized: false,
-    status: "PENDING"
+    status: "PENDING",
+    waiting_on_id: "mock-user-2"
   }
 ];
 
