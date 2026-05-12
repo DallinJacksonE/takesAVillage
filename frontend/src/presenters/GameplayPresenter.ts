@@ -1,12 +1,22 @@
-import { GameStateDTO } from "../../../dtos";
+import {
+  GameStateDTO,
+  GameActionPayload,
+  ResourceBundle,
+  Resource,
+  BuildDevPayload,
+  TargetDevPayload,
+  ContestDevPayload,
+  DraftTradePayload,
+  CounterTradePayload,
+  FinalizeTradePayload,
+  DraftEmploymentPayload,
+  DraftCampfirePayload,
+  ContractActionPayload,
+  CommitWorkPayload
+} from "../../../dtos";
 import { Presenter } from "./Presenter";
 import { View } from "./View";
-import io from "socket.io-client";
-
-const socket = io({
-  path: "/socket.io",
-  transports: ["websocket", "polling"],
-});
+import { GameplayService } from "../service/GameplayService";
 
 export interface GameplayView extends View {
   setGameState(gameState: GameStateDTO | null): void;
@@ -21,39 +31,48 @@ export class GameplayPresenter extends Presenter<GameplayView> {
   private userId: string | null = null;
   private timeLeft: number = 0;
   private timer: NodeJS.Timeout | null = null;
+  private service: GameplayService; // The injected model/service
 
   constructor(view: GameplayView, gameId: string) {
     super(view);
     this.gameId = gameId;
+
+    // Instantiate a fresh service per game session
+    this.service = new GameplayService();
+
     this.init();
   }
 
   private init() {
     this.userId = this.getCookie("user_session") || "anon";
     this._view.setUserId(this.userId);
-    socket.emit("join_room", { gameId: this.gameId, userId: this.userId });
 
-    socket.on("room_update", (data: { player_count: number }) =>
-      this._view.setPlayerCount(data.player_count)
-    );
+    // --------------------------------------------------------
+    // Presenter defines the Callbacks and plugs them into Service
+    // --------------------------------------------------------
 
-    socket.on("game_state", (data: GameStateDTO) => {
-      this.timeLeft = data.time_remaining;
-      this._view.setGameState(data);
-      this._view.setTimeLeft(data.time_remaining);
+    this.service.setOnPlayerCount((count: number) => {
+      this._view.setPlayerCount(count);
     });
 
-    socket.on("game_started", () =>
-      socket.emit("request_update", {
-        gameId: this.gameId,
-        userId: this.userId,
-      })
-    );
+    this.service.setOnGameState((state: GameStateDTO) => {
+      this.timeLeft = state.time_remaining;
+      this._view.setGameState(state);
+      this._view.setTimeLeft(state.time_remaining);
+    });
 
-    socket.on("error", (data: { message: string }) =>
-      this._view.showAlert(data.message)
-    );
+    this.service.setOnGameStarted(() => {
+      this.service.requestUpdate(this.gameId, this.userId!);
+    });
 
+    this.service.setOnError((message: string) => {
+      this._view.showAlert(message);
+    });
+
+    // Connect to the room
+    this.service.joinRoom(this.gameId, this.userId);
+
+    // Manage the local countdown timer
     const timer = setInterval(() => {
       this.timeLeft = this.timeLeft > 0 ? this.timeLeft - 1 : 0;
       this._view.setTimeLeft(this.timeLeft);
@@ -62,13 +81,10 @@ export class GameplayPresenter extends Presenter<GameplayView> {
   }
 
   public destroy() {
-    socket.off("room_update");
-    socket.off("game_state");
-    socket.off("game_started");
-    socket.off("error");
     if (this.timer) {
       clearInterval(this.timer);
     }
+    this.service.destroy(); // Sever the connection cleanly
   }
 
   private getCookie(name: string): string | undefined {
@@ -77,40 +93,146 @@ export class GameplayPresenter extends Presenter<GameplayView> {
     if (parts.length === 2) return parts.pop()?.split(";").shift();
   }
 
-  public handleStartGame() {
-    socket.emit("start_game_request", {
-      gameId: this.gameId,
-      userId: this.userId,
-    });
+  // --------------------------------------------------------
+  // Lobby & Social Actions
+  // --------------------------------------------------------
+
+  public handleStartGame = () => {
+    if (!this.userId) return;
+    this.service.startGame(this.gameId, this.userId);
   }
 
-  /**
-   * Pipeline for pure social interactions.
-   * Bypasses the strict game state validator on the backend.
-   */
-  public sendChat(content: string, toId: string = "GLOBAL") {
+  public sendChat = (content: string, toId: string = "GLOBAL") => {
     if (!this.userId) return;
-    socket.emit("send_chat", {
-      gameId: this.gameId,
-      userId: this.userId,
-      content: content,
-      to_id: toId,
-    });
+    this.service.sendChat(this.gameId, this.userId, content, toId);
   }
 
-  /**
-   * Pipeline for Game Mechanics, Actions, and Contracts.
-   * e.g., "BUILD_DEV", "COMMIT_WORK", "FINALIZE", "ACCEPT"
-   */
-  public submitAction(actionCommand: string, payload: any = {}) {
-    console.log(actionCommand)
-    console.log(payload)
+  // --------------------------------------------------------
+  // Core Helper for wrapping payloads
+  // --------------------------------------------------------
+
+  private dispatchAction<T>(actionCommand: string, payload: T) {
     if (!this.userId) return;
-    socket.emit("submit_action", {
+
+    const envelopedPayload: GameActionPayload<T> = {
       gameId: this.gameId,
       userId: this.userId,
       action_command: actionCommand,
-      payload: payload,
+      payload: payload
+    };
+
+    console.log(`Dispatching ${actionCommand}:`, envelopedPayload);
+    this.service.submitAction(envelopedPayload);
+  }
+
+  // --------------------------------------------------------
+  // Economy Actions
+  // --------------------------------------------------------
+
+  public buildDevelopment = (tileId: string) => {
+    this.dispatchAction<BuildDevPayload>("BUILD_DEV", { tile_id: tileId });
+  }
+
+  public maintainDevelopment = (devId: string) => {
+    this.dispatchAction<TargetDevPayload>("MAINTAIN_DEV", { dev_id: devId });
+  }
+
+  public upgradeDevelopment = (devId: string) => {
+    this.dispatchAction<TargetDevPayload>("UPGRADE_DEV", { dev_id: devId });
+  }
+
+  // --------------------------------------------------------
+  // Conflict Actions
+  // --------------------------------------------------------
+
+  public contestDevelopment = (devId: string, targetId?: string, side?: "INITIATOR" | "CONTESTER" | "OWNER") => {
+    this.dispatchAction<ContestDevPayload>("CONTEST_DEV", {
+      dev_id: devId,
+      target_id: targetId,
+      side: side
     });
+  }
+
+  // --------------------------------------------------------
+  // Trade Drafting & Negotiation
+  // --------------------------------------------------------
+
+  public draftTrade = (targetId: string, offerItems: Partial<ResourceBundle>, requestItems: Partial<ResourceBundle>) => {
+    this.dispatchAction<DraftTradePayload>("TRADE", {
+      target_id: targetId,
+      offer_items: offerItems,
+      request_items: requestItems,
+      type: "TRADE"
+    });
+  }
+
+  public counterTrade = (actionId: string, offerItems: Partial<ResourceBundle>, requestItems: Partial<ResourceBundle>) => {
+    this.dispatchAction<CounterTradePayload>("BARTER", {
+      action_id: actionId,
+      offer_items: offerItems,
+      request_items: requestItems
+    });
+  }
+
+  public finalizeTrade = (actionId: string, actualItems: Partial<ResourceBundle>) => {
+    this.dispatchAction<FinalizeTradePayload>("FINALIZE", {
+      action_id: actionId,
+      actual_items: actualItems
+    });
+  }
+
+  // --------------------------------------------------------
+  // Employment & Campfire Drafting
+  // --------------------------------------------------------
+
+  public draftEmployment = (targetId: string, devId: string, wage: number, wageType: Resource, isApplication: boolean) => {
+    this.dispatchAction<DraftEmploymentPayload>("EMPLOYMENT", {
+      target_id: targetId,
+      dev_id: devId,
+      wage: wage,
+      wage_type: wageType,
+      is_application: isApplication,
+      type: "EMPLOYMENT"
+    });
+  }
+
+  public startFire = () => {
+    this.dispatchAction<{}>("START_FIRE", {});
+  }
+
+  public draftCampfire = (targetId: string, isRequest: boolean) => {
+    this.dispatchAction<DraftCampfirePayload>("CAMPFIRE", {
+      target_id: targetId,
+      is_request: isRequest,
+      type: "CAMPFIRE"
+    });
+  }
+
+  // --------------------------------------------------------
+  // Universal Contract Responses (Accept/Deny/Cancel)
+  // --------------------------------------------------------
+
+  public acceptContract = (actionId: string, type?: string) => {
+    this.dispatchAction<ContractActionPayload>("ACCEPT", { action_id: actionId, type: type });
+  }
+
+  public denyContract = (actionId: string, type?: string) => {
+    this.dispatchAction<ContractActionPayload>("DENY", { action_id: actionId, type: type });
+  }
+
+  public cancelContract = (actionId: string, type?: string) => {
+    this.dispatchAction<ContractActionPayload>("CANCEL", { action_id: actionId, type: type });
+  }
+
+  // --------------------------------------------------------
+  // Phase Management
+  // --------------------------------------------------------
+
+  public commitWork = (payload: CommitWorkPayload) => {
+    this.dispatchAction<CommitWorkPayload>("COMMIT_WORK", payload);
+  }
+
+  public finishPhase = () => {
+    this.dispatchAction<{}>("FINISH_PHASE", {});
   }
 }

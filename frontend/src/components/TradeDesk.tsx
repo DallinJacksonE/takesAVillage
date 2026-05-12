@@ -1,10 +1,15 @@
 import React, { useState } from "react";
-import { GameStateDTO, TradeActionDTO, Resource } from "../../../dtos/index";
+import { GameStateDTO, TradeActionDTO, Resource, ResourceBundle } from "../../../dtos/index";
 import { usePlayerName } from "./hooks/usePlayerName";
 
 interface Props {
   state: GameStateDTO;
-  onSend: (payload: Record<string, any>) => void;
+  onDraftTrade: (targetId: string, offerItems: Partial<ResourceBundle>, requestItems: Partial<ResourceBundle>) => void;
+  onCounterTrade: (actionId: string, offerItems: Partial<ResourceBundle>, requestItems: Partial<ResourceBundle>) => void;
+  onAcceptTrade: (actionId: string) => void;
+  onDenyTrade: (actionId: string) => void;
+  onCancelTrade: (actionId: string) => void;
+  onFinalizeTrade: (actionId: string, actualItems: Partial<ResourceBundle>) => void;
 }
 
 // Helper to neatly format resource bundles
@@ -17,21 +22,22 @@ const renderItems = (items?: Partial<Record<Resource, number>>) => {
 };
 
 // --- SUB-COMPONENT: The Shipping Window ---
-const ShippingWindow: React.FC<{ trade: TradeActionDTO; meId: string; onSend: Props["onSend"]; getPlayerName: (id: string) => string }> = ({ trade, meId, onSend, getPlayerName }) => {
+const ShippingWindow: React.FC<{
+  trade: TradeActionDTO;
+  meId: string;
+  onFinalizeTrade: Props["onFinalizeTrade"];
+  getPlayerName: (id: string) => string
+}> = ({ trade, meId, onFinalizeTrade, getPlayerName }) => {
   const isInitiator = meId === trade.initiator_id;
   const expectedToSend = isInitiator ? trade.offer_items : trade.request_items;
   const expectedToReceive = isInitiator ? trade.request_items : trade.offer_items;
   const otherPersonId = isInitiator ? trade.target_id : trade.initiator_id;
   const hasFinalized = isInitiator ? trade.initiator_finalized : trade.target_finalized;
 
-  const [actualItems, setActualItems] = useState<Record<string, number>>(expectedToSend || {});
+  const [actualItems, setActualItems] = useState<Partial<ResourceBundle>>(expectedToSend || {});
 
   const handleShip = () => {
-    onSend({
-      actionCommand: "FINALIZE",
-      actionId: trade.id,
-      actual_items: actualItems,
-    });
+    onFinalizeTrade(trade.id, actualItems);
   };
 
   if (hasFinalized) {
@@ -55,7 +61,7 @@ const ShippingWindow: React.FC<{ trade: TradeActionDTO; meId: string; onSend: Pr
       </div>
 
       <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-        {["food", "wood", "iron"].map((res) => (
+        {(["food", "wood", "iron"] as Resource[]).map((res) => (
           <div key={res} style={{ display: "flex", alignItems: "center", gap: "5px", background: "#fff", padding: "4px 8px", borderRadius: "4px", border: "1px solid #ccc" }}>
             <span style={{ fontSize: "0.8rem", textTransform: "capitalize" }}>{res}:</span>
             <input
@@ -74,7 +80,15 @@ const ShippingWindow: React.FC<{ trade: TradeActionDTO; meId: string; onSend: Pr
 };
 
 // --- MAIN COMPONENT ---
-const TradeDesk: React.FC<Props> = ({ state, onSend }) => {
+const TradeDesk: React.FC<Props> = ({
+  state,
+  onDraftTrade,
+  onCounterTrade,
+  onAcceptTrade,
+  onDenyTrade,
+  onCancelTrade,
+  onFinalizeTrade
+}) => {
   const { me, player_list } = state;
   const getPlayerName = usePlayerName();
 
@@ -102,13 +116,11 @@ const TradeDesk: React.FC<Props> = ({ state, onSend }) => {
 
   const handleDraftTrade = () => {
     if (!targetId) return;
-    onSend({
-      actionCommand: "TRADE",
-      type: "TRADE",
-      target_id: targetId,
-      offer_items: { [giveRes]: giveAmt },
-      request_items: { [reqRes]: reqAmt }
-    });
+    onDraftTrade(
+      targetId,
+      { [giveRes]: giveAmt },
+      { [reqRes]: reqAmt }
+    );
     setTargetId(null); // Close draft window after sending
   };
 
@@ -127,12 +139,11 @@ const TradeDesk: React.FC<Props> = ({ state, onSend }) => {
   };
 
   const handleSubmitCounter = (tradeId: string) => {
-    onSend({
-      actionCommand: "BARTER",
-      actionId: tradeId,
-      offer_items: { [counterGiveRes]: counterGiveAmt },
-      request_items: { [counterReqRes]: counterReqAmt }
-    });
+    onCounterTrade(
+      tradeId,
+      { [counterGiveRes]: counterGiveAmt },
+      { [counterReqRes]: counterReqAmt }
+    );
     setCounteringId(null);
   };
 
@@ -233,9 +244,9 @@ const TradeDesk: React.FC<Props> = ({ state, onSend }) => {
                   </div>
                 ) : (
                   <div style={{ display: "flex", gap: "5px" }}>
-                    <button className="btn-sm success" onClick={() => onSend({ actionCommand: "ACCEPT", actionId: trade.id })}>Accept</button>
+                    <button className="btn-sm success" onClick={() => onAcceptTrade(trade.id)}>Accept</button>
                     <button className="btn-sm warning" onClick={() => handleOpenCounter(trade)}>Counter</button>
-                    <button className="btn-sm danger" onClick={() => onSend({ actionCommand: "DENY", actionId: trade.id })}>Reject</button>
+                    <button className="btn-sm danger" onClick={() => onDenyTrade(trade.id)}>Reject</button>
                   </div>
                 )}
               </div>
@@ -255,7 +266,7 @@ const TradeDesk: React.FC<Props> = ({ state, onSend }) => {
               <div key={trade.id} style={{ padding: "10px", borderRadius: "6px", border: "1px dashed #ccc", marginBottom: "10px", opacity: 0.8 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
                   <strong>To: {getPlayerName(trade.target_id || "")}</strong>
-                  <button className="btn-sm danger" style={{ padding: "2px 6px", fontSize: "0.7rem" }} onClick={() => onSend({ actionCommand: "CANCEL", actionId: trade.id })}>Revoke</button>
+                  <button className="btn-sm danger" style={{ padding: "2px 6px", fontSize: "0.7rem" }} onClick={() => onCancelTrade(trade.id)}>Revoke</button>
                 </div>
                 <div style={{ fontSize: "0.8rem", color: "#555" }}>
                   <div>I Give: {renderItems(trade.offer_items)}</div>
@@ -274,7 +285,7 @@ const TradeDesk: React.FC<Props> = ({ state, onSend }) => {
             Shipping Bay (Lock-in your payload)
           </strong>
           {acceptedTrades.map(trade => (
-            <ShippingWindow key={trade.id} trade={trade} meId={me.id} onSend={onSend} getPlayerName={getPlayerName} />
+            <ShippingWindow key={trade.id} trade={trade} meId={me.id} onFinalizeTrade={onFinalizeTrade} getPlayerName={getPlayerName} />
           ))}
         </div>
       )}

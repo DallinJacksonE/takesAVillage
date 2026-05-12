@@ -4,11 +4,21 @@ import { usePlayerName } from "./hooks/usePlayerName";
 
 interface Props {
   state: GameStateDTO;
-  onSend: (payload: Record<string, any>) => void;
-  onAction: (actionCommand: string, payload: any) => void;
+  onStartFire: () => void;
+  onRequestSeat: (targetId: string) => void;
+  onOfferSeat: (targetId: string) => void;
+  onAccept: (actionId: string) => void;
+  onDeny: (actionId: string) => void;
 }
 
-const CampfireRing: React.FC<Props> = ({ state, onAction }) => {
+const CampfireRing: React.FC<Props> = ({
+  state,
+  onStartFire,
+  onRequestSeat,
+  onOfferSeat,
+  onAccept,
+  onDeny
+}) => {
   const { me, player_list } = state;
   const getPlayerName = usePlayerName();
 
@@ -50,7 +60,7 @@ const CampfireRing: React.FC<Props> = ({ state, onAction }) => {
                   <button
                     className="btn-sm"
                     style={{ background: "#2196F3", color: "white" }}
-                    onClick={() => onAction("CAMPFIRE", { type: "CAMPFIRE", target_id: p.id, is_request: true })}
+                    onClick={() => onRequestSeat(p.id)}
                   >
                     Request Seat
                   </button>
@@ -61,7 +71,7 @@ const CampfireRing: React.FC<Props> = ({ state, onAction }) => {
                     className="btn-sm"
                     style={{ background: "#f57c00", color: "white" }}
                     disabled={isAtCapacity || me.resources.wood < 1}
-                    onClick={() => onAction("CAMPFIRE", { type: "CAMPFIRE", target_id: p.id, is_request: false })}
+                    onClick={() => onOfferSeat(p.id)}
                   >
                     Offer Seat
                   </button>
@@ -90,7 +100,7 @@ const CampfireRing: React.FC<Props> = ({ state, onAction }) => {
                   className="btn success"
                   style={{ padding: "6px 12px", fontSize: "0.85rem", background: "#d32f2f" }}
                   disabled={me.resources.wood < 1}
-                  onClick={() => onAction("START_FIRE", { type: "START_FIRE" })}
+                  onClick={() => onStartFire()}
                 >
                   Start Fire (1 Wood)
                 </button>
@@ -115,8 +125,8 @@ const CampfireRing: React.FC<Props> = ({ state, onAction }) => {
                 <div key={offer.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px", fontSize: "0.85rem" }}>
                   <span>From <strong>{getPlayerName(offer.initiator_id)}</strong></span>
                   <div style={{ display: "flex", gap: "5px" }}>
-                    <button className="btn-sm success" onClick={() => onAction("ACCEPT", { actionId: offer.id })}>Accept</button>
-                    <button className="btn-sm danger" onClick={() => onAction("DENY", { actionId: offer.id })}>Decline</button>
+                    <button className="btn-sm success" onClick={() => onAccept(offer.id)}>Accept</button>
+                    <button className="btn-sm danger" onClick={() => onDeny(offer.id)}>Decline</button>
                   </div>
                 </div>
               ))}
@@ -131,8 +141,8 @@ const CampfireRing: React.FC<Props> = ({ state, onAction }) => {
                 <div key={req.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px", fontSize: "0.85rem" }}>
                   <span><strong>{getPlayerName(req.initiator_id)}</strong></span>
                   <div style={{ display: "flex", gap: "5px" }}>
-                    <button className="btn-sm success" disabled={isAtCapacity} onClick={() => onAction("ACCEPT", { actionId: req.id })}>Let In</button>
-                    <button className="btn-sm danger" onClick={() => onAction("DENY", { actionId: req.id })}>Turn Away</button>
+                    <button className="btn-sm success" disabled={isAtCapacity} onClick={() => onAccept(req.id)}>Let In</button>
+                    <button className="btn-sm danger" onClick={() => onDeny(req.id)}>Turn Away</button>
                   </div>
                 </div>
               ))}

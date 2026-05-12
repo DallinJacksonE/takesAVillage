@@ -1,13 +1,20 @@
 import React from "react";
-import { GameStateDTO, EmploymentActionDTO } from "../../../dtos/index";
+import { GameStateDTO, EmploymentActionDTO, CommitWorkPayload } from "../../../dtos/index";
 import { usePlayerName } from "./hooks/usePlayerName";
 
 interface Props {
   state: GameStateDTO;
-  onSend: (payload: Record<string, any>) => void;
+  onCommitWork: (payload: CommitWorkPayload) => void;
+  onAcceptOffer: (actionId: string) => void;
+  onDenyOffer: (actionId: string) => void;
 }
 
-const AvailableWorkCard: React.FC<Props> = ({ state, onSend }) => {
+const AvailableWorkCard: React.FC<Props> = ({
+  state,
+  onCommitWork,
+  onAcceptOffer,
+  onDenyOffer
+}) => {
   const { me } = state;
   const getPlayerName = usePlayerName();
 
@@ -49,7 +56,7 @@ const AvailableWorkCard: React.FC<Props> = ({ state, onSend }) => {
                 className="btn-secondary"
                 style={{ background: "#388e3c", color: "white" }}
                 disabled={me.finished_phase}
-                onClick={() => onSend({ actionCommand: "COMMIT_WORK", work_action: work })}
+                onClick={() => onCommitWork({ work_action: work })}
               >
                 Lock In
               </button>
@@ -71,7 +78,7 @@ const AvailableWorkCard: React.FC<Props> = ({ state, onSend }) => {
                 className="btn danger"
                 style={{ padding: "4px 10px", fontSize: "0.85rem" }}
                 disabled={me.finished_phase}
-                onClick={() => onSend({ actionCommand: "COMMIT_WORK", actionId: contest.id })}
+                onClick={() => onCommitWork({ action_id: contest.id })}
               >
                 Commit to Fight
               </button>
@@ -88,8 +95,8 @@ const AvailableWorkCard: React.FC<Props> = ({ state, onSend }) => {
             <div key={offer.id} style={{ background: "#e3f2fd", padding: "8px", borderRadius: "4px", marginTop: "5px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem" }}>
               <span>{getPlayerName(offer.initiator_id)} offering {offer.wage} {offer.wage_type}.</span>
               <div style={{ display: "flex", gap: "5px" }}>
-                <button className="btn-sm" style={{ background: "#2196F3", color: "white" }} onClick={() => onSend({ actionCommand: "ACCEPT", actionId: offer.id })}>Accept</button>
-                <button className="btn-sm danger" onClick={() => onSend({ actionCommand: "DENY", actionId: offer.id })}>Reject</button>
+                <button className="btn-sm" style={{ background: "#2196F3", color: "white" }} onClick={() => onAcceptOffer(offer.id)}>Accept</button>
+                <button className="btn-sm danger" onClick={() => onDenyOffer(offer.id)}>Reject</button>
               </div>
             </div>
           ))}

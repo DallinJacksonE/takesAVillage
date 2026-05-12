@@ -82,6 +82,83 @@ export type ActionDTO =
   | SystemActionDTO
   | ContestActionDTO;
 
+// ------------------------------------
+// --- WebSocket Payload Envelopes  ---
+// ------------------------------------
+
+/**
+ * The standard, strict envelope sent to the backend 'submit_action' event.
+ * Eliminates backend guessing by enforcing a standard structure.
+ */
+export interface GameActionPayload<T = any> {
+  gameId: string;
+  userId: string;
+  action_command: string;
+  payload: T;
+}
+
+// --- Specific Payload Definitions (The "T" in GameActionPayload) ---
+
+export interface BuildDevPayload {
+  tile_id: string;
+}
+
+export interface TargetDevPayload {
+  dev_id: string;
+}
+
+export interface ContestDevPayload {
+  dev_id: string;
+  target_id?: string;
+  side?: "INITIATOR" | "CONTESTER" | "OWNER";
+}
+
+export interface CommitWorkPayload {
+  work_action?: WorkActionDTO; // For inherent work commitments
+  action_id?: string;          // For accepted contracts or conflict lock-ins
+}
+
+// For ACCEPT, DENY, CANCEL actions
+export interface ContractActionPayload {
+  action_id: string;
+  type?: string;
+}
+
+// --- Specific Drafting Payloads ---
+
+export interface DraftTradePayload {
+  target_id: string;
+  offer_items: Partial<ResourceBundle>;
+  request_items: Partial<ResourceBundle>;
+  type: "TRADE";
+}
+
+export interface CounterTradePayload {
+  action_id: string;
+  offer_items: Partial<ResourceBundle>;
+  request_items: Partial<ResourceBundle>;
+}
+
+export interface FinalizeTradePayload {
+  action_id: string;
+  actual_items: Partial<ResourceBundle>;
+}
+
+export interface DraftEmploymentPayload {
+  target_id: string;
+  dev_id: string;
+  wage: number;
+  wage_type: Resource;
+  is_application: boolean;
+  type: "EMPLOYMENT";
+}
+
+export interface DraftCampfirePayload {
+  target_id: string;
+  is_request: boolean;
+  type: "CAMPFIRE";
+}
+
 // ----------------------
 // --- Core Game DTOs ---
 // ----------------------

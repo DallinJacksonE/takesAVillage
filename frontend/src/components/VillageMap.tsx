@@ -12,23 +12,25 @@ import {
 
 interface Props {
   mapData: MapTileDTO[];
-  onAction: (actionCommand: string, payload: any) => void;
+  onBuild: (tileId: string) => void;
   playerId: string;
   development_costs: DevelopmentCostsDict;
 }
 
-const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId, development_costs }) => {
+const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_costs }) => {
   const [selectedTile, setSelectedTile] = useState<MapTileDTO | null>(null);
   const getPlayerNameFromHook = usePlayerName();
 
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
   // Correct Pointy-Topped Hex Math
   const HEX_SIZE = 45;
   const hexWidth = HEX_SIZE * Math.sqrt(3);
   const hexHeight = HEX_SIZE * 2;
   const pointyClipPath = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
+
   const hexToPixel = (q: number, r: number) => {
     const x = HEX_SIZE * Math.sqrt(3) * (q + r / 2);
     const y = HEX_SIZE * (3 / 2) * r;
@@ -202,7 +204,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId, development_
                   className="btn"
                   style={{ background: "#795548", color: "white", fontSize: "0.8rem" }}
                   onClick={() => {
-                    onAction("BUILD_DEV", { tile_id: selectedTile.id });
+                    onBuild(selectedTile.id);
                     setSelectedTile(null);
                   }}
                 >

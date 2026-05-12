@@ -23,6 +23,7 @@ const Gameplay: React.FC = () => {
   const [playerCount, setPlayerCount] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [userId, setUserId] = useState("");
+
   useEffect(() => {
     if (gameId === "test-render") {
       setGameState(MOCK_STATE);
@@ -30,11 +31,25 @@ const Gameplay: React.FC = () => {
       setTimeLeft(MOCK_STATE.time_remaining);
       setUserId(MOCK_ME.id);
 
+      // Update mock to reflect new specific presenter methods
       const dummyPresenter = {
-        submitAction: (action: string, payload: any) =>
-          console.log("Mock Action Submitted:", action, payload),
-        sendChat: (content: string, toId: string) =>
-          console.log("Mock Chat Sent:", content, "to", toId),
+        handleStartGame: () => console.log("Mock: Start Game"),
+        sendChat: (content: string, toId: string) => console.log("Mock Chat:", content, toId),
+        buildDevelopment: (id: string) => console.log("Mock Build:", id),
+        maintainDevelopment: (id: string) => console.log("Mock Maintain:", id),
+        upgradeDevelopment: (id: string) => console.log("Mock Upgrade:", id),
+        contestDevelopment: (id: string) => console.log("Mock Contest:", id),
+        draftTrade: (target: string, offer: any, req: any) => console.log("Mock Draft Trade:", target),
+        counterTrade: (id: string, offer: any, req: any) => console.log("Mock Counter Trade:", id),
+        finalizeTrade: (id: string, items: any) => console.log("Mock Finalize Trade:", id),
+        draftEmployment: (target: string, dev: string, wage: number) => console.log("Mock Job App to:", target),
+        startFire: () => console.log("Mock Start Fire"),
+        draftCampfire: (target: string, isReq: boolean) => console.log("Mock Campfire:", target),
+        acceptContract: (id: string) => console.log("Mock Accept:", id),
+        denyContract: (id: string) => console.log("Mock Deny:", id),
+        cancelContract: (id: string) => console.log("Mock Cancel:", id),
+        commitWork: (payload: any) => console.log("Mock Commit Work:", payload),
+        finishPhase: () => console.log("Mock Finish Phase"),
         destroy: () => { },
       } as unknown as GameplayPresenter;
 
@@ -65,8 +80,6 @@ const Gameplay: React.FC = () => {
       <div style={{ padding: "40px", textAlign: "center" }}>
         <h2>Waiting Room: Village {gameId}</h2>
         <p>Players Joined: {playerCount} / 10</p>
-
-        {/* Render Host Controls */}
         {gameState.is_host ? (
           <div>
             <button
@@ -79,7 +92,6 @@ const Gameplay: React.FC = () => {
             {playerCount < 2 && <p style={{ color: "red" }}>Need at least 2 players to start.</p>}
           </div>
         ) : (
-          /* Render Guest View */
           <div>
             <p>Waiting for the host to start the game...</p>
           </div>
@@ -87,15 +99,16 @@ const Gameplay: React.FC = () => {
       </div>
     );
   }
+
   if (gameState.status === "ENDED") {
     return (
       <div style={{ padding: "40px", textAlign: "center" }}>
         <h2>Game Over: Village {gameId}</h2>
-
         <p>Thank you for playing</p>
       </div>
     );
   }
+
   return (
     <div style={{ padding: "20px" }}>
       <PlayerProvider players={gameState.player_list}>
@@ -120,11 +133,18 @@ const Gameplay: React.FC = () => {
               <div style={{ display: "flex", gap: "20px" }}>
                 <DevelopmentsCard
                   state={gameState}
-                  onSend={(payload) => presenter.submitAction(payload.actionCommand || payload.action, payload)}
+                  onMaintain={(devId) => presenter.maintainDevelopment(devId)}
+                  onUpgrade={(devId) => presenter.upgradeDevelopment(devId)}
+                  onContest={(devId, targetId) => presenter.contestDevelopment(devId, targetId)}
+                  onApplyForJob={(targetId, devId, wage, wageType) => presenter.draftEmployment(targetId, devId, wage, wageType, true)}
+                  onAcceptApplicant={(actionId) => presenter.acceptContract(actionId)}
+                  onDenyApplicant={(actionId) => presenter.denyContract(actionId)}
                 />
                 <AvailableWorkCard
                   state={gameState}
-                  onSend={(payload) => presenter.submitAction(payload.actionCommand || payload.action, payload)}
+                  onCommitWork={(payload) => presenter.commitWork(payload)}
+                  onAcceptOffer={(actionId) => presenter.acceptContract(actionId)}
+                  onDenyOffer={(actionId) => presenter.denyContract(actionId)}
                 />
               </div>
             )}
@@ -132,15 +152,23 @@ const Gameplay: React.FC = () => {
             {phase === "TRADE" && (
               <TradeDesk
                 state={gameState}
-                onSend={(payload) => presenter.submitAction(payload.actionCommand || payload.action, payload)}
+                onDraftTrade={(targetId, offer, req) => presenter.draftTrade(targetId, offer, req)}
+                onCounterTrade={(actionId, offer, req) => presenter.counterTrade(actionId, offer, req)}
+                onAcceptTrade={(actionId) => presenter.acceptContract(actionId)}
+                onDenyTrade={(actionId) => presenter.denyContract(actionId)}
+                onCancelTrade={(actionId) => presenter.cancelContract(actionId)}
+                onFinalizeTrade={(actionId, items) => presenter.finalizeTrade(actionId, items)}
               />
             )}
 
             {phase === "NIGHT" && (
               <CampfireRing
                 state={gameState}
-                onSend={(payload) => presenter.submitAction(payload.actionCommand || payload.action, payload)}
-                onAction={(actionCommand, payload) => presenter.submitAction(actionCommand, payload)}
+                onStartFire={() => presenter.startFire()}
+                onRequestSeat={(targetId) => presenter.draftCampfire(targetId, true)}
+                onOfferSeat={(targetId) => presenter.draftCampfire(targetId, false)}
+                onAccept={(actionId) => presenter.acceptContract(actionId)}
+                onDeny={(actionId) => presenter.denyContract(actionId)}
               />
             )}
 
@@ -149,7 +177,7 @@ const Gameplay: React.FC = () => {
               <div className="card" style={{ background: "#333", color: "white", textAlign: "center" }}>
                 <button
                   className="btn"
-                  onClick={() => presenter.submitAction("FINISH_PHASE")}
+                  onClick={() => presenter.finishPhase()}
                 >
                   {phase === "NIGHT" ? "End Day" : "End Phase"}
                 </button>
@@ -165,7 +193,7 @@ const Gameplay: React.FC = () => {
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "20px" }}>
             <PlayerRoster />
             <TabbedCommunicator
-              messages={gameState.chat_messages as any} // Cast if needed depending on how your interface is strictly set
+              messages={gameState.chat_messages as any}
               playerId={userId}
               players={gameState.player_list}
               onSend={(content: string, toId: string) => presenter.sendChat(content, toId)}
@@ -181,11 +209,8 @@ const Gameplay: React.FC = () => {
               mapData={gameState.map}
               playerId={userId}
               development_costs={gameState.development_costs}
-              onAction={(actionCommand, payload) =>
-                presenter.submitAction(actionCommand, payload)
-              }
+              onBuild={(tileId) => presenter.buildDevelopment(tileId)}
             />
-
           </div>
         )}
       </PlayerProvider>

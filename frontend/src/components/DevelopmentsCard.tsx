@@ -1,13 +1,26 @@
 import React, { useState } from "react";
-import { GameStateDTO, EmploymentActionDTO } from "../../../dtos/index";
+import { GameStateDTO, EmploymentActionDTO, Resource } from "../../../dtos/index";
 import { usePlayerName } from "./hooks/usePlayerName";
 
 interface Props {
   state: GameStateDTO;
-  onSend: (payload: Record<string, any>) => void;
+  onMaintain: (devId: string) => void;
+  onUpgrade: (devId: string) => void;
+  onContest: (devId: string, targetId?: string) => void;
+  onApplyForJob: (targetId: string, devId: string, wage: number, wageType: Resource) => void;
+  onAcceptApplicant: (actionId: string) => void;
+  onDenyApplicant: (actionId: string) => void;
 }
 
-const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
+const DevelopmentsCard: React.FC<Props> = ({
+  state,
+  onMaintain,
+  onUpgrade,
+  onContest,
+  onApplyForJob,
+  onAcceptApplicant,
+  onDenyApplicant
+}) => {
   const { me, player_list } = state;
   const getPlayerName = usePlayerName();
 
@@ -16,7 +29,7 @@ const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
 
   // Draft Job Application State
   const [appWage, setAppWage] = useState<number>(1);
-  const [appWageType, setAppWageType] = useState<string>("food");
+  const [appWageType, setAppWageType] = useState<Resource>("food");
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
@@ -85,7 +98,7 @@ const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
                         <button
                           className="btn danger"
                           style={{ width: "100%" }}
-                          onClick={() => onSend({ actionCommand: "CONTEST_DEV", dev_id: dev.id })}
+                          onClick={() => onContest(dev.id)}
                         >
                           Defend Property
                         </button>
@@ -94,7 +107,7 @@ const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
                           <button
                             className="btn-secondary"
                             style={{ background: "#795548", color: "white", flex: 1 }}
-                            onClick={() => onSend({ actionCommand: "MAINTAIN_DEV", dev_id: dev.id })}
+                            onClick={() => onMaintain(dev.id)}
                           >
                             maintenance: {
                               state.development_costs[dev.type]?.maintain
@@ -107,7 +120,7 @@ const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
                           <button
                             className="btn-secondary"
                             style={{ background: "#f57c00", color: "white", flex: 1 }}
-                            onClick={() => onSend({ actionCommand: "UPGRADE_DEV", dev_id: dev.id })}
+                            onClick={() => onUpgrade(dev.id)}
                           >
                             Upgrade: {
                               state.development_costs[dev.type]?.upgrade
@@ -129,8 +142,8 @@ const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
                           <div key={app.id} style={{ display: "flex", justifyContent: "space-between", marginTop: "5px", fontSize: "0.85rem", alignItems: "center" }}>
                             <span>{getPlayerName(app.initiator_id)} asking {app.wage} {app.wage_type}</span>
                             <div style={{ display: "flex", gap: "5px" }}>
-                              <button className="btn-sm success" onClick={() => onSend({ actionCommand: "ACCEPT", actionId: app.id, type: app.type })}>Hire</button>
-                              <button className="btn-sm danger" onClick={() => onSend({ actionCommand: "DENY", actionId: app.id, type: app.type })}>Reject</button>
+                              <button className="btn-sm success" onClick={() => onAcceptApplicant(app.id)}>Hire</button>
+                              <button className="btn-sm danger" onClick={() => onDenyApplicant(app.id)}>Reject</button>
                             </div>
                           </div>
                         ))}
@@ -173,7 +186,7 @@ const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
                     <div style={{ display: "flex", gap: "5px", alignItems: "center", fontSize: "0.85rem" }}>
                       <span>Ask for:</span>
                       <input type="number" min="1" value={appWage} onChange={e => setAppWage(parseInt(e.target.value) || 1)} style={{ width: "40px", padding: "2px" }} />
-                      <select value={appWageType} onChange={e => setAppWageType(e.target.value)} style={{ padding: "2px" }}>
+                      <select value={appWageType} onChange={e => setAppWageType(e.target.value as Resource)} style={{ padding: "2px" }}>
                         <option value="food">Food</option>
                         <option value="wood">Wood</option>
                         <option value="iron">Iron</option>
@@ -181,7 +194,7 @@ const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
                       <button
                         className="btn-sm success"
                         style={{ marginLeft: "auto" }}
-                        onClick={() => onSend({ actionCommand: "EMPLOYMENT", type: "EMPLOYMENT", target_id: dev.owner_id, dev_id: dev.id, is_application: true, wage: appWage, wage_type: appWageType })}
+                        onClick={() => onApplyForJob(dev.owner_id, dev.id, appWage, appWageType)}
                       >
                         Apply
                       </button>
@@ -191,7 +204,7 @@ const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
                     <button
                       className="btn-sm danger"
                       style={{ width: "100%", padding: "6px" }}
-                      onClick={() => onSend({ actionCommand: "CONTEST_DEV", target_id: dev.owner_id, dev_id: dev.id })}
+                      onClick={() => onContest(dev.id, dev.owner_id)}
                     >
                       Contest Ownership
                     </button>
