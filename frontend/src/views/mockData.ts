@@ -4,7 +4,9 @@ import {
   MapTileDTO,
   ActionDTO,
   ChatMessageDTO,
-} from "../../../dtos/index";
+  DevelopmentCostConfig,
+  DevelopmentCostsDict
+} from "../../../dtos/index"; // Ensure this path is correct for your project
 
 // --------------------------------------------------------
 // 1. BASE ENTITIES (Map & Chat)
@@ -102,7 +104,7 @@ const NIGHT_ACTIONS: ActionDTO[] = [
 ];
 
 // --------------------------------------------------------
-// 3. BASE PLAYERS
+// 3. BASE PLAYERS & CONFIGS
 // --------------------------------------------------------
 
 export const MOCK_ME: PlayerDTO = {
@@ -112,9 +114,9 @@ export const MOCK_ME: PlayerDTO = {
   sickness_chance: 0.05,
   fire_status: "COLD",
   resources: { wood: 5, food: 12, iron: 2 },
-  developments: [{ id: "tile-1", type: "Farm", level: 2, maintenence_days: 3, owner_id: "mock-user-1" }],
+  developments: [{ id: "tile-1", type: "Farm", level: 2, maintenance_days: 3, owner_id: "mock-user-1" }],
   available_work: [
-    { development: { id: "tile-1", type: "Farm", level: 2, maintenence_days: 3, owner_id: "mock-user-1" }, wage: 2, wage_type: "food", employer_id: "mock-user-1" }
+    { development: { id: "tile-1", type: "Farm", level: 2, maintenance_days: 3, owner_id: "mock-user-1" }, wage: 2, wage_type: "food", employer_id: "mock-user-1" }
   ],
   committed_action: null,
   actions: [], // Populated dynamically below based on phase
@@ -128,6 +130,32 @@ const MOCK_OPPONENTS: PlayerDTO[] = [
   { ...MOCK_ME, id: "mock-user-4", name: "Miner Mike", health: "sick" },
 ];
 
+const MOCK_ECONOMY_CONFIG: Record<"Farm" | "Woods" | "Mine", DevelopmentCostConfig> = {
+  Farm: {
+    build: { wood: 5 },
+    maintain: { wood: 1 },
+    upgrade: { wood: 10, iron: 2 }
+  },
+  Woods: {
+    build: { food: 5 },
+    maintain: { food: 1 },
+    upgrade: { food: 10, iron: 2 }
+  },
+  Mine: {
+    build: { wood: 10, food: 10 },
+    maintain: { wood: 2, food: 2 },
+    upgrade: { wood: 20, food: 20 }
+  }
+};
+
+const MOCK_DEV_COSTS: DevelopmentCostsDict = {
+  "tile-1": {
+    build: { wood: 5, food: 0, iron: 0 },
+    maintain: { wood: 1, food: 0, iron: 0 },
+    upgrade: { wood: 10, food: 0, iron: 2 }
+  }
+};
+
 const BASE_STATE: GameStateDTO = {
   status: "ACTIVE",
   is_host: true,
@@ -137,7 +165,12 @@ const BASE_STATE: GameStateDTO = {
   time_remaining: 45,
   player_list: [MOCK_ME, ...MOCK_OPPONENTS],
   map: MOCK_MAP,
+  developments: MOCK_ME.developments, // Simplified for mock: just including the single mocked development
   chat_messages: MOCK_CHATS,
+  economy_config: MOCK_ECONOMY_CONFIG,
+  development_costs: MOCK_DEV_COSTS,
+  max_fire_seats: 3,
+  campfire_cost: { wood: 2, food: 0, iron: 0 },
 };
 
 // --------------------------------------------------------
