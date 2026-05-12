@@ -74,6 +74,6 @@ To get the backend service up and running, follow these steps:
 
     The service will start, and it will be ready to accept connections from the frontend.
 
-## Getting Started, (non Docker deployment)
+## Getting Started, (Docker deployment)
 
 Have docker and docker compose installed on your system. Run "docker compose up backend --build" to start the service in a dev mode. Your container will hot reload on a save to the code as you edit. Connect to this container with a vite service in /frontend. On deployment for production run docker compose up --build in the root directory and a small service will host the frontend files on localhost:3000.
