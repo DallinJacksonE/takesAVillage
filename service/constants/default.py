@@ -30,10 +30,10 @@ PHASE_LENGTH = 120
 
 GAME_LENGTH = 15
 
-NAMES_LIST = ["Bork", "Torq", "Loki", "Snort", "Smoky", "Larry", "Ig",
-              "Irates", "Kranak", "Areril",
-              "Keenmaw", "Lerk", "Brarx", "Krateges", "Krazz", "Gliregg",
-              "Tresagg", "Meemigg", "Nemarx", "Faril", "Stusz"]
+AVAILABLE_NAMES = ["Bork", "Torq", "Loki", "Snort", "Smoky", "Larry", "Ig",
+                   "Irates", "Kranak", "Areril",
+                   "Keenmaw", "Lerk", "Brarx", "Krateges", "Krazz", "Gliregg",
+                   "Tresagg", "Meemigg", "Nemarx", "Faril", "Stusz"]
 DEFAULT_SICKNESS = .03
 
 HUNGER_SICKNESS_INCREASE = .2
