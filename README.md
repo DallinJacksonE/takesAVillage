@@ -56,16 +56,21 @@ sudo docker compose up --build
 
 - [x] Build DTOs for network transfer
 - [ ] Fix gameplay bugs
-    - [x] Fix bartering by removing it and having the barter button just change the trade offer to a trade offer from the original recipeint to the original sender
-    - [x] UI fixes
-    - [ ] add ability to seize an opponent's development, cancelling all previous work commitments and starting a seize commitment
-    - [ ] add sentiment tracking to the game
-    - [ ] add rumor round
-- [ ] Add ending to game 
+  - [x] Fix bartering by removing it and having the barter button just change the trade offer to a trade offer from the original recipeint to the original sender
+  - [x] UI fixes
+  - [ ] add ability to seize an opponent's development, cancelling all previous work commitments and starting a seize commitment
+  - [ ] add sentiment tracking to the game
+  - [ ] add rumor round
+- [ ] Add ending to game
 - [ ] Store finished game in server sql table
 - [ ] Build bot server
-    - [ ] A docker container with __n__ processes that play as bots connecting to a certain game id passed as container ENV variable
-    - [ ] Premliminary bots: always cooperate, always lie, genetic bot for training
-    - [ ] set up autonomous training where bot server connects to game service and can start a training game of just bots, stored in separate training sql table of data lite objects
-    - [ ] Train genetic bot on 100,000 games of 8 other bots, mutating genes to favor richest bot material wise
-    - [ ] Train genetic bot on 100,000 games of 8 other bots, favoring richest social bot
+  - [ ] A docker container with **n** processes that play as bots connecting to a certain game id passed as container ENV variable
+  - [ ] Premliminary bots: always cooperate, always lie, genetic bot for training
+  - [ ] set up autonomous training where bot server connects to game service and can start a training game of just bots, stored in separate training sql table of data lite objects
+  - [ ] Train genetic bot on 100,000 games of 8 other bots, mutating genes to favor richest bot material wise
+  - [ ] Train genetic bot on 100,000 games of 8 other bots, favoring richest social bot
+
+## TODOs
+
+- [ ] Counter offer bug (needs to update offer waiting on status)
+- [ ] Fire hosting bug where people accept but their state stays cold
