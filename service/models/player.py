@@ -1,7 +1,6 @@
 import time
 import uuid
 import random
-import
 
 
 class Player:
@@ -79,7 +78,7 @@ class Player:
 
         # Reset daily flags
         self.fire_status = "COLD"
-        self.fire_guests = []  # Reset to just self for the next day
+        self.fire_guests = []  # Reset to nobody for the next day
         self.available_work = self.developments
 
     def reset_phase(self):
