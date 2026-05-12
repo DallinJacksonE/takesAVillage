@@ -72,8 +72,24 @@ class ContractFactory:
         # Apply Lifecycle Changes
         if action_command == 'DENY':
             contract_copy.status = 'DENIED'
+            contract_copy.waiting_on_id = None
+
         elif action_command == 'ACCEPT':
             contract_copy.status = 'ACCEPTED'
+            contract_copy.waiting_on_id = None
+
+            # NEW: Handle Employment binding
+            if getattr(contract_copy, 'type', None) == 'EMPLOYMENT':
+                dev_id = getattr(contract_copy, 'dev_id', None)
+                if dev_id and dev_id in self.developments:
+                    development = self.developments[dev_id]
+                    # If it's an application, the initiator is the worker.
+                    # If it's an offer, the target is the worker.
+                    if getattr(contract_copy, 'is_application', False):
+                        development.worker_id = contract_copy.initiator_id
+                    else:
+                        development.worker_id = contract_copy.target_id
+
         elif action_command == 'BARTER':
             contract_copy.offer_items = data.get(
                 'offer_items', contract_copy.offer_items)
@@ -87,6 +103,8 @@ class ContractFactory:
 
         elif action_command == 'CANCEL':
             contract_copy.status = 'CANCELED'
+            contract_copy.waiting_on_id = None
+
         elif action_command == 'FINALIZE':
             self._finalize_trade(contract_copy, user_id, data)
 
@@ -143,6 +161,14 @@ class ContractFactory:
                     del player.actions[action_id]
 
         return len(campfire_ids)
+
+    def cleanup_pending_contracts(self):
+        """Sweeps all unaccepted trades and employment offers at the end of a phase."""
+        for player in self.players.values():
+            for contract in list(getattr(player, 'actions', {}).values()):
+                if contract.status in ['PENDING', 'NEGOTIATING']:
+                    contract.status = 'EXPIRED'
+                    contract.waiting_on_id = None
 
     def find_contract(self, contract_id):
         for player in self.players.values():
