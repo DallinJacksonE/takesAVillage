@@ -87,7 +87,15 @@ const Gameplay: React.FC = () => {
       </div>
     );
   }
+  if (gameState.status === "ENDED") {
+    return (
+      <div style={{ padding: "40px", textAlign: "center" }}>
+        <h2>Game Over: Village {gameId}</h2>
 
+        <p>Thank you for playing</p>
+      </div>
+    );
+  }
   return (
     <div style={{ padding: "20px" }}>
       <PlayerProvider players={gameState.player_list}>
