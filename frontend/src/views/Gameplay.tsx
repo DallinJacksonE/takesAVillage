@@ -109,6 +109,23 @@ const Gameplay: React.FC = () => {
     );
   }
 
+  const isDead = gameState.me.health === "dead";
+
+  if (isDead) {
+    return (
+      <div className="observation-screen">
+        <h2>You have perished.</h2>
+        <p>You are now observing the village.</p>
+        <PlayerRoster />
+        <VillageMap
+          mapData={gameState.map}
+          playerId={userId}
+          development_costs={gameState.development_costs}
+          onBuild={(tileId) => presenter.buildDevelopment(tileId)}
+        />
+      </div>
+    );
+  }
   return (
     <div style={{ padding: "20px" }}>
       <PlayerProvider players={gameState.player_list}>

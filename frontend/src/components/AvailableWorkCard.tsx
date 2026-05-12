@@ -26,6 +26,13 @@ const AvailableWorkCard: React.FC<Props> = ({
     (a) => a.type === "CONTEST" || a.type === "JOIN_CONTEST"
   );
 
+  // Filter for newly accepted contracts where the current player is the worker
+  const acceptedContracts = employmentActions.filter(
+    (a) =>
+      a.status === "ACCEPTED" &&
+      (a.is_application ? me.id === a.initiator_id : me.id === a.target_id)
+  );
+
   const pendingOffers = employmentActions.filter(
     (a) => a.target_id === me.id && !a.is_application && a.status === "PENDING"
   );
@@ -41,27 +48,54 @@ const AvailableWorkCard: React.FC<Props> = ({
       {/* --- Section 1: Ready to Commit (Inherent + Accepted) --- */}
       <div style={{ marginBottom: "15px" }}>
         <strong style={{ color: "#388e3c" }}>Available Jobs</strong>
-        {me.available_work.length === 0 ? (
+        {me.available_work.length === 0 && acceptedContracts.length === 0 ? (
           <p style={{ fontSize: "0.85rem", color: "#888", fontStyle: "italic" }}>No jobs available.</p>
         ) : (
-          me.available_work.map((work, idx) => (
-            <div key={idx} style={{ background: "#e8f5e9", padding: "8px", borderRadius: "4px", marginTop: "5px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ fontSize: "0.85rem" }}>
-                <strong>{work.development.type}</strong>
-                <div style={{ color: "#555" }}>
-                  Wage: {work.wage} {work.wage_type} {work.employer_id !== me.id && `(from ${getPlayerName(work.employer_id)})`}
+          <>
+            {/* 1. Render Inherent / Backend Generated Work */}
+            {me.available_work.map((work, idx) => (
+              <div key={`inherent-${idx}`} style={{ background: "#e8f5e9", padding: "8px", borderRadius: "4px", marginTop: "5px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ fontSize: "0.85rem" }}>
+                  <strong>{work.development.type}</strong>
+                  <div style={{ color: "#555" }}>
+                    Wage: {work.wage} {work.wage_type} {work.employer_id !== me.id && `(from ${getPlayerName(work.employer_id)})`}
+                  </div>
                 </div>
+                <button
+                  className="btn-secondary"
+                  style={{ background: "#388e3c", color: "white" }}
+                  disabled={me.finished_phase}
+                  onClick={() => onCommitWork({ work_action: work })}
+                >
+                  Lock In
+                </button>
               </div>
-              <button
-                className="btn-secondary"
-                style={{ background: "#388e3c", color: "white" }}
-                disabled={me.finished_phase}
-                onClick={() => onCommitWork({ work_action: work })}
-              >
-                Lock In
-              </button>
-            </div>
-          ))
+            ))}
+
+            {/* 2. Render Dynamically Accepted Contracts */}
+            {acceptedContracts.map((work) => {
+              const employerId = work.is_application ? work.target_id : work.initiator_id;
+              return (
+                <div key={work.id} style={{ background: "#e8f5e9", padding: "8px", borderRadius: "4px", marginTop: "5px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ fontSize: "0.85rem" }}>
+                    <strong>Contracted Job</strong>
+                    <div style={{ color: "#555" }}>
+                      Wage: {work.wage} {work.wage_type} {employerId && employerId !== me.id && `(from ${getPlayerName(employerId)})`}
+                    </div>
+                  </div>
+                  <button
+                    className="btn-secondary"
+                    style={{ background: "#388e3c", color: "white" }}
+                    disabled={me.finished_phase}
+                    // strictly matching the DTO requirements
+                    onClick={() => onCommitWork({ action_id: work.id })}
+                  >
+                    Lock In
+                  </button>
+                </div>
+              );
+            })}
+          </>
         )}
       </div>
 
