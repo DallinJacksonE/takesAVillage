@@ -57,5 +57,37 @@ def build_player_hist(game):
     }
 
 
+def add_map_hist(game):
+    """Capture a daily snapshot of the map into game.map_history."""
+    day = getattr(game, 'day', None)
+    if day is None:
+        return False
+
+    if not hasattr(game, 'map_history'):
+        game.map_history = {}
+
+    # Serialize the map data to dicts for storage
+    map_snapshot = {}
+    for tile_id, tile in game.map_data.items():
+        map_snapshot[tile_id] = {
+            'id': tile.id,
+            'q': tile.q,
+            'r': tile.r,
+            'type': tile.type,
+            'owner_id': tile.owner_id
+            'development': tile.development
+        }
+
+    game.map_history[day] = map_snapshot
+    return True
+
+
 def build_map_hist(game):
-    pass
+    """Return the accumulated map history as day -> map_snapshot."""
+    if not hasattr(game, 'map_history'):
+        return {}
+
+    return {
+        day: snapshot
+        for day, snapshot in sorted(game.map_history.items())
+    }
