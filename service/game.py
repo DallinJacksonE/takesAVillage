@@ -10,6 +10,7 @@ from models.map import MapFactory
 # Extracted Utilities
 from utils.name_generator import get_random_name
 from serializers.state_builder import build_player_state
+from serializers.game_info_builder import add_player_hist
 
 from actions.contract_factory import ContractFactory
 from actions.action_dispatcher import ActionDispatcher
@@ -43,6 +44,7 @@ class Game:
         self.map_data = {}
         self.contract_factory = ContractFactory(self.players)
         self.chat_messages = []
+        self.player_history = {}
 
         # Time and Phase state
         self.day = 1
@@ -160,6 +162,7 @@ class Game:
             return
         for player in self.players.values():
             player.consume_daily()
+            add_player_hist(self, player.session_id)
             player.reset_phase()
         for dev in self.developments.values():
             dev.degrade()
