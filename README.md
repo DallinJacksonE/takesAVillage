@@ -72,5 +72,9 @@ sudo docker compose up --build
 
 ## TODOs
 
-- [ ] Counter offer bug (needs to update offer waiting on status)
-- [ ] Fire hosting bug where people accept but their state stays cold
+- [x] Counter offer bug (needs to update offer waiting on status)
+- [x] Fire hosting bug where people accept but their state stays cold
+- [ ] Same name bug
+- [ ] Sickness chance uses values from constants
+- [ ] Death mechanic
+- [ ] Hiring bug
