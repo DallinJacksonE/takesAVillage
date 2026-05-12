@@ -103,6 +103,8 @@ export class GameplayPresenter extends Presenter<GameplayView> {
    * e.g., "BUILD_DEV", "COMMIT_WORK", "FINALIZE", "ACCEPT"
    */
   public submitAction(actionCommand: string, payload: any = {}) {
+    console.log(actionCommand)
+    console.log(payload)
     if (!this.userId) return;
     socket.emit("submit_action", {
       gameId: this.gameId,

@@ -13,6 +13,14 @@ class ChatMessageDTO:
     content: str
     timestamp: float
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "from_id": self.from_id,
+            "to_id": self.to_id,
+            "content": self.content
+        }
+
 # --- Action DTOs (The New Contracts) ---
 
 
@@ -193,7 +201,6 @@ class MapTileDTO:
             "r": self.r,
             "type": self.type,
             "owner_id": self.owner_id,
-            # Recursively call to_dict() on the nested development if it exists
             "development": self.development.to_dict() if self.development else None
         }
 
@@ -391,7 +398,6 @@ class GameStateDTO:
             for tile_id, tile in game.map_data.items()
         }
 
-        # Ensure every field expected by the dataclass is passed here [cite: 418]
         return cls(
             status=game.status,
             is_host=(getattr(game, 'host_id', '') == current_player_id),
@@ -420,19 +426,17 @@ class GameStateDTO:
         )
 
     def to_dict(self) -> dict:
-        """
-        Manually serializes everything to prevent 'MapTile is not JSON serializable'[cite: 147, 419].
-        """
         return {
             "status": self.status,
             "is_host": self.is_host,
-            "me": self.me.to_dict() if self.me else None,  # Added 'me' serialization
+            "me": self.me.to_dict() if self.me else None,
             "day": self.day,
             "phase": self.phase,
             "time_remaining": self.time_remaining,
             "player_list": [p.to_dict() for p in self.player_list],
             "map": {t_id: tile.to_dict() for t_id, tile in self.map.items()},
-            "chat_messages": [asdict(m) for m in self.chat_messages],
+            "chat_messages": [m if isinstance(m, dict)
+                              else m.to_dict() for m in self.chat_messages],
             "development_costs": self.development_costs,
             "campfire_cost": self.campfire_cost,
             "max_fire_seats": self.max_fire_seats,

@@ -1,7 +1,7 @@
 import time
 import uuid
 import importlib
-
+import copy
 # Core Models
 from models.player import Player
 from dtos import ChatMessageDTO
@@ -51,11 +51,11 @@ class Game:
         if session_id not in self.players:
             name = get_random_name()
             self.players[session_id] = Player(
-                session_id, name, self.starting_inventory)
+                session_id, name, copy.deepcopy(self.starting_inventory))
 
     def start_game(self):
         # Enforce the minimum player requirement
-        if len(self.players) < 2:
+        if len(self.players) < 1:
             return False
 
         # 1. Generate the map tiles based on the final player count

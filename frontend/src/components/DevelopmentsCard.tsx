@@ -53,7 +53,6 @@ const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
             else if (pendingApplications.length > 0) borderColor = "#2e7d32"; // Green for applicants
 
             const isExpanded = expandedId === dev.id;
-
             return (
               <div
                 key={dev.id}
@@ -71,8 +70,8 @@ const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
                   onClick={() => toggleExpand(dev.id)}
                 >
                   <strong style={{ fontSize: "1rem" }}>{dev.type} (Lvl {dev.level})</strong>
-                  <span style={{ fontSize: "0.8rem", color: dev.maintenence_days < 2 ? "red" : "#666", fontWeight: "bold" }}>
-                    {dev.is_contested ? "🔥 CONTESTED" : `Degrades in ${dev.maintenence_days}d`}
+                  <span style={{ fontSize: "0.8rem", color: dev.maintenance_days < 2 ? "red" : "#666", fontWeight: "bold" }}>
+                    {dev.is_contested ? "🔥 CONTESTED" : `Degrades in ${dev.maintenance_days}d`}
                   </span>
                 </div>
 
@@ -86,7 +85,7 @@ const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
                         <button
                           className="btn danger"
                           style={{ width: "100%" }}
-                          onClick={() => onSend({ actionCommand: "JOIN_CONTEST", dev_id: dev.id })}
+                          onClick={() => onSend({ actionCommand: "CONTEST_DEV", dev_id: dev.id })}
                         >
                           Defend Property
                         </button>
@@ -95,16 +94,28 @@ const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
                           <button
                             className="btn-secondary"
                             style={{ background: "#795548", color: "white", flex: 1 }}
-                            onClick={() => onSend({ actionCommand: "MAINTENANCE", dev_id: dev.id })}
+                            onClick={() => onSend({ actionCommand: "MAINTAIN_DEV", dev_id: dev.id })}
                           >
-                            Maintain (1 Wood)
+                            maintenance: {
+                              state.development_costs[dev.type]?.maintain
+                                ? Object.entries(state.development_costs[dev.type].maintain)
+                                  .map(([resource, amount]) => `${amount} ${resource}`)
+                                  .join(", ")
+                                : "Unknown Cost"
+                            }
                           </button>
                           <button
                             className="btn-secondary"
                             style={{ background: "#f57c00", color: "white", flex: 1 }}
-                            onClick={() => onSend({ actionCommand: "UPGRADE", dev_id: dev.id })}
+                            onClick={() => onSend({ actionCommand: "UPGRADE_DEV", dev_id: dev.id })}
                           >
-                            Upgrade
+                            Upgrade: {
+                              state.development_costs[dev.type]?.upgrade
+                                ? Object.entries(state.development_costs[dev.type].upgrade)
+                                  .map(([resource, amount]) => `${amount} ${resource}`)
+                                  .join(", ")
+                                : "Unknown Cost"
+                            }
                           </button>
                         </>
                       )}
@@ -118,8 +129,8 @@ const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
                           <div key={app.id} style={{ display: "flex", justifyContent: "space-between", marginTop: "5px", fontSize: "0.85rem", alignItems: "center" }}>
                             <span>{getPlayerName(app.initiator_id)} asking {app.wage} {app.wage_type}</span>
                             <div style={{ display: "flex", gap: "5px" }}>
-                              <button className="btn-sm success" onClick={() => onSend({ actionCommand: "ACCEPT", actionId: app.id })}>Hire</button>
-                              <button className="btn-sm danger" onClick={() => onSend({ actionCommand: "DENY", actionId: app.id })}>Reject</button>
+                              <button className="btn-sm success" onClick={() => onSend({ actionCommand: "ACCEPT", actionId: app.id, type: app.type })}>Hire</button>
+                              <button className="btn-sm danger" onClick={() => onSend({ actionCommand: "DENY", actionId: app.id, type: app.type })}>Reject</button>
                             </div>
                           </div>
                         ))}
@@ -170,7 +181,7 @@ const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
                       <button
                         className="btn-sm success"
                         style={{ marginLeft: "auto" }}
-                        onClick={() => onSend({ actionCommand: "EMPLOYMENT", target_id: dev.owner_id, dev_id: dev.id, is_application: true, wage: appWage, wage_type: appWageType })}
+                        onClick={() => onSend({ actionCommand: "EMPLOYMENT", type: "EMPLOYMENT", target_id: dev.owner_id, dev_id: dev.id, is_application: true, wage: appWage, wage_type: appWageType })}
                       >
                         Apply
                       </button>
@@ -180,7 +191,7 @@ const DevelopmentsCard: React.FC<Props> = ({ state, onSend }) => {
                     <button
                       className="btn-sm danger"
                       style={{ width: "100%", padding: "6px" }}
-                      onClick={() => onSend({ actionCommand: "CONTEST", target_id: dev.owner_id, dev_id: dev.id })}
+                      onClick={() => onSend({ actionCommand: "CONTEST_DEV", target_id: dev.owner_id, dev_id: dev.id })}
                     >
                       Contest Ownership
                     </button>

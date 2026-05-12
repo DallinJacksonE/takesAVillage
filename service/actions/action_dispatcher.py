@@ -25,7 +25,8 @@ class ActionDispatcher:
         if not player:
             return False
 
-        action_command = data.get('action_command') or data.get('action')
+        action_command = data.get('action_command') or data.get(
+            'actionId') or data.get('actionCommand')
         payload = data.get('payload', data)
 
         if player.finished_phase and action_command != 'FINISH_PHASE':

@@ -11,6 +11,14 @@ export type ActionStatus =
 
 export type ResourceBundle = Record<Resource, number>;
 
+export interface DevelopmentActions {
+  build: ResourceBundle;
+  maintain: ResourceBundle;
+  upgrade: ResourceBundle;
+}
+export type DevelopmentCostsDict = Record<string, DevelopmentActions>;
+//
+
 // --- Chat DTO (Pure Social) ---
 export interface ChatMessageDTO {
   id: string;
@@ -82,7 +90,7 @@ export interface DevelopmentDTO {
   id: string;
   type: "Farm" | "Woods" | "Mine";
   level: number;
-  maintenence_days: number;
+  maintenance_days: number;
   owner_id: string;
   is_contested?: boolean;
   contester_id?: string;
@@ -141,6 +149,9 @@ export interface GameStateDTO {
   developments: DevelopmentDTO[];
   chat_messages: ChatMessageDTO[];
   economy_config: Record<"Farm" | "Woods" | "Mine", DevelopmentCostConfig>;
+  development_costs: DevelopmentCostsDict;
+  max_fire_seats: number;
+  campfire_cost: ResourceBundle;
   session_id?: string;
 }
 

@@ -7,13 +7,15 @@ class MapTile:
                  q: int,
                  r: int,
                  tile_type: str,
-                 owner_id=None):
+                 owner_id=None,
+                 development=None):
 
         self.id = tile_id
         self.q = q
         self.r = r
         self.type = tile_type
         self.owner_id = owner_id
+        self.development = development
 
 
 class MapFactory:

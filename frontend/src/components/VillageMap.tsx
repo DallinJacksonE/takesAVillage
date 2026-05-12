@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MapTileDTO } from "../../../dtos/index";
+import { MapTileDTO, DevelopmentCostsDict } from "../../../dtos/index";
 import { usePlayerName } from "./hooks/usePlayerName";
 import PlayerInfo from "./PlayerInfo";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -14,9 +14,10 @@ interface Props {
   mapData: MapTileDTO[];
   onAction: (actionCommand: string, payload: any) => void;
   playerId: string;
+  development_costs: DevelopmentCostsDict;
 }
 
-const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId }) => {
+const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId, development_costs }) => {
   const [selectedTile, setSelectedTile] = useState<MapTileDTO | null>(null);
   const getPlayerNameFromHook = usePlayerName();
 
@@ -28,7 +29,6 @@ const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId }) => {
   const hexWidth = HEX_SIZE * Math.sqrt(3);
   const hexHeight = HEX_SIZE * 2;
   const pointyClipPath = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
-
   const hexToPixel = (q: number, r: number) => {
     const x = HEX_SIZE * Math.sqrt(3) * (q + r / 2);
     const y = HEX_SIZE * (3 / 2) * r;
@@ -206,7 +206,13 @@ const VillageMap: React.FC<Props> = ({ mapData, onAction, playerId }) => {
                     setSelectedTile(null);
                   }}
                 >
-                  Build Dev (2 Wood)
+                  Build: {
+                    development_costs[selectedTile.type]?.build
+                      ? Object.entries(development_costs[selectedTile.type].build)
+                        .map(([resource, amount]) => `${amount} ${resource}`)
+                        .join(", ")
+                      : "Unknown Cost"
+                  }
                 </button>
               </div>
             )}

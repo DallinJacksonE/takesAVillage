@@ -33,8 +33,6 @@ class Command:
 
 class BuildDevelopmentCommand(Command):
     def execute(self, game_state, player):
-        print("Building Development")
-        print("payload: ", self.payload)
         if game_state.phase != 'WORK':
             return False
 
@@ -61,20 +59,14 @@ class BuildDevelopmentCommand(Command):
             print("Build failed, insufficent resources")
             return False
 
-        print("Passed Development Checks")
-
         dev_id = str(uuid.uuid4())
         new_dev = Development(
             dev_id=dev_id, dev_type=dev_type, dev_owner=player.session_id)
 
         game_state.developments[dev_id] = new_dev
-        dev_dto = DevelopmentDTO.from_model(new_dev)
 
-        if isinstance(target_tile, dict):
-            target_tile['development'] = asdict(dev_dto)
-        else:
-            target_tile.development = dev_dto
-
+        target_tile.development = new_dev
+        target_tile.owner_id = player.session_id
         player.add_timeline_event("ACTION_COMPLETED", {
                                   "action": "BUILD_DEV",
                                   "dev_id": dev_id,

@@ -8,16 +8,17 @@ class ContractFactory:
 
     def process_contract(self, user_id, data):
         """Unified entry point for drafting or updating a contract."""
-        contract_id = data.get('id') or data.get('contractId')
+        contract_id = data.get('id') or data.get(
+            'contractId') or data.get('actionId')
 
         if contract_id and self.find_contract(contract_id):
             return self._update_contract(user_id, contract_id, data)
         else:
-            return self._create_contract(data)
+            return self._create_contract(user_id, data)
 
-    def _create_contract(self, data):
+    def _create_contract(self, user_id, data):
         try:
-            new_contract = self._build_contract_from_data(data)
+            new_contract = self._build_contract_from_data(user_id, data)
         except ValueError as e:
             print(f"Error creating contract: {e}")
             return "ERROR", None
@@ -25,9 +26,10 @@ class ContractFactory:
         self._add_contract_to_players(new_contract)
         return "CREATED", new_contract
 
-    def _build_contract_from_data(self, data):
+    def _build_contract_from_data(self, user_id, data):
         contract_type = data.get('type')
-        initiator_id = data.get('initiator_id') or data.get('from_id')
+
+        initiator_id = user_id
         target_id = data.get('target_id') or data.get('to_id')
 
         if contract_type == 'EMPLOYMENT':
@@ -53,7 +55,10 @@ class ContractFactory:
 
         contract_copy = copy.deepcopy(original_contract)
         actor = self.players.get(user_id)
-        action_command = data.get('action_command')
+
+        action_command = data.get(
+            'action_command') or data.get('actionCommand')
+        print(action_command)
 
         # Apply Lifecycle Changes
         if action_command == 'DENY':
@@ -66,7 +71,6 @@ class ContractFactory:
             contract_copy.request_items = data.get(
                 'request_items', contract_copy.request_items)
 
-            # NEW: Switch the court flag instead of flipping IDs
             if user_id == contract_copy.initiator_id:
                 contract_copy.waiting_on_id = contract_copy.target_id
             else:

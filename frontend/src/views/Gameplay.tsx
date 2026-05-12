@@ -23,7 +23,6 @@ const Gameplay: React.FC = () => {
   const [playerCount, setPlayerCount] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [userId, setUserId] = useState("");
-
   useEffect(() => {
     if (gameId === "test-render") {
       setGameState(MOCK_STATE);
@@ -72,7 +71,7 @@ const Gameplay: React.FC = () => {
           <div>
             <button
               onClick={() => presenter.handleStartGame()}
-              disabled={playerCount < 2}
+              disabled={playerCount < 1}
               style={{ padding: "10px 20px", fontSize: "16px", cursor: playerCount >= 2 ? "pointer" : "not-allowed" }}
             >
               Start Game
@@ -173,6 +172,7 @@ const Gameplay: React.FC = () => {
             <VillageMap
               mapData={gameState.map}
               playerId={userId}
+              development_costs={gameState.development_costs}
               onAction={(actionCommand, payload) =>
                 presenter.submitAction(actionCommand, payload)
               }
