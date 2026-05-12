@@ -8,7 +8,6 @@ from models.player import Player
 from dtos import ChatMessageDTO
 from models.map import MapFactory
 # Extracted Utilities
-from utils.name_generator import get_random_name
 from serializers.state_builder import build_player_state
 from serializers.game_info_builder import add_player_hist, add_map_hist
 
