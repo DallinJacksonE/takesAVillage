@@ -170,6 +170,7 @@ class Game:
             player.reset_phase()
         for dev in self.developments.values():
             dev.degrade()
+        self.actions = []
 
     def get_state_for_player(self, session_id):
         return build_player_state(self, session_id)
