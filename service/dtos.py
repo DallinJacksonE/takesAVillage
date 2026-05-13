@@ -309,10 +309,6 @@ class PlayerDTO:
             if getattr(dev, 'is_contested', False):
                 continue
 
-            # the owner does not get to work it.
-            if dev.id in contracted_dev_ids and player.session_id == dev.owner:
-                continue
-
             res_type = DEV_OUTPUT_MAP.get(dev.type, "food")
             wage = dev.level
 

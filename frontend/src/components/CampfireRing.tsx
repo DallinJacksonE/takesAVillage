@@ -95,7 +95,7 @@ const CampfireRing: React.FC<Props> = ({
                   <button
                     className="btn-sm"
                     style={{ background: "#f57c00", color: "white" }}
-                    disabled={isAtCapacity || me.resources.wood < 1}
+                    disabled={isAtCapacity}
                     onClick={() => onOfferSeat(p.id)}
                   >
                     Offer Seat
