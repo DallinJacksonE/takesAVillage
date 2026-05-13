@@ -263,6 +263,12 @@ def on_submit_action(data):
         game = active_games[game_id]
         if game.handle_action(user_id, data):
             broadcast_state(game)
+        else:
+            action_command = data.get('action_command') or data.get('actionId') or data.get('actionCommand')
+            emit('error', {
+                'message': 'Action rejected by game rules.',
+                'action_command': action_command
+            }, to=f"{game_id}_{user_id}")
 
 
 if __name__ == '__main__':

@@ -154,14 +154,14 @@ const Gameplay: React.FC = () => {
                   onUpgrade={(devId) => presenter.upgradeDevelopment(devId)}
                   onContest={(devId, targetId) => presenter.contestDevelopment(devId, targetId)}
                   onApplyForJob={(targetId, devId, wage, wageType) => presenter.draftEmployment(targetId, devId, wage, wageType, true)}
-                  onAcceptApplicant={(actionId) => presenter.acceptContract(actionId)}
-                  onDenyApplicant={(actionId) => presenter.denyContract(actionId)}
+                  onAcceptApplicant={(actionId) => presenter.acceptContract(actionId, "EMPLOYMENT")}
+                  onDenyApplicant={(actionId) => presenter.denyContract(actionId, "EMPLOYMENT")}
                 />
                 <AvailableWorkCard
                   state={gameState}
                   onCommitWork={(payload) => presenter.commitWork(payload)}
-                  onAcceptOffer={(actionId) => presenter.acceptContract(actionId)}
-                  onDenyOffer={(actionId) => presenter.denyContract(actionId)}
+                  onAcceptOffer={(actionId) => presenter.acceptContract(actionId, "EMPLOYMENT")}
+                  onDenyOffer={(actionId) => presenter.denyContract(actionId, "EMPLOYMENT")}
                 />
               </div>
             )}

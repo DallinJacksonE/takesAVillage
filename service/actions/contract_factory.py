@@ -3,9 +3,9 @@ from .contracts import EmploymentContract, TradeContract, CampfireContract
 
 
 class ContractFactory:
-    def __init__(self, players, developments=None):
+    def __init__(self, players, developments):
         self.players = players
-        self.developments = developments or {}
+        self.developments = developments
 
     def process_contract(self, user_id, data, action_command=None):
         """Unified entry point for drafting or updating a contract."""
