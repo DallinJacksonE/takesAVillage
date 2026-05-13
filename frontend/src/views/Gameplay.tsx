@@ -110,6 +110,7 @@ const Gameplay: React.FC = () => {
   }
 
   const isDead = gameState.me.health === "dead";
+  console.log(isDead);
 
   if (isDead) {
     return (

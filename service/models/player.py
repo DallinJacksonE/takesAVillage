@@ -58,12 +58,19 @@ class Player:
             self.sickness_chance += gamestate.hunger_sickness_increase
         if not warm:
             self.sickness_chance += gamestate.cold_sickness_increase
+        if warm:
+            self.sickness_chance = max(
+                gamestate.starting_sickness_chance, self.sickness_chance - gamestate.cold_sickness_increase/2)
+        if ate :
+            self.sickness_chance = max(
+                gamestate.starting_sickness_chance, self.sickness_chance - gamestate.hunger_sickness_increase/2)
+            
 
         # Chance to get sick
         check = random.random()
         if check < self.sickness_chance and self.health == "sick" and (not ate or not warm):
             self.health = "dead"
-        if check < self.sickness_chance:
+        elif check < self.sickness_chance:
             self.health = "sick"
         elif self.health == "sick" and ate and warm:
             self.health = "recovering"
