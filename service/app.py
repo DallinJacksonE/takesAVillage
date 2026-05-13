@@ -264,7 +264,8 @@ def on_submit_action(data):
         if game.handle_action(user_id, data):
             broadcast_state(game)
         else:
-            action_command = data.get('action_command') or data.get('actionId') or data.get('actionCommand')
+            action_command = data.get('action_command') or data.get(
+                'actionId') or data.get('actionCommand')
             emit('error', {
                 'message': 'Action rejected by game rules.',
                 'action_command': action_command
@@ -273,4 +274,5 @@ def on_submit_action(data):
 
 if __name__ == '__main__':
     # Add host="0.0.0.0" so Docker can route external traffic to it
-    socketio.run(app, host="0.0.0.0", debug=True, port=5000)
+    socketio.run(app, host="0.0.0.0", debug=True,
+                 use_reloader=False, port=5000)

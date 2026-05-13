@@ -15,8 +15,8 @@ RUN npm run build
 FROM node:18-alpine
 WORKDIR /app/frontend
 
-# Install express for the server file
-RUN npm install express
+# Install express AND the proxy middleware
+RUN npm install express http-proxy-middleware
 
 # Copy the built assets and the server file
 COPY --from=frontend-builder /app/frontend/dist ./dist
