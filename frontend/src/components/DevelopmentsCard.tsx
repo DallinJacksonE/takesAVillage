@@ -107,7 +107,6 @@ const DevelopmentsCard: React.FC<Props> = ({
                           <button
                             className="btn-secondary"
                             style={{ background: "#795548", color: "white", flex: 1 }}
-                            disabled={true}
                             onClick={() => onMaintain(dev.id)}
                           >
                             maintenance: {

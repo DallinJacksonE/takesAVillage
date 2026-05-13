@@ -13,11 +13,9 @@ const PlayerRoster = () => {
       <h3>Villagers</h3>
       <ul style={{ listStyleType: 'none' }}>
         {players.map((player) => (
-          player.health !== "dead" && (
-            <li key={player.id} style={{ marginBottom: "8px" }}>
-              <PlayerInfo playerId={player.id} />
-            </li>
-          )
+          <li key={player.id} style={{ marginBottom: "8px" }}>
+            <PlayerInfo playerId={player.id} />
+          </li>
         ))}
       </ul>
     </div>

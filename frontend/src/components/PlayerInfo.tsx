@@ -34,6 +34,7 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
       case "healthy": return "😎";
       case "sick": return "🤧";
       case "recovering": return "🤒";
+      case "dead": return "⚰️"
       default: return "🫥";
     }
   }
