@@ -171,7 +171,6 @@ class Game:
             self.status = 'ENDED'
             return
         self.contract_factory.cleanup_campfire_contracts()
-        self.contract_factory.cleanup_pending_contracts()
         for player in self.players.values():
             player.consume_daily(self)
             player.reset_phase()

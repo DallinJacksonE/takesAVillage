@@ -168,6 +168,36 @@ class StartFireCommand(Command):
 
 class CommitWorkCommand(Command):
     def execute(self, game_state, player):
+        # 1. Check if the payload is a Contract/Conflict Lock-in
+        action_id = self.payload.get('action_id')
+
+        if action_id:
+            # Handle accepted job contract execution
+            chosen_action = game_state.contract_factory.find_contract(
+                action_id)
+            if chosen_action:
+                # Ensure the property isn't contested before allowing work
+                dev_id = getattr(chosen_action, 'dev_id', None)
+                live_dev = game_state.developments.get(
+                    dev_id) if dev_id else None
+
+                if live_dev and getattr(live_dev, 'is_contested', False):
+                    return False
+
+                chosen_action.status = 'COMPLETED'
+                player.committed_action = {"action_id": action_id}
+
+                # Cleanup other accepted offers
+                for act in list(player.actions.values()):
+                    if getattr(act, 'type', None) == 'EMPLOYMENT' and act.status == 'ACCEPTED' and act.id != action_id:
+                        act.status = 'CANCELED'
+                return True
+
+            # If it was a conflict action rather than employment
+            player.committed_action = {"action_id": action_id}
+            return True
+
+        # 2. Fallback check for Inherent Work Lock-in
         work_action = self.payload.get('work_action')
         if not work_action:
             return False
@@ -180,19 +210,6 @@ class CommitWorkCommand(Command):
             return False
 
         player.committed_action = work_action
-
-        # Handle accepted job contract cleanup
-        action_id = work_action.get('action_id')
-        if action_id:
-            chosen_action = game_state.contract_factory.find_contract(
-                action_id)
-            if chosen_action:
-                chosen_action.status = 'COMPLETED'
-
-            for act in list(player.actions.values()):
-                if act.type == 'EMPLOYMENT' and act.status == 'ACCEPTED' and act.id != action_id:
-                    act.status = 'CANCELED'
-
         return True
 
 

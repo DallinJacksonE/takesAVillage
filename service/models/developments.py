@@ -4,7 +4,7 @@ class Development:
         self.id = dev_id
         self.type = dev_type
         self.level = 2
-        self.owner = dev_owner
+        self.owner = dev_owner  # the id
         self.maintenance_days = 7
 
         # --- Conflict Flags ---

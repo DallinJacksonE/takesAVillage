@@ -132,11 +132,18 @@ class ContractFactory:
 
         return len(campfire_ids)
 
-    def cleanup_pending_contracts(self):
-        """Sweeps all unaccepted trades and employment offers at the end of a phase."""
+    def cleanup_end_of_phase(self):
+        """Sweeps all unfulfilled trades and deletes old employment contracts."""
         for player in self.players.values():
-            for contract in list(getattr(player, 'actions', {}).values()):
-                if contract.status in ['PENDING', 'NEGOTIATING']:
+            for action_id in list(player.actions.keys()):
+                contract = player.actions[action_id]
+
+                # 1. Completely delete all work contracts so they don't carry over
+                if getattr(contract, 'type', None) == 'EMPLOYMENT':
+                    del player.actions[action_id]
+
+                # 2. Expire old unaccepted trades
+                elif contract.status in ['PENDING', 'NEGOTIATING']:
                     contract.status = 'EXPIRED'
                     contract.waiting_on_id = None
 

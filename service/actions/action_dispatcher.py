@@ -30,7 +30,8 @@ class ActionDispatcher:
         payload = data.get('payload', data)
 
         if player.finished_phase and action_command not in ['FINISH_PHASE', 'ACCEPT', 'DENY', 'CANCEL']:
-            print(f"ActionDispatcher: player {user_id} already finished phase; rejecting {action_command}")
+            print(f"ActionDispatcher: player "
+                  f"{user_id} already finished phase; rejecting {action_command}")
             return False
 
         # 1. Execute Instant Commands
@@ -70,3 +71,5 @@ class ActionDispatcher:
     def resolve_work_phase(game_state):
         ConflictResolvers.resolve_contests(game_state)
         EconomyResolvers.resolve_work_phase(game_state)
+
+        game_state.contract_factory.cleanup_end_of_phase()

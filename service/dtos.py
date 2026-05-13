@@ -294,7 +294,10 @@ class PlayerDTO:
     def from_model(cls, player, my_devs_full, game_devs=None):
         devs = [DevelopmentDTO.from_model(d) for d in my_devs_full]
         available_work = []
-
+        contracted_dev_ids = {
+            getattr(action, 'dev_id', None) for action in player.actions.values()
+            if getattr(action, 'type', None) == "EMPLOYMENT" and action.status == "ACCEPTED"
+        }
         # --- 1. Inherent Work (Own Developments) ---
         DEV_OUTPUT_MAP = {
             "Farm": "food",
@@ -305,6 +308,11 @@ class PlayerDTO:
         for dev in my_devs_full:
             if getattr(dev, 'is_contested', False):
                 continue
+
+            # the owner does not get to work it.
+            if dev.id in contracted_dev_ids and player.session_id == dev.owner:
+                continue
+
             res_type = DEV_OUTPUT_MAP.get(dev.type, "food")
             wage = dev.level
 
@@ -318,17 +326,23 @@ class PlayerDTO:
         # --- 2. Accepted Job Offers ---
         if game_devs:
             for action in player.actions.values():
-                if action.type == "EMPLOYMENT" and action.status == "ACCEPTED":
+                if getattr(action, 'type', None) == "EMPLOYMENT" and action.status == "ACCEPTED":
                     target_dev = game_devs.get(action.dev_id)
                     if target_dev and not getattr(target_dev, 'is_contested', False):
+
+                        # Determine roles based on the application flag
                         employer_id = action.target_id if action.is_application else action.initiator_id
-                        available_work.append(WorkActionDTO(
-                            development=DevelopmentDTO.from_model(target_dev),
-                            wage=action.wage,
-                            wage_type=action.wage_type,
-                            employer_id=employer_id,
-                            action_id=action.id
-                        ))
+                        worker_id = action.initiator_id if action.is_application else action.target_id
+
+                        if player.session_id == worker_id:
+                            available_work.append(WorkActionDTO(
+                                development=DevelopmentDTO.from_model(
+                                    target_dev),
+                                wage=action.wage,
+                                wage_type=action.wage_type,
+                                employer_id=employer_id,
+                                action_id=action.id
+                            ))
 
         # --- 3. Committed Action ---
         committed_dto = None

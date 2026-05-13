@@ -26,19 +26,29 @@ const AvailableWorkCard: React.FC<Props> = ({
     (a) => a.type === "CONTEST" || a.type === "JOIN_CONTEST"
   );
 
-  // Filter for newly accepted contracts where the current player is the worker
-  const acceptedContracts = employmentActions.filter(
-    (a) =>
-      a.status === "ACCEPTED" &&
-      (a.is_application ? me.id === a.initiator_id : me.id === a.target_id)
-  );
-
   const pendingOffers = employmentActions.filter(
     (a) => a.target_id === me.id && !a.is_application && a.status === "PENDING"
   );
 
   const pendingApplications = employmentActions.filter(
     (a) => a.initiator_id === me.id && a.is_application && a.status === "PENDING"
+  );
+
+  const sentOffers = employmentActions.filter(
+    (a) => a.initiator_id === me.id && !a.is_application && a.status === "PENDING"
+  );
+  const sentOfferDevIds = sentOffers.map(a => a.dev_id);
+
+  const displayableInherentWork = me.available_work.filter(
+    (work) => !sentOfferDevIds.includes(work.development.id)
+  );
+  console.log(displayableInherentWork)
+  // FIX 2: Only show the "Contracted Job" UI if the backend hasn't already provided it
+  const acceptedContracts = employmentActions.filter(
+    (a) =>
+      a.status === "ACCEPTED" &&
+      (a.is_application ? me.id === a.initiator_id : me.id === a.target_id) &&
+      !me.available_work.some((aw) => aw.development.id === a.dev_id)
   );
 
   return (
@@ -48,12 +58,12 @@ const AvailableWorkCard: React.FC<Props> = ({
       {/* --- Section 1: Ready to Commit (Inherent + Accepted) --- */}
       <div style={{ marginBottom: "15px" }}>
         <strong style={{ color: "#388e3c" }}>Available Jobs</strong>
-        {me.available_work.length === 0 && acceptedContracts.length === 0 ? (
+        {displayableInherentWork.length === 0 && acceptedContracts.length === 0 ? (
           <p style={{ fontSize: "0.85rem", color: "#888", fontStyle: "italic" }}>No jobs available.</p>
         ) : (
           <>
             {/* 1. Render Inherent / Backend Generated Work */}
-            {me.available_work.map((work, idx) => (
+            {displayableInherentWork.map((work, idx) => (
               <div key={`inherent-${idx}`} style={{ background: "#e8f5e9", padding: "8px", borderRadius: "4px", marginTop: "5px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ fontSize: "0.85rem" }}>
                   <strong>{work.development.type}</strong>
@@ -87,7 +97,6 @@ const AvailableWorkCard: React.FC<Props> = ({
                     className="btn-secondary"
                     style={{ background: "#388e3c", color: "white" }}
                     disabled={me.finished_phase}
-                    // strictly matching the DTO requirements
                     onClick={() => onCommitWork({ action_id: work.id })}
                   >
                     Lock In

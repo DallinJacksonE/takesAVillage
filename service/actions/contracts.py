@@ -32,8 +32,8 @@ class Contract:
         handler = self.command_map.get(action_command)
 
         if not handler:
-            print(f"Action '{action_command}' not supported by {
-                  self.__class__.__name__}.")
+            print(f"Action '{action_command}' not supported by"
+                  f" {self.__class__.__name__}.")
             return "ERROR"
 
         # Execute the mapped function and return the resulting status string
@@ -127,8 +127,8 @@ class EmploymentContract(Contract):
 
         # 2. Strict Validation: Only the target can accept the contract
         if user_id != self.target_id:
-            print(f"Action Denied: User {
-                  user_id} is not authorized to accept this contract.")
+            print(f"Action Denied: User "
+                  f"{user_id} is not authorized to accept this contract.")
             return "ILLEGAL"
 
         # 3. Bind the worker to the development
@@ -137,11 +137,11 @@ class EmploymentContract(Contract):
 
         if development:
             development.worker_id = worker_id
-            print(f"Successfully bound Worker {
-                  worker_id} to Development {self.dev_id}")
+            print(f"Successfully bound Worker "
+                  f"{worker_id} to Development {self.dev_id}")
         else:
-            print(f"Warning: Development {
-                  self.dev_id} not found during contract acceptance.")
+            print(f"Warning: Development "
+                  f"{self.dev_id} not found during contract acceptance.")
 
         # 4. Finalize the state
         self.status = 'ACCEPTED'
