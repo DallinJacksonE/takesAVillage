@@ -37,7 +37,7 @@ AVAILABLE_NAMES = ["Bork", "Torq", "Loki", "Snort", "Smoky", "Larry", "Ig",
                    "Irates", "Kranak", "Areril",
                    "Keenmaw", "Lerk", "Brarx", "Krateges", "Krazz", "Gliregg",
                    "Tresagg", "Meemigg", "Nemarx", "Faril", "Stusz"]
-DEFAULT_SICKNESS = .03
+DEFAULT_SICKNESS = .03 # MUST CHANGE player.py SEPARATELY TO MATCH THIS VALUE
 
 HUNGER_SICKNESS_INCREASE = .2
 

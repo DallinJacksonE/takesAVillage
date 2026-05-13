@@ -172,6 +172,11 @@ class StartFireCommand(Command):
 
 class CommitWorkCommand(Command):
     def execute(self, game_state, player):
+        # 0. Sick/recovering players cannot do work themselves.
+        if player.health in ["sick", "recovering", "dead"]:
+            print(f"CommitWork denied: player {player.session_id} is {player.health} and cannot work.")
+            return False
+
         # 1. Check if the payload is a Contract/Conflict Lock-in
         action_id = self.payload.get('action_id')
 
