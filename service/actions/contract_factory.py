@@ -3,9 +3,9 @@ from .contracts import EmploymentContract, TradeContract, CampfireContract
 
 
 class ContractFactory:
-    def __init__(self, players, developments=None):
+    def __init__(self, players, developments):
         self.players = players
-        self.developments = developments or {}
+        self.developments = developments
 
     def process_contract(self, user_id, data, action_command=None):
         """Unified entry point for drafting or updating a contract."""
@@ -67,55 +67,25 @@ class ContractFactory:
 
         # Use the provided command first, fallback to data dict for older calls
         action_command = provided_action_command or data.get(
-            'action_command') or data.get('actionCommand')
+            'action_command')
         print(f"Executing Contract Action: {action_command}")
 
-        # Apply Lifecycle Changes
-        if action_command == 'DENY':
-            contract_copy.status = 'DENIED'
-            contract_copy.waiting_on_id = None
+        # 1. Delegate ALL lifecycle changes to the Contract's Command Map
+        context = {'developments': self.developments}
+        status = contract_copy.process_action(
+            action_command, user_id, data, context)
 
-        elif action_command == 'ACCEPT':
-            contract_copy.status = 'ACCEPTED'
-            contract_copy.waiting_on_id = None
+        # 2. Check for errors or illegal moves caught by the contract
+        if status == "ERROR":
+            return "ERROR", original_contract
 
-            # Strictly match the properties established by the Employment payload DTO
-            if contract_copy.type == 'EMPLOYMENT':
-                # Fetch the development using the exact dev_id from the contract
-                development = self.developments.get(contract_copy.dev_id)
-
-                if development:
-                    if contract_copy.is_application:
-                        development.worker_id = contract_copy.initiator_id
-                    else:
-                        development.worker_id = contract_copy.target_id
-
-        elif action_command == 'BARTER':
-            contract_copy.offer_items = data.get(
-                'offer_items', contract_copy.offer_items)
-            contract_copy.request_items = data.get(
-                'request_items', contract_copy.request_items)
-
-            if user_id == contract_copy.initiator_id:
-                contract_copy.waiting_on_id = contract_copy.target_id
-            else:
-                contract_copy.waiting_on_id = contract_copy.initiator_id
-
-        elif action_command == 'CANCEL':
-            contract_copy.status = 'CANCELED'
-            contract_copy.waiting_on_id = None
-
-        elif action_command == 'FINALIZE':
-            self._finalize_trade(contract_copy, user_id, data)
-
-        # Check Legality
-        if not contract_copy.is_legal(actor):
+        if status == "ILLEGAL" or not contract_copy.is_legal(actor):
             return "ILLEGAL", original_contract
 
-        # Save Changes
+        # 3. Save Changes
         self._add_contract_to_players(contract_copy)
 
-        return f"UPDATED_{contract_copy.status}", contract_copy
+        return status, contract_copy
 
     def _finalize_trade(self, contract_copy, user_id, data):
         """Handles the secret payload drop-off before the trade executes."""
