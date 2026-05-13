@@ -64,6 +64,7 @@ class BuildDevelopmentCommand(Command):
             dev_id=dev_id, dev_type=dev_type, dev_owner=player.session_id)
 
         game_state.developments[dev_id] = new_dev
+        player.developments.append(dev_id)
 
         target_tile.development = new_dev
         target_tile.owner_id = player.session_id

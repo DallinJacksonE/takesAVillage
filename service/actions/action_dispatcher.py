@@ -29,7 +29,8 @@ class ActionDispatcher:
             'actionId') or data.get('actionCommand')
         payload = data.get('payload', data)
 
-        if player.finished_phase and action_command != 'FINISH_PHASE':
+        if player.finished_phase and action_command not in ['FINISH_PHASE', 'ACCEPT', 'DENY', 'CANCEL']:
+            print(f"ActionDispatcher: player {user_id} already finished phase; rejecting {action_command}")
             return False
 
         # 1. Execute Instant Commands

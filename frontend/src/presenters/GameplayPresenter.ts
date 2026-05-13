@@ -121,7 +121,6 @@ export class GameplayPresenter extends Presenter<GameplayView> {
       payload: payload
     };
 
-    console.log(`Dispatching ${actionCommand}:`, envelopedPayload);
     this.service.submitAction(envelopedPayload);
   }
 
