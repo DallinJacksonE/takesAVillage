@@ -181,6 +181,14 @@ class Game:
                 self.players[dev.owner].developments.pop(dev.id)
 
         self.actions = []
+        self.status = "ENDED" if self.is_game_over() else "RUNNING"
+
+    def is_game_over(self):
+        all_dead = True
+        for player in self.players:
+            if player.health != "dead":
+                all_dead = False
+        return all_dead
 
     def get_state_for_player(self, session_id):
         return build_player_state(self, session_id)
