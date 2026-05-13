@@ -61,7 +61,11 @@ class BuildDevelopmentCommand(Command):
 
         dev_id = str(uuid.uuid4())
         new_dev = Development(
-            dev_id=dev_id, dev_type=dev_type, dev_owner=player.session_id)
+            dev_id,
+            dev_type,
+            player.session_id,
+            game_state.rules.MAX_DEVELOPMENT_LEVEL,
+            game_state.rules.MAINTENANCE_DAYS)
 
         game_state.developments[dev_id] = new_dev
         player.developments.append(dev_id)
@@ -86,7 +90,7 @@ class MaintainDevelopmentCommand(Command):
         maintain_cost = game_state.development_costs.get(
             dev.type, {}).get("maintain", {})
         if self._deduct_resources(player, maintain_cost):
-            dev.maintenence_days = 7
+            dev.maintenance()
             player.add_timeline_event(
                 "ACTION_COMPLETED", {"action": "MAINTAIN_DEV", "dev_id": dev_id})
             return True

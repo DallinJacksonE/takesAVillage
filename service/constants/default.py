@@ -16,6 +16,9 @@ DEVELOPMENT_COSTS = {
     }
 }
 
+MAX_DEVELOPMENT_LEVEL = 3
+MAINTENANCE_DAYS = 7
+
 STARTING_INVENTORY = {
     "wood": 3,
     "food": 2,

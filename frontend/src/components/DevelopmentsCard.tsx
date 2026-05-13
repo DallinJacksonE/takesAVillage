@@ -107,6 +107,7 @@ const DevelopmentsCard: React.FC<Props> = ({
                           <button
                             className="btn-secondary"
                             style={{ background: "#795548", color: "white", flex: 1 }}
+                            disabled={true}
                             onClick={() => onMaintain(dev.id)}
                           >
                             maintenance: {
@@ -204,6 +205,7 @@ const DevelopmentsCard: React.FC<Props> = ({
                     <button
                       className="btn-sm danger"
                       style={{ width: "100%", padding: "6px" }}
+                      disabled={true}
                       onClick={() => onContest(dev.id, dev.owner_id)}
                     >
                       Contest Ownership

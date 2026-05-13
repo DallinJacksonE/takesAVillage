@@ -65,7 +65,7 @@ h3 {
   background-color: transparent;
   color: var(--text-primary);
   border-radius: 3px;
-  border: 0px;
+  border: 1px;
 }
 
 .btn-secondary:hover {

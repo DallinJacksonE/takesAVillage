@@ -13,13 +13,14 @@ const PlayerRoster = () => {
       <h3>Villagers</h3>
       <ul style={{ listStyleType: 'none' }}>
         {players.map((player) => (
-          <li key={player.id} style={{ marginBottom: "8px" }}>
-            <PlayerInfo playerId={player.id} />
-          </li>
+          player.health !== "dead" && (
+            <li key={player.id} style={{ marginBottom: "8px" }}>
+              <PlayerInfo playerId={player.id} />
+            </li>
+          )
         ))}
       </ul>
-    </div >
-  )
-};
-
+    </div>
+  );
+}
 export default PlayerRoster;

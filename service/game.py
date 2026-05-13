@@ -175,7 +175,11 @@ class Game:
             player.consume_daily(self)
             player.reset_phase()
         for dev in self.developments.values():
-            dev.degrade()
+            still_exists = dev.degrade()
+            if not still_exists:
+                self.developments.pop(dev.id)
+                self.players[dev.owner].developments.pop(dev.id)
+
         self.actions = []
 
     def get_state_for_player(self, session_id):
