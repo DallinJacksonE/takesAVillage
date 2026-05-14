@@ -106,8 +106,10 @@ class Player:
         self.available_work = self.developments
 
     def reset_phase(self):
-        self.available_work = self.developments
-        self.finished_phase = False
+        if self.health != "dead":
+            self.finished_phase = False
+        else:
+            self.finished_phase = True
         self.fire_guests = []
 
     def to_dict(self):

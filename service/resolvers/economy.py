@@ -5,6 +5,7 @@ class EconomyResolvers:
 
         for player in game_state.players.values():
             if player.health in ["sick", "recovering"]:
+                player.committed_action = None
                 continue
             ca = getattr(player, 'committed_action', None)
             if ca and isinstance(ca, dict):

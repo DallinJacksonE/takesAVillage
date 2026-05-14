@@ -75,7 +75,7 @@ class Game:
 
         self.map_data = factory.map_tiles
 
-        self.status = 'ACTIVE'
+        self.status = 'RUNNING'
         self.start_phase('WORK')
         return True
 
@@ -89,16 +89,23 @@ class Game:
         return False
 
     def check_all_players_locked(self):
-        if all((p.finished_phase or p.health == "dead") for p in self.players.values()):
+        active_players = [
+            p for p in self.players.values()
+            if p.health != "dead"
+        ]
+
+        if all(p.finished_phase for p in active_players):
             self.next_phase()
 
     def next_phase(self):
         if self.phase == 'WORK':
             self.resolve_work_phase()
             self.start_phase('TRADE')
+
         elif self.phase == 'TRADE':
             self.resolve_trade_phase()
             self.start_phase('NIGHT')
+
         elif self.phase == 'NIGHT':
             self.resolve_night_phase()
             self.day += 1
@@ -107,6 +114,16 @@ class Game:
     def start_phase(self, phase_name):
         self.phase = phase_name
         self.phase_end_time = time.time() + self.phase_length
+
+        for player in self.players.values():
+
+            # Auto-finish inactive players
+            if player.health == "dead":
+                player.finished_phase = True
+            else:
+                player.finished_phase = False
+            if phase_name == 'WORK':
+                player.committed_action = None
 
     def get_time_remaining(self):
         return max(0, int(self.phase_end_time - time.time()))
@@ -160,8 +177,7 @@ class Game:
         ActionDispatcher.resolve_work_phase(self)
 
     def resolve_trade_phase(self):
-        for player in self.players.values():
-            player.reset_phase()
+        pass
 
     def resolve_night_phase(self):
         add_map_hist(self)
@@ -178,7 +194,6 @@ class Game:
                 "hunger_increase": self.rules.HUNGER_SICKNESS_INCREASE,
                 "cold_increase": self.rules.COLD_SICKNESS_INCREASE
             })
-            player.reset_phase()
         for dev in self.developments.values():
             still_exists = dev.degrade()
             if not still_exists:
