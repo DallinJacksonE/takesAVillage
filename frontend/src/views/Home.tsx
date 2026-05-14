@@ -13,10 +13,10 @@ const Home: React.FC = () => {
 
   return (
     <div style={{ textAlign: "center", marginTop: "10%" }}>
-      <h1 style={{ fontSize: "3rem", marginBottom: "3rem" }}>
+      <h1 style={{ fontSize: "4rem", marginBottom: "3rem" }}>
         Takes a Village
       </h1>
-      <p style={{ color: "var(--light_honey)", marginBottom: "2rem", fontStyle: "italic", fontWeight: "bold" }}>
+      <p style={{ color: "var(--light_honey)", marginBottom: "3rem", fontStyle: "italic", fontWeight: "bold" }}>
         A study on social metrics and resource scarcity.
       </p>
 

@@ -142,10 +142,16 @@ const Gameplay: React.FC = () => {
         </div>
 
         {/* --- MAIN DASHBOARD GRID --- */}
-        <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "2fr 1fr", /* Strict 2:1 ratio */
+          gap: "20px",
+          marginBottom: "20px",
+          alignItems: "start" /* Prevents the columns from forcibly matching heights */
+        }}>
 
           {/* LEFT COLUMN: Player Stats & Phase Mechanics */}
-          <div style={{ flex: 2, display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "20px", minWidth: 0 }}>
             <PlayerStatusCard state={gameState} />
 
             {/* Phase Routing */}
@@ -210,7 +216,8 @@ const Gameplay: React.FC = () => {
           </div>
 
           {/* RIGHT COLUMN: Roster & Social Chat */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "20px" }}>
+          {/* minWidth: 0 prevents the chat from blowing out the grid horizontally */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "20px", minWidth: 0 }}>
             <PlayerRoster />
             <TabbedCommunicator
               messages={gameState.chat_messages as any}

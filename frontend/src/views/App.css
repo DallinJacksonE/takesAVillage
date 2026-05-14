@@ -44,7 +44,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-
+.nav-link:hover {
+  border-bottom: solid var(--medium_honey);
+}
 
 h1,
 h2,
