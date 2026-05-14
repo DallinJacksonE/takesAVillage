@@ -122,7 +122,7 @@ input {
 
 /* Cards/Containers */
 .card {
-  background: white;
+  background: var(--light_grey);
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
@@ -132,6 +132,13 @@ input {
 .card-waiting {
   background: var(--medium_honey);
   font-weight: bold;
+  height: 40px;
+
+  display: flex;
+  align-items: center;     /* vertical */
+  justify-content: center; /* horizontal */
+
+  text-align: center;
 }
 
 .card-finish_phase {
@@ -145,6 +152,7 @@ input {
   color: var(--dark_blue);
   font-weight: bold;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  height: 40px;
 }
 
 .container {
@@ -163,7 +171,34 @@ input {
 
 /*bars */
 .bar {
-  background: white;
+  background: var(--light_grey);
   padding: 2rem;
   border-radius: 8px;
+}
+
+.send_bar {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border-top: 1px solid #eee;
+  background: #fafafa;
+}
+
+.send_input {
+  flex: 1;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  height: 40px;
+}
+
+.send_button {
+  padding: 8px 16px;
+  background: var(--medium_blue);
+  color: var(--light_grey);
+  height: 40px;
+}
+
+.send_button:hover {
+  background: var(--dark_blue);
 }

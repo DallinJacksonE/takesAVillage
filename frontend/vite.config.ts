@@ -8,13 +8,13 @@ export default defineConfig({
     proxy: {
       // Proxy API requests to Flask
       '/api': {
-        target: 'http://10.55.11.3:5000',
+        target: 'http://00.00.00.0:3000',
         changeOrigin: true,
         secure: false,
       },
       // Proxy WebSocket requests (Socket.IO) to Flask
       '/socket.io': {
-        target: 'http://10.55.11.3:5000',
+        target: 'http://00.00.00.0:3000',
         changeOrigin: true,
         ws: true, // Important for WebSockets!
       }
