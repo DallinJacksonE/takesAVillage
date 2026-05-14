@@ -79,7 +79,7 @@ const Gameplay: React.FC = () => {
     return (
       <div style={{ padding: "40px", textAlign: "center" }}>
         <h2>Waiting Room: Village {gameId}</h2>
-        <p>Players Joined: {playerCount} / 10</p>
+        <p>Players: {playerCount} / 10</p>
         {gameState.is_host ? (
           <div>
             <button
@@ -134,7 +134,7 @@ const Gameplay: React.FC = () => {
       <PlayerProvider players={gameState.player_list}>
         {/* --- HEADER --- */}
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
-          <h2>Village: {gameId} (Players: {playerCount})</h2>
+          <h2>Village: {gameId} (Player: {gameState.me.name})</h2>
           <div>
             <strong>Day {gameState.day}</strong> | Phase: {phase} | Time:{" "}
             {timeLeft}s
