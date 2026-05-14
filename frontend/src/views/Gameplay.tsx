@@ -15,6 +15,7 @@ import PlayerRoster from "../components/PlayerRoster";
 import TradeDesk from "../components/TradeDesk";
 import TabbedCommunicator from "../components/TabbedCommunicator";
 import CampfireRing from "../components/CampfireRing";
+import { PlayerColorProvider } from "../components/hooks/usePlayerColor";
 
 const Gameplay: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -131,117 +132,119 @@ const Gameplay: React.FC = () => {
   }
   return (
     <div style={{ padding: "20px" }}>
-      <PlayerProvider players={gameState.player_list}>
-        {/* --- HEADER --- */}
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
-          <h2>Village: {gameId} (Player: {gameState.me.name})</h2>
-          <div>
-            <strong>Day {gameState.day}</strong> | Phase: {phase} | Time:{" "}
-            {timeLeft}s
+      <PlayerColorProvider gameState={gameState}>
+        <PlayerProvider players={gameState.player_list}>
+          {/* --- HEADER --- */}
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+            <h2>Village: {gameId} (Player: {gameState.me.name})</h2>
+            <div>
+              <strong>Day {gameState.day}</strong> | Phase: {phase} | Time:{" "}
+              {timeLeft}s
+            </div>
           </div>
-        </div>
 
-        {/* --- MAIN DASHBOARD GRID --- */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "2fr 1fr", /* Strict 2:1 ratio */
-          gap: "20px",
-          marginBottom: "20px",
-          alignItems: "start" /* Prevents the columns from forcibly matching heights */
-        }}>
+          {/* --- MAIN DASHBOARD GRID --- */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "2fr 1fr", /* Strict 2:1 ratio */
+            gap: "20px",
+            marginBottom: "20px",
+            alignItems: "start" /* Prevents the columns from forcibly matching heights */
+          }}>
 
-          {/* LEFT COLUMN: Player Stats & Phase Mechanics */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px", minWidth: 0 }}>
-            <PlayerStatusCard state={gameState} />
+            {/* LEFT COLUMN: Player Stats & Phase Mechanics */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px", minWidth: 0 }}>
+              <PlayerStatusCard state={gameState} />
 
-            {/* Phase Routing */}
-            {phase === "WORK" && (
-              <div style={{ display: "flex", gap: "20px" }}>
-                <DevelopmentsCard
+              {/* Phase Routing */}
+              {phase === "WORK" && (
+                <div style={{ display: "flex", gap: "20px" }}>
+                  <DevelopmentsCard
+                    state={gameState}
+                    onMaintain={(devId) => presenter.maintainDevelopment(devId)}
+                    onUpgrade={(devId) => presenter.upgradeDevelopment(devId)}
+                    onContest={(devId, targetId) => presenter.contestDevelopment(devId, targetId)}
+                    onApplyForJob={(targetId, devId, wage, wageType) => presenter.draftEmployment(targetId, devId, wage, wageType, true)}
+                    onAcceptApplicant={(actionId) => presenter.acceptContract(actionId, "EMPLOYMENT")}
+                    onDenyApplicant={(actionId) => presenter.denyContract(actionId, "EMPLOYMENT")}
+                  />
+                  <AvailableWorkCard
+                    state={gameState}
+                    onCommitWork={(payload) => presenter.commitWork(payload)}
+                    onAcceptOffer={(actionId) => presenter.acceptContract(actionId, "EMPLOYMENT")}
+                    onDenyOffer={(actionId) => presenter.denyContract(actionId, "EMPLOYMENT")}
+                  />
+                </div>
+              )}
+
+              {phase === "TRADE" && (
+                <TradeDesk
                   state={gameState}
-                  onMaintain={(devId) => presenter.maintainDevelopment(devId)}
-                  onUpgrade={(devId) => presenter.upgradeDevelopment(devId)}
-                  onContest={(devId, targetId) => presenter.contestDevelopment(devId, targetId)}
-                  onApplyForJob={(targetId, devId, wage, wageType) => presenter.draftEmployment(targetId, devId, wage, wageType, true)}
-                  onAcceptApplicant={(actionId) => presenter.acceptContract(actionId, "EMPLOYMENT")}
-                  onDenyApplicant={(actionId) => presenter.denyContract(actionId, "EMPLOYMENT")}
+                  onDraftTrade={(targetId, offer, req) => presenter.draftTrade(targetId, offer, req)}
+                  onCounterTrade={(actionId, offer, req) => presenter.counterTrade(actionId, offer, req)}
+                  onAcceptTrade={(actionId) => presenter.acceptContract(actionId)}
+                  onDenyTrade={(actionId) => presenter.denyContract(actionId)}
+                  onCancelTrade={(actionId) => presenter.cancelContract(actionId)}
+                  onFinalizeTrade={(actionId, items) => presenter.finalizeTrade(actionId, items)}
                 />
-                <AvailableWorkCard
+              )}
+
+              {phase === "NIGHT" && (
+                <CampfireRing
                   state={gameState}
-                  onCommitWork={(payload) => presenter.commitWork(payload)}
-                  onAcceptOffer={(actionId) => presenter.acceptContract(actionId, "EMPLOYMENT")}
-                  onDenyOffer={(actionId) => presenter.denyContract(actionId, "EMPLOYMENT")}
+                  onStartFire={() => presenter.startFire()}
+                  onRequestSeat={(targetId) => presenter.draftCampfire(targetId, true)}
+                  onOfferSeat={(targetId) => presenter.draftCampfire(targetId, false)}
+                  onAccept={(actionId) => presenter.acceptContract(actionId)}
+                  onDeny={(actionId) => presenter.denyContract(actionId)}
                 />
-              </div>
-            )}
+              )}
 
-            {phase === "TRADE" && (
-              <TradeDesk
-                state={gameState}
-                onDraftTrade={(targetId, offer, req) => presenter.draftTrade(targetId, offer, req)}
-                onCounterTrade={(actionId, offer, req) => presenter.counterTrade(actionId, offer, req)}
-                onAcceptTrade={(actionId) => presenter.acceptContract(actionId)}
-                onDenyTrade={(actionId) => presenter.denyContract(actionId)}
-                onCancelTrade={(actionId) => presenter.cancelContract(actionId)}
-                onFinalizeTrade={(actionId, items) => presenter.finalizeTrade(actionId, items)}
+              {/* End Phase Lock-In */}
+              {!gameState.me.finished_phase ? (
+                <div className="card card-finish_phase" style={{ color: "white", textAlign: "center" }}>
+                  <button
+                    className="btn"
+                    onClick={() => presenter.finishPhase()}
+                  >
+                    {phase === "NIGHT" ? "End Day" : "End Phase"}
+                  </button>
+                </div>
+              ) : (
+                <div className="card card-waiting" style={{ textAlign: "center" }}>
+                  Waiting For Others To Finish
+                </div>
+              )}
+            </div>
+
+            {/* RIGHT COLUMN: Roster & Social Chat */}
+            {/* minWidth: 0 prevents the chat from blowing out the grid horizontally */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px", minWidth: 0 }}>
+              <PlayerRoster />
+              <TabbedCommunicator
+                messages={gameState.chat_messages as any}
+                playerId={userId}
+                players={gameState.player_list}
+                onSend={(content: string, toId: string) => presenter.sendChat(content, toId)}
               />
-            )}
+            </div>
+          </div>
 
-            {phase === "NIGHT" && (
-              <CampfireRing
-                state={gameState}
-                onStartFire={() => presenter.startFire()}
-                onRequestSeat={(targetId) => presenter.draftCampfire(targetId, true)}
-                onOfferSeat={(targetId) => presenter.draftCampfire(targetId, false)}
-                onAccept={(actionId) => presenter.acceptContract(actionId)}
-                onDeny={(actionId) => presenter.denyContract(actionId)}
+          {/* --- MAP --- */}
+          {gameState.map && (
+            <div className="card">
+              <h3>Village Map</h3>
+              <VillageMap
+                mapData={gameState.map}
+                playerId={userId}
+                development_costs={gameState.development_costs}
+                onBuild={(tileId) => presenter.buildDevelopment(tileId)}
               />
-            )}
-
-            {/* End Phase Lock-In */}
-            {!gameState.me.finished_phase ? (
-              <div className="card card-finish_phase" style={{ color: "white", textAlign: "center" }}>
-                <button
-                  className="btn"
-                  onClick={() => presenter.finishPhase()}
-                >
-                  {phase === "NIGHT" ? "End Day" : "End Phase"}
-                </button>
-              </div>
-            ) : (
-              <div className="card card-waiting" style={{ textAlign: "center" }}>
-                Waiting For Others To Finish
-              </div>
-            )}
-          </div>
-
-          {/* RIGHT COLUMN: Roster & Social Chat */}
-          {/* minWidth: 0 prevents the chat from blowing out the grid horizontally */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px", minWidth: 0 }}>
-            <PlayerRoster />
-            <TabbedCommunicator
-              messages={gameState.chat_messages as any}
-              playerId={userId}
-              players={gameState.player_list}
-              onSend={(content: string, toId: string) => presenter.sendChat(content, toId)}
-            />
-          </div>
-        </div>
-
-        {/* --- MAP --- */}
-        {gameState.map && (
-          <div className="card">
-            <h3>Village Map</h3>
-            <VillageMap
-              mapData={gameState.map}
-              playerId={userId}
-              development_costs={gameState.development_costs}
-              onBuild={(tileId) => presenter.buildDevelopment(tileId)}
-            />
-          </div>
-        )}
-      </PlayerProvider>
-    </div>
+            </div>
+          )}
+        </PlayerProvider>
+      </PlayerColorProvider>
+    </div >
   );
 };
 

@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import { usePlayers } from "./hooks/usePlayerName";
-import { DevelopmentDTO } from "../../../dtos/index"
-
+import { usePlayerColors } from "./hooks/usePlayerColor";
+import PlayerDevelopmentsInfo from "./PlayerDevelopmentsInfo";
 interface Props {
   playerId: string;
 }
 
 const PlayerInfo: React.FC<Props> = ({ playerId }) => {
   const { players } = usePlayers();
+  const { getPlayerColor } = usePlayerColors();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLSpanElement>(null);
 
@@ -55,21 +56,13 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
         style={{
           cursor: "pointer",
           fontWeight: "bold",
-          color: "#1976d2",
-          textDecoration: "underline dotted rgba(25, 118, 210, 0.5)",
+          color: getPlayerColor(player.id),
+          textDecoration: "underline dotted",
           textUnderlineOffset: "3px",
         }}
       >
-        {getPlayerEmoji(player.health)} {player.name}
+        {getPlayerEmoji(player.health)} {player.name} <PlayerDevelopmentsInfo playerId={playerId} />
 
-        {/* Removed extra {}, added implicit return to the map */}
-        <span>
-          {player.developments && player.developments.map((dev: DevelopmentDTO, index) => (
-            <span key={index} style={{ marginLeft: "5px" }}>
-              {dev.type}{dev.level}
-            </span>
-          ))}
-        </span>
       </span>
 
       {/* The Floating Tooltip */}
@@ -125,7 +118,7 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
 
           <button
             className="btn btn-secondary"
-            style={{ marginTop: "10px", width: "100%", padding: "5px" }}
+            style={{ marginTop: "10px", width: "100%", padding: "5px", color: "black" }}
             onClick={() => setIsOpen(false)}
           >
             Close
@@ -135,5 +128,7 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
     </span>
   );
 };
+
+
 
 export default PlayerInfo;

@@ -135,8 +135,10 @@ input {
   height: 40px;
 
   display: flex;
-  align-items: center;     /* vertical */
-  justify-content: center; /* horizontal */
+  align-items: center;
+  /* vertical */
+  justify-content: center;
+  /* horizontal */
 
   text-align: center;
 }
