@@ -241,4 +241,4 @@ export const MOCK_STATE_NIGHT: GameStateDTO = {
 };
 
 // Change this line to test different phases in your UI!
-export const MOCK_STATE = MOCK_STATE_WORK;
+export const MOCK_STATE = MOCK_STATE_TRADE;

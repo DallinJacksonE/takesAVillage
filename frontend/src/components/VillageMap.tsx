@@ -200,8 +200,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
                   Available for Development
                 </div>
                 <button
-                  className="btn"
-                  style={{ background: "#795548", color: "white", fontSize: "0.8rem" }}
+                  className="btn-tooltip success"
                   onClick={() => {
                     onBuild(selectedTile.id);
                     setSelectedTile(null);
