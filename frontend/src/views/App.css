@@ -120,7 +120,7 @@ input {
 
 /* Cards/Containers */
 .card {
-  background: white;
+  background: var(--light_grey);
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
@@ -169,7 +169,7 @@ input {
 
 /*bars */
 .bar {
-  background: white;
+  background: var(--light_grey);
   padding: 2rem;
   border-radius: 8px;
 }

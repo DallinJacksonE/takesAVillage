@@ -93,7 +93,7 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
       overflow: "hidden"
     }}>
       {/* TABS ROW */}
-      <div style={{ display: "flex", overflowX: "auto", borderBottom: "1px solid #eee", background: "#fafafa" }}>
+      <div style={{ display: "flex", overflowX: "auto", borderBottom: "1px solid #eee", background: "#ddd8d8" }}>
         <button
           style={{
             flexShrink: 0,
