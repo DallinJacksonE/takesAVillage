@@ -1,6 +1,6 @@
 /* App.css */
 :root {
-  --bg-color: #DFDFDC;
+  --bg-color: #dfdfdc;
   /* Paper/Wood-like off-white */
   --text-primary: white;
   --text-secondary: #555;
@@ -142,6 +142,7 @@ input {
   background: var(--light_honey);
   color: var(--dark_blue);
   font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .container {
