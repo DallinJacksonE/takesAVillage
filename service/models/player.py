@@ -9,11 +9,11 @@ class Player:
         self.name = name
         self.resources = starting_resources
         self.health = "healthy"  # healthy, sick, recovering, dead
-        self.sickness_chance = .03  # CHANGE THIS TO MATCH THE GAMESTATE STARTING SICKNESS CHANCE
+        # CHANGE THIS TO MATCH THE GAMESTATE STARTING SICKNESS CHANCE
+        self.sickness_chance = None
         self.developments = []  # List of IDs owned by this player
 
-        # --- The New Unified Action & Research Data ---
-        self.actions = {}  # action_id : Action Object
+        self.actions = {}
         self.timeline = []  # Chronological log for research data extraction
 
         # Phase specific states
@@ -26,7 +26,7 @@ class Player:
     def add_timeline_event(self, event_type, data):
         """
         Appends an event to the player's history for research tracking.
-        event_type examples: 'CHAT', 'ACTION_DRAFTED', 'ACTION_COMMITTED', 'PHASE_CHANGE'
+        event_type examples: 'CHAT', 'ACTION_DRAFTED', 'ACTION_COMMITTED'
         """
         self.timeline.append({
             "id": str(uuid.uuid4()),
@@ -35,52 +35,34 @@ class Player:
             "data": data
         })
 
-    def consume_daily(self, gamestate):
+    def consume_daily(self, sickness_rules):
         """Logic for nightly consumption and sickness calculation."""
-        # 1. Food
+
+        if not self.sickness_chance:
+            self.sickness_chance = sickness_rules["default"]
+
+        # Food
         ate = False
         if self.resources['food'] > 0:
             self.resources['food'] -= 1
             ate = True
 
-        # 2. Wood (Warmth via the new fire_status logic)
+        # Wood
         warm = False
         if self.fire_status in ["HOST", "GUEST"]:
             warm = True
 
-        if not ate:
-            self.sickness_chance += gamestate.hunger_sickness_increase
-        if not warm:
-            self.sickness_chance += gamestate.cold_sickness_increase
-        if warm:
-            self.sickness_chance = max(
-                gamestate.starting_sickness_chance, self.sickness_chance - gamestate.cold_sickness_increase/2)
-        if ate:
-            self.sickness_chance = max(
-                gamestate.starting_sickness_chance, self.sickness_chance - gamestate.hunger_sickness_increase/2)
-
-        # Chance to get sick
         check = random.random()
-        if self.health == "dead":
-            self.health = "dead"
-        elif check < self.sickness_chance and self.health == "sick" and (not ate or not warm):
-            self.health = "dead"
-        elif check < self.sickness_chance:
-            self.health = "sick"
-        elif self.health == "sick" and ate and warm:
-            self.health = "recovering"
-        elif self.health == "recovering" and ate and warm:
-            self.health = "healthy"
-            self.sickness_chance = gamestate.starting_sickness_chance  # Reset base chance
 
-        # Log the end of day state for the research timeline
+        self.health = self.update_health(ate, warm, check, sickness_rules)
+
         self.add_timeline_event("END_OF_DAY_STATE", {
             "health": self.health,
             "resources": self.resources.copy(),
             "sickness_chance": self.sickness_chance
         })
 
-        # Reset daily flags
+        # Daily flags
         self.fire_status = "COLD"
         self.fire_guests = []  # Reset to nobody for the next day
         self.available_work = self.developments
@@ -89,6 +71,35 @@ class Player:
         self.available_work = self.developments
         self.finished_phase = False
         self.fire_guests = []
+
+    def update_sickness_chance(self, ate: bool, warm: bool, sickness_rules):
+        if not ate:
+            self.sickness_chance += sickness_rules["hunger_increase"]
+        if not warm:
+            self.sickness_chance += sickness_rules["cold_increase"]
+
+        # Recovery only happens with both eating and warm
+        if warm and ate:
+            self.sickness_chance = max(
+                sickness_rules["default"],
+                self.sickness_chance - sickness_rules["recovery"])
+
+    def update_health(self, ate: bool, warm: bool,
+                      check: float, sickness_rules):
+        self.update_sickness_chance(ate, warm, sickness_rules)
+
+        if self.health == "dead":
+            return "dead"
+        elif (check < self.sickness_chance
+              and self.health == "sick" and (not ate or not warm)):
+            return "dead"
+        elif check < self.sickness_chance:
+            return "sick"
+        elif self.health == "sick" and ate and warm:
+            return "recovering"
+        elif self.health == "recovering" and ate and warm:
+            return "healthy"
+            self.sickness_chance = sickness_rules["default"]
 
     def to_dict(self):
         return {

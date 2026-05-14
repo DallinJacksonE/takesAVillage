@@ -37,9 +37,6 @@ class Game:
         self.starting_inventory = self.rules.STARTING_INVENTORY
         self.phase_length = self.rules.PHASE_LENGTH
         self.game_length = self.rules.GAME_LENGTH
-        self.starting_sickness_chance = self.rules.DEFAULT_SICKNESS
-        self.hunger_sickness_increase = self.rules.HUNGER_SICKNESS_INCREASE
-        self.cold_sickness_increase = self.rules.COLD_SICKNESS_INCREASE
 
         self.players = {}
         self.developments = {}
@@ -80,7 +77,7 @@ class Game:
         return True
 
     # ==========================================
-    # 2. PHASE MANAGEMENT
+    # PHASE MANAGEMENT
     # ==========================================
     def check_timer(self):
         if time.time() >= self.phase_end_time:
@@ -112,7 +109,7 @@ class Game:
         return max(0, int(self.phase_end_time - time.time()))
 
     # ==========================================
-    # 3. SEPARATED INPUT ROUTING
+    # SEPARATED INPUT ROUTING
     # ==========================================
 
     def handle_chat(self, user_id, data):
@@ -154,7 +151,7 @@ class Game:
         return True
 
     # ==========================================
-    # 5. PHASE RESOLUTIONS & EXPORT
+    # PHASE RESOLUTIONS & EXPORT
     # ==========================================
     def resolve_work_phase(self):
         ActionDispatcher.resolve_work_phase(self)
@@ -172,7 +169,12 @@ class Game:
             return
         self.contract_factory.cleanup_campfire_contracts()
         for player in self.players.values():
-            player.consume_daily(self)
+            player.consume_daily({
+                "recovery": self.rules.RECOVERY_RATE,
+                "default": self.rules.DEFAULT_SICKNESS,
+                "hunger_increase": self.rules.HUNGER_SICKNESS_INCREASE,
+                "cold_increase": self.rules.COLD_SICKNESS_INCREASE
+            })
             player.reset_phase()
         for dev in self.developments.values():
             still_exists = dev.degrade()
@@ -185,7 +187,7 @@ class Game:
 
     def is_game_over(self):
         all_dead = True
-        for player in self.players:
+        for player in self.players.values():
             if player.health != "dead":
                 all_dead = False
         return all_dead
