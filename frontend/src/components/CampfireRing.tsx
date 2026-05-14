@@ -101,92 +101,61 @@ const CampfireRing: React.FC<Props> = ({
         </div>
 
         {/* VILLAGE */}
-        <h4 style={{ marginTop: 0 }}>Village</h4>
-
-        {player_list.filter(p => p.id !== me.id).map(p => (
-          <div
-            key={p.id}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "8px",
-              fontSize: "0.85rem"
-            }}
-          >
-            <span>
-              {p.name}{" "}
-              {p.fire_status === "HOST"
-                ? "🔥"
-                : p.fire_status === "GUEST"
-                ? "🥳"
-                : p.fire_status === "COLD"
-                ? "🥶"
-                : ""}
-            </span>
-
-            {me.fire_status === "GUEST" && (() => {
-              const hostAction = fireActions.find(a =>
-                a.status === "ACCEPTED" && (
-                  (a.is_request && a.initiator_id === me.id) ||
-                  (!a.is_request && a.target_id === me.id)
-                )
-              );
-
-              const hostId = hostAction
-                ? (hostAction.is_request ? hostAction.target_id : hostAction.initiator_id)
-                : "";
-
-              return (
-                <div style={{ marginTop: "5px", fontSize: "0.85rem", color: "#666" }}>
-                  Warming by <strong>{getPlayerName(hostId)}</strong>'s fire
-                </div>
-              );
-            })()}
-          </div>
-
-          {/* VILLAGE */}
           <h4 style={{ marginTop: 0 }}>Village</h4>
 
-          {player_list.filter(p => p.id !== me.id).map(p => (
-            <div
-              key={p.id}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "8px",
-                fontSize: "1rem",
-                fontWeight: "bold"
-              }}
-            >
-              <span>
-                {p.name} {p.fire_status === "HOST" || p.fire_status === "GUEST" ? "🔥" : ""}
-              </span>
+          {player_list
+            .filter(p => p.id !== me.id)
+            .map(p => (
+              <div
+                key={p.id}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "8px",
+                  fontSize: "0.85rem"
+                }}
+              >
+                <span>
+                  {p.name}{" "}
+                  {p.fire_status === "HOST"
+                    ? "🔥"
+                    : p.fire_status === "GUEST"
+                    ? "🥳"
+                    : p.fire_status === "COLD"
+                    ? "🥶"
+                    : ""}
+                </span>
 
-              <div style={{ display: "flex", gap: "5px" }}>
-                {p.fire_status === "HOST" && me.fire_status === "COLD" && (
-                  <button className="btn-tooltip info" onClick={() => onRequestSeat(p.id)}>
-                    Request Seat
-                  </button>
-                )}
+                <div style={{ display: "flex", gap: "5px" }}>
 
-                {me.fire_status === "HOST" &&
-                  p.fire_status !== "HOST" &&
-                  p.fire_status !== "GUEST" && (
+                  {/* HOST → OFFER SEAT */}
+                  {me.fire_status === "HOST" &&
+                    p.fire_status !== "HOST" &&
+                    p.fire_status !== "GUEST" && (
+                      <button
+                        className="btn-tooltip info"
+                        disabled={isAtCapacity}
+                        onClick={() => onOfferSeat(p.id)}
+                      >
+                        Offer Seat
+                      </button>
+                  )}
+
+                  {/* COLD → REQUEST SEAT FROM HOST */}
+                  {me.fire_status === "COLD" && p.fire_status === "HOST" && (
                     <button
-                      className="btn-tooltip info"
-                      disabled={isAtCapacity}
-                      onClick={() => onOfferSeat(p.id)}
+                      className="btn-tooltip success"
+                      onClick={() => onRequestSeat(p.id)}
                     >
-                      Offer Seat
+                      Request Seat
                     </button>
                   )}
-              </div>
-            </div>
-          ))}
-        </div>
 
+                </div>
+              </div>
+            ))}
+        </div>
         {/* --- RIGHT COLUMN --- */}
         <div style={{ flex: 1, minWidth: "280px", display: "flex", flexDirection: "column", gap: "15px" }}>
 
