@@ -39,6 +39,14 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
     ).length;
   };
 
+  const getGlobalUnreadCount = () => {
+    return messages.filter(m =>
+      m.to_id === "GLOBAL" &&
+      m.from_id !== playerId &&
+      !readMessages.has(m.id)
+    ).length;
+  };
+
   const handleSend = () => {
     if (!chatInput.trim()) return;
     onSend(chatInput, activeTab === "global" ? "GLOBAL" : activeTab);
@@ -74,13 +82,45 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
             padding: "10px 15px",
             border: "none",
             background: activeTab === "global" ? "#fff" : "transparent",
-            borderBottom: activeTab === "global" ? "3px solid #2196F3" : "3px solid transparent",
+            borderBottom: activeTab === "global"
+              ? "3px solid #2196F3"
+              : "3px solid transparent",
             cursor: "pointer",
-            fontWeight: activeTab === "global" ? "bold" : "normal"
+            fontWeight: activeTab === "global" ? "bold" : "normal",
+
+            // SAME STRUCTURE AS PLAYER TABS
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            minWidth: "140px"
           }}
           onClick={() => setActiveTab("global")}
         >
-          Village Square
+          {/* left spacer */}
+          <span style={{ width: "24px" }} />
+
+          {/* center label */}
+          <span style={{ whiteSpace: "nowrap" }}>
+            Village Square
+          </span>
+
+          {/* right badge */}
+          <span style={{ width: "24px", display: "flex", justifyContent: "center" }}>
+            {getGlobalUnreadCount() > 0 && (
+              <span
+                style={{
+                  background: "red",
+                  color: "white",
+                  borderRadius: "10px",
+                  padding: "2px 6px",
+                  fontSize: "0.7rem",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                {getGlobalUnreadCount()}
+              </span>
+            )}
+          </span>
         </button>
         {otherPlayers.map(p => {
           const unread = getUnreadCount(p.id, playerId);
