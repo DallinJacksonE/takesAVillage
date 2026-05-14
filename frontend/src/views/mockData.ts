@@ -36,7 +36,51 @@ const MOCK_CHATS: ChatMessageDTO[] = [
     to_id: "mock-user-1",
     content: "I'll trade you wood for food next phase.",
     timestamp: Date.now() - 30000,
-  }
+  },
+  {
+    id: "chat-2",
+    from_id: "mock-user-3",
+    to_id: "mock-user-1",
+    content: "Yoooo",
+    timestamp: Date.now() - 30001,
+  },
+  {
+    id: "chat-2",
+    from_id: "mock-user-3",
+    to_id: "mock-user-1",
+    content: "Yoooo",
+    timestamp: Date.now() - 30002,
+  }, {
+    id: "chat-2",
+    from_id: "mock-user-3",
+    to_id: "mock-user-1",
+    content: "Yoooo",
+    timestamp: Date.now() - 30003,
+  }, {
+    id: "chat-2",
+    from_id: "mock-user-3",
+    to_id: "mock-user-1",
+    content: "Yoooo",
+    timestamp: Date.now() - 30004,
+  }, {
+    id: "chat-2",
+    from_id: "mock-user-3",
+    to_id: "mock-user-1",
+    content: "Yoooo",
+    timestamp: Date.now() - 30005,
+  }, {
+    id: "chat-3",
+    from_id: "mock-user-2",
+    to_id: "mock-user-1",
+    content: "Yoooo",
+    timestamp: Date.now() - 30001,
+  }, {
+    id: "chat-3",
+    from_id: "mock-user-2",
+    to_id: "mock-user-1",
+    content: "Yoooo",
+    timestamp: Date.now() - 30002,
+  },
 ];
 
 // --------------------------------------------------------

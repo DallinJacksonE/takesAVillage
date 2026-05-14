@@ -53,7 +53,14 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
   });
 
   return (
-    <div className="card" style={{ display: "flex", flexDirection: "column", height: "100%", maxHeight: "500px", padding: 0, overflow: "hidden" }}>
+    <div className="card" style={{
+      display: "flex",
+      flexDirection: "column",
+      height: "100%",
+      maxHeight: "337px",
+      padding: 0,
+      overflow: "hidden"
+    }}>
       {/* TABS ROW */}
       <div style={{ display: "flex", overflowX: "auto", borderBottom: "1px solid #eee", background: "#fafafa" }}>
         <button
@@ -84,12 +91,34 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "space-between", // Pushes the outer containers to the edges, centering the middle
                 gap: "5px",
-                fontWeight: activeTab === p.id ? "bold" : "normal"
+                fontWeight: "normal"
               }}
               onClick={() => setActiveTab(p.id)}
             >
-              {p.name} {unread > 0 && <span style={{ background: "red", color: "white", borderRadius: "10px", padding: "2px 6px", fontSize: "0.7rem" }}>{unread}</span>}
+              {/* 1. Ghost element on the left to balance the math */}
+              <span style={{ width: "24px" }}></span>
+
+              {/* 2. Text in the dead center */}
+              <span>{p.name}</span>
+
+              {/* 3. Original invisible container on the right */}
+              <span style={{ width: "24px", display: "flex", justifyContent: "center" }}>
+                {unread > 0 && (
+                  <span style={{
+                    background: "red",
+                    color: "white",
+                    borderRadius: "10px",
+                    padding: "2px 6px",
+                    fontSize: "0.7rem",
+                    whiteSpace: "nowrap"
+                  }}>
+                    {unread}
+                  </span>
+                )}
+              </span>
+
             </button>
           );
         })}
