@@ -77,7 +77,7 @@ const CampfireRing: React.FC<Props> = ({
           {player_list.filter(p => p.id !== me.id).map(p => (
             <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", fontSize: "0.85rem" }}>
               <span>
-                {p.name} {p.fire_status === "HOST" && "🔥"}
+                {p.name} {p.fire_status === "HOST" || p.fire_status === "GUEST" ? "🔥" : ""}
               </span>
 
               <div style={{ display: "flex", gap: "5px" }}>
