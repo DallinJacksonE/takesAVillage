@@ -76,7 +76,7 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
             background: activeTab === "global" ? "#fff" : "transparent",
             borderBottom: activeTab === "global" ? "3px solid #2196F3" : "3px solid transparent",
             cursor: "pointer",
-            fontWeight: activeTab === "global" ? "bold" : "normal"
+            fontWeight: "normal"
           }}
           onClick={() => setActiveTab("global")}
         >
