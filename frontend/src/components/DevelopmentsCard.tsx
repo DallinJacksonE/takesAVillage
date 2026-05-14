@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { GameStateDTO, EmploymentActionDTO, Resource } from "../../../dtos/index";
 import { usePlayerName } from "./hooks/usePlayerName";
+import { usePlayerColors } from "./hooks/usePlayerColor";
 
 interface Props {
   state: GameStateDTO;
@@ -23,6 +24,7 @@ const DevelopmentsCard: React.FC<Props> = ({
 }) => {
   const { me, player_list } = state;
   const getPlayerName = usePlayerName();
+  const { getPlayerColor } = usePlayerColors();
 
   // Accordion State
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -175,7 +177,7 @@ const DevelopmentsCard: React.FC<Props> = ({
                   onClick={() => toggleExpand(dev.id)}
                 >
                   <strong style={{ fontSize: "0.9rem" }}>{dev.type} (Lvl {dev.level})</strong>
-                  <span style={{ fontSize: "0.8rem", color: "#666" }}>Owner: {getPlayerName(dev.owner_id)}</span>
+                  <span style={{ fontSize: "0.8rem", color: getPlayerColor(dev.owner_id) }}>Owner: {getPlayerName(dev.owner_id)}</span>
                 </div>
 
                 {/* Accordion Body */}
@@ -201,23 +203,18 @@ const DevelopmentsCard: React.FC<Props> = ({
 
                     </div>
 
-                    <div style={{
-                      width: "100%",
-                      border: "none",
-                      borderTop: "black",
-                      height: "1px",
-                      background: "var(--dark_blue)"
-                    }}></div>
+                    <div style={{ marginTop: "15px", borderTop: "1px dashed #ccc", paddingTop: "10px", width: "90%", justifyContent: "space-between" }}>
 
-                    {/* Contest Action */}
-                    <button
-                      className="btn-tooltip"
-                      style={{ width: "100%", padding: "6px" }}
-                      disabled={true}
-                      onClick={() => onContest(dev.id, dev.owner_id)}
-                    >
-                      Contest Ownership
-                    </button>
+                      {/* Contest Action */}
+                      <button
+                        className="btn-tooltip"
+                        style={{ width: "100%", padding: "6px" }}
+                        disabled={true}
+                        onClick={() => onContest(dev.id, dev.owner_id)}
+                      >
+                        Contest Ownership
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
