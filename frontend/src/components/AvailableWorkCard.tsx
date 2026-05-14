@@ -52,7 +52,7 @@ const AvailableWorkCard: React.FC<Props> = ({
   );
 
   return (
-    <div className="card" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+    <div className="card" style={{ minHeight: "297px", flex: 1, display: "flex", flexDirection: "column" }}>
       <h3 style={{ marginTop: 0 }}>Work Phase Dashboard</h3>
 
       {/* --- Section 1: Ready to Commit (Inherent + Accepted) --- */}

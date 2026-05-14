@@ -166,7 +166,7 @@ const TradeDesk: React.FC<Props> = ({
   };
 
   return (
-    <div className="card" style={{ flex: 1, display: "flex", flexDirection: "column", gap: "20px" }}>
+    <div className="card" style={{ minHeight: "297px", flex: 1, display: "flex", flexDirection: "column", gap: "20px" }}>
       <h3 style={{ marginTop: 0 }}>Trade Desk</h3>
 
       {/* --- SECTION 1: DRAFTING TRAY --- */}
