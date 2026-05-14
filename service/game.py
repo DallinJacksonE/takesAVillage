@@ -58,7 +58,10 @@ class Game:
             name = random.choice(self.names)
             self.names.remove(name)
             self.players[session_id] = Player(
-                session_id, name, copy.deepcopy(self.starting_inventory))
+                session_id,
+                name,
+                copy.deepcopy(self.starting_inventory),
+                self.rules.DEFAULT_SICKNESS)
 
     def start_game(self):
         # Determine game length

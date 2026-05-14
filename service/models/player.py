@@ -4,13 +4,13 @@ import random
 
 
 class Player:
-    def __init__(self, session_id, name, starting_resources):
+    def __init__(self, session_id, name, starting_resources, sickness_chance):
         self.session_id = session_id
         self.name = name
         self.resources = starting_resources
         self.health = "healthy"  # healthy, sick, recovering, dead
         # CHANGE THIS TO MATCH THE GAMESTATE STARTING SICKNESS CHANCE
-        self.sickness_chance = None
+        self.sickness_chance = sickness_chance
         self.developments = []  # List of IDs owned by this player
 
         self.actions = {}
