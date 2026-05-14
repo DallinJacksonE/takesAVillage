@@ -9,7 +9,7 @@ import {
   faMountain,
   faHouseFlag
 } from '@fortawesome/free-solid-svg-icons';
-
+import { usePlayerColors } from "./hooks/usePlayerColor";
 interface Props {
   mapData: MapTileDTO[];
   onBuild: (tileId: string) => void;
@@ -20,7 +20,7 @@ interface Props {
 const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_costs }) => {
   const [selectedTile, setSelectedTile] = useState<MapTileDTO | null>(null);
   const getPlayerNameFromHook = usePlayerName();
-
+  const { getPlayerColor } = usePlayerColors();
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -133,7 +133,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
                 top: y,
                 width: hexWidth,
                 height: hexHeight,
-                background: getOwnerColor(tile.owner_id),
+                background: tile.owner_id ? getPlayerColor(tile.owner_id) : openBorder,
                 clipPath: pointyClipPath,
                 cursor: "pointer",
                 transform: `translate(-50%, -50%) ${isSelected ? "scale(1.15)" : "scale(1)"}`,
