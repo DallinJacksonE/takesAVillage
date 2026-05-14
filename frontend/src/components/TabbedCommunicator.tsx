@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ChatMessageDTO, PlayerDTO } from "../../../dtos/index";
 import { usePlayerName } from "./hooks/usePlayerName";
 
@@ -15,27 +15,29 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
   const [readMessages, setReadMessages] = useState<Set<string>>(new Set());
   const getPlayerName = usePlayerName();
 
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
   // Mark visible messages as read when the tab changes or new messages arrive
   useEffect(() => {
-  setReadMessages(prev => {
-    const updated = new Set(prev);
+    setReadMessages(prev => {
+      const updated = new Set(prev);
 
-    for (const msg of messages) {
-      const isGlobal = msg.to_id === "GLOBAL";
-      const isPrivate =
-        msg.from_id === activeTab || msg.to_id === activeTab;
+      for (const msg of messages) {
+        const isGlobal = msg.to_id === "GLOBAL";
+        const isPrivate =
+          msg.from_id === activeTab || msg.to_id === activeTab;
 
-      if (
-        (activeTab === "global" && isGlobal) ||
-        (activeTab !== "global" && isPrivate)
-      ) {
-        updated.add(msg.id);
+        if (
+          (activeTab === "global" && isGlobal) ||
+          (activeTab !== "global" && isPrivate)
+        ) {
+          updated.add(msg.id);
+        }
       }
-    }
 
-    return updated;
-  });
-}, [messages, activeTab]);
+      return updated;
+    });
+  }, [messages, activeTab]);
 
   // Calculate unread counts for the tabs
   const getUnreadCount = (senderId: string, toId: string) => {
@@ -73,11 +75,19 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
       (msg.from_id === playerId && msg.to_id === activeTab);
   });
 
+  // 2. Trigger the instant snap whenever displayMessages changes
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [displayMessages]);
+
   return (
     <div className="card" style={{
       display: "flex",
       flexDirection: "column",
       height: "100%",
+      minHeight: "337px",
       maxHeight: "337px",
       padding: 0,
       overflow: "hidden"
@@ -104,7 +114,7 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
           onClick={() => setActiveTab("global")}
         >
           {/* left spacer */}
-          <span style={{ width: "24px" }} />
+          <span style={{ width: "20px" }} />
 
           {/* center label */}
           <span style={{ whiteSpace: "nowrap" }}>
@@ -112,7 +122,7 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
           </span>
 
           {/* right badge */}
-          <span style={{ width: "24px", display: "flex", justifyContent: "center" }}>
+          <span style={{ width: "20px", display: "flex", justifyContent: "center" }}>
             {getGlobalUnreadCount() > 0 && (
               <span
                 style={{
@@ -177,7 +187,10 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
       </div>
 
       {/* CHAT AREA */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "15px", display: "flex", flexDirection: "column", gap: "10px", background: "#fff" }}>
+      <div
+        ref={chatContainerRef} // <-- Attach the ref here
+        style={{ flex: 1, overflowY: "auto", padding: "15px", display: "flex", flexDirection: "column", gap: "10px", background: "#fff" }}
+      >
         {displayMessages.length === 0 ? (
           <div style={{ textAlign: "center", color: "#888", fontStyle: "italic", marginTop: "20px" }}>
             No messages yet.
