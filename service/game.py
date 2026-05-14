@@ -86,7 +86,7 @@ class Game:
         return False
 
     def check_all_players_locked(self):
-        if all(p.finished_phase and p.health != "dead" for p in self.players.values()):
+        if all(p.finished_phase or p.health != "dead" for p in self.players.values()):
             self.next_phase()
 
     def next_phase(self):
