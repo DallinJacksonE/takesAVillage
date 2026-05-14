@@ -213,15 +213,15 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
       </div>
 
       {/* INPUT ROW */}
-      <div style={{ display: "flex", gap: "10px", padding: "10px", borderTop: "1px solid #eee", background: "#fafafa" }}>
+      <div className="send_bar">
         <input
-          style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
+          className="send_input"
           placeholder={`Message ${activeTab === "global" ? "everyone" : getPlayerName(activeTab)}...`}
           value={chatInput}
           onChange={(e) => setChatInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
         />
-        <button className="btn" style={{ padding: "8px 16px" }} onClick={handleSend}>
+        <button className="btn send_button" onClick={handleSend}>
           Send
         </button>
       </div>
