@@ -49,10 +49,9 @@ def broadcast_state(game):
 def game_loop():
     while True:
         for game in list(active_games.values()):
-            if game.status == "ACTIVE":
-                if game.check_timer():
-                    print("Next phase")
-                    broadcast_state(game)
+            if game.status == "RUNNING" and game.check_timer():
+                print("Next phase")
+                broadcast_state(game)
             elif game.status == "ENDED":
                 map_dict = build_map_hist(game)
                 player_dict = build_player_hist(game)
@@ -118,7 +117,7 @@ def get_active_games():
         is_user_in_game = user_cookie in game.players
 
         # Check if the user is already in this game
-        if is_user_in_game and game.status in ["WAITING", "ACTIVE"]:
+        if is_user_in_game and game.status in ["WAITING", "RUNNING"]:
             rejoinable_games.append(JoinableGameDTO(
                 id=game.id,
                 name=f"Village {game.id}",
