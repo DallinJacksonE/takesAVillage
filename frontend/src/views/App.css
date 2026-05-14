@@ -93,6 +93,15 @@ h3 {
   white-space: nowrap;
 }
 
+.btn-tooltip {
+  background-color: var(--light_honey);
+  border: none;
+  border-bottom: var(--dark_blue);
+  color: var(--dark_blue);
+  border-radius: 9px;
+  cursor: pointer;
+}
+
 /* Navigation */
 .nav-header {
   display: flex;

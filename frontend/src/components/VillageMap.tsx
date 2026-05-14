@@ -219,7 +219,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
             )}
 
             <button
-              className="btn btn-secondary"
+              className="btn-tooltip"
               style={{ marginTop: "10px", width: "100%", padding: "5px", fontSize: "0.75rem" }}
               onClick={() => setSelectedTile(null)}
             >
