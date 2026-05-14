@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { usePlayers } from "./hooks/usePlayerName";
+import { DevelopmentDTO } from "../../../dtos/index"
 
 interface Props {
   playerId: string;
@@ -54,12 +55,21 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
         style={{
           cursor: "pointer",
           fontWeight: "bold",
-          color: "#1976d2", // Base color until dynamic color-coding is added
+          color: "#1976d2",
           textDecoration: "underline dotted rgba(25, 118, 210, 0.5)",
           textUnderlineOffset: "3px",
         }}
       >
         {getPlayerEmoji(player.health)} {player.name}
+
+        {/* Removed extra {}, added implicit return to the map */}
+        <span>
+          {player.developments && player.developments.map((dev: DevelopmentDTO, index) => (
+            <span key={index} style={{ marginLeft: "5px" }}>
+              {dev.type}{dev.level}
+            </span>
+          ))}
+        </span>
       </span>
 
       {/* The Floating Tooltip */}

@@ -176,13 +176,10 @@ const TradeDesk: React.FC<Props> = ({
           {otherPlayers.map(p => (
             <button
               key={p.id}
+              className="btn-user"
               style={{
-                padding: "8px 16px",
-                borderRadius: "20px",
                 border: targetId === p.id ? "2px solid #2196F3" : "1px solid #ccc",
                 background: targetId === p.id ? "#e3f2fd" : "#fafafa",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
                 fontWeight: targetId === p.id ? "bold" : "normal"
               }}
               onClick={() => setTargetId(targetId === p.id ? null : p.id)}

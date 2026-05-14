@@ -1,8 +1,8 @@
 /* App.css */
 :root {
-  --bg-color: #f4f4f0;
+  --bg-color: #DFDFDC;
   /* Paper/Wood-like off-white */
-  --text-primary: #2c2c2c;
+  --text-primary: white;
   --text-secondary: #555;
   --accent-color: #1a1a1a;
   /* Soft black */
@@ -22,12 +22,24 @@
   --turquoise: #06AED5;
   --emerald: #73D488;
 
+  /*Color Theme*/
+  --dark_grey: #2A364F;
+  --medium_grey: #66778E;
+  --light_grey: #BFC7D4;
+
+  --dark_blue: #162548;
+  --medium_blue: #4B6BB0;
+  --light_blue: #ACB9E2;
+
+  --dark_honey: #996832;
+  --medium_honey: #C89255;
+  --light_honey: #E7C77B;
 }
 
 body {
   margin: 0;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  background-color: var(--bg-color);
+  background-color: var(--medium_grey);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
 }
@@ -72,6 +84,13 @@ h3 {
   background-color: #e0e0e0;
 }
 
+.btn-user {
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
 /* Navigation */
 .nav-header {
   display: flex;
@@ -104,7 +123,25 @@ input {
   background: white;
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  color: var(--text-secondary);
+}
+
+.card-waiting {
+  background: var(--medium_honey);
+  font-weight: bold;
+}
+
+.card-finish_phase {
+  background: var(--dark_honey);
+
+}
+
+.card-finish_phase .btn {
+  border: 3px;
+  background: var(--light_honey);
+  color: var(--dark_blue);
+  font-weight: bold;
 }
 
 .container {
@@ -117,10 +154,13 @@ input {
   align-items: stretch;
 }
 
+.card-map_background {
+  background: var(--medium_blue);
+}
+
 /*bars */
 .bar {
   background: white;
   padding: 2rem;
   border-radius: 8px;
-
 }

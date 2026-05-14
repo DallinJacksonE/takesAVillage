@@ -98,12 +98,11 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
 
   return (
     <div
-      className="card"
+      className="card card-map_background"
       style={{
         height: "500px",
         position: "relative",
         overflow: "hidden",
-        background: mapBackground,
         cursor: isDragging ? "grabbing" : "grab",
         userSelect: "none",
       }}

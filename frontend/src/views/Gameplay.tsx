@@ -194,7 +194,7 @@ const Gameplay: React.FC = () => {
 
             {/* End Phase Lock-In */}
             {!gameState.me.finished_phase ? (
-              <div className="card" style={{ background: "#333", color: "white", textAlign: "center" }}>
+              <div className="card card-finish_phase" style={{ color: "white", textAlign: "center" }}>
                 <button
                   className="btn"
                   onClick={() => presenter.finishPhase()}
@@ -203,7 +203,7 @@ const Gameplay: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="card" style={{ background: "#e59f71", textAlign: "center" }}>
+              <div className="card card-waiting" style={{ textAlign: "center" }}>
                 Waiting For Others To Finish
               </div>
             )}
