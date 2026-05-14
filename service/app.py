@@ -275,4 +275,4 @@ def on_submit_action(data):
 if __name__ == '__main__':
     # Add host="0.0.0.0" so Docker can route external traffic to it
     socketio.run(app, host="0.0.0.0", debug=True,
-                 use_reloader=False, port=5000)
+                 use_reloader=True, port=5000)

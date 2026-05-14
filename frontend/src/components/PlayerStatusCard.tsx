@@ -7,6 +7,7 @@ interface Props {
 
 const PlayerStatusCard: React.FC<Props> = ({ state }) => {
   const { me } = state;
+  console.log(me)
 
   return (
     <div

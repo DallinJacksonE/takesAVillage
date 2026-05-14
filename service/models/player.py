@@ -35,6 +35,39 @@ class Player:
             "data": data
         })
 
+    def update_sickness_chance(self, ate: bool, warm: bool, sickness_rules):
+
+        if self.sickness_chance is None:
+            self.sickness_chance = sickness_rules["default"]
+        if not ate:
+            self.sickness_chance += sickness_rules["hunger_increase"]
+        if not warm:
+            self.sickness_chance += sickness_rules["cold_increase"]
+
+        # Recovery only happens with both eating and warm
+        if warm and ate:
+            self.sickness_chance = max(
+                sickness_rules["default"],
+                self.sickness_chance - sickness_rules["recovery"])
+
+    def update_health(self, ate: bool, warm: bool,
+                      check: float, sickness_rules):
+        for key, value in sickness_rules.items():
+            print(f"Key: {key} \nValue: {value}")
+        self.update_sickness_chance(ate, warm, sickness_rules)
+        if self.health == "dead":
+            return "dead"
+        elif (check < self.sickness_chance
+              and self.health == "sick" and (not ate or not warm)):
+            return "dead"
+        elif check < self.sickness_chance:
+            return "sick"
+        elif self.health == "sick" and ate and warm:
+            return "recovering"
+        elif self.health == "recovering" and ate and warm:
+            return "healthy"
+            self.sickness_chance = sickness_rules["default"]
+
     def consume_daily(self, sickness_rules):
         """Logic for nightly consumption and sickness calculation."""
 
@@ -71,35 +104,6 @@ class Player:
         self.available_work = self.developments
         self.finished_phase = False
         self.fire_guests = []
-
-    def update_sickness_chance(self, ate: bool, warm: bool, sickness_rules):
-        if not ate:
-            self.sickness_chance += sickness_rules["hunger_increase"]
-        if not warm:
-            self.sickness_chance += sickness_rules["cold_increase"]
-
-        # Recovery only happens with both eating and warm
-        if warm and ate:
-            self.sickness_chance = max(
-                sickness_rules["default"],
-                self.sickness_chance - sickness_rules["recovery"])
-
-    def update_health(self, ate: bool, warm: bool,
-                      check: float, sickness_rules):
-        self.update_sickness_chance(ate, warm, sickness_rules)
-
-        if self.health == "dead":
-            return "dead"
-        elif (check < self.sickness_chance
-              and self.health == "sick" and (not ate or not warm)):
-            return "dead"
-        elif check < self.sickness_chance:
-            return "sick"
-        elif self.health == "sick" and ate and warm:
-            return "recovering"
-        elif self.health == "recovering" and ate and warm:
-            return "healthy"
-            self.sickness_chance = sickness_rules["default"]
 
     def to_dict(self):
         return {
