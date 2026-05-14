@@ -186,65 +186,73 @@ const TradeDesk: React.FC<Props> = ({
 
         {/* Dynamic Draft Form */}
         {targetId && (
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <div>
-              <strong>I Give:</strong>
-              {(["food", "wood", "iron"] as Resource[]).map(res => (
-                <div key={res} style={{ display: "flex", gap: "5px", alignItems: "center" }}>
-                  <span>{res}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={draftGiveItems[res] || 0}
-                    onChange={(e) =>
-                      setDraftGiveItems({
-                        ...draftGiveItems,
-                        [res]: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    style={{ width: "55px" }}
-                  />
-                </div>
-              ))}
-            </div>
+  <>
+    <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", width: "100%" }}>
+      
+      {/* I GIVE */}
+      <div style={{ display: "flex", gap: "20px", width: "100%" }}>
+        <strong style={{ display: "block", marginBottom: "6px" }}>I Give:</strong>
 
-            <div>
-              <strong>I Want:</strong>
-              {(["food", "wood", "iron"] as Resource[]).map(res => (
-                <div key={res} style={{ display: "flex", gap: "5px", alignItems: "center" }}>
-                  <span>{res}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={draftReqItems[res] || 0}
-                    onChange={(e) =>
-                      setDraftReqItems({
-                        ...draftReqItems,
-                        [res]: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    style={{ width: "55px" }}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div style={{ width: "100%", marginTop: "10px" }}>
-              <button
-                className="btn"
-                style={{
-                  background: "#2196F3",
-                  color: "white",
-                  padding: "6px 12px",
-                  borderRadius: "4px",
-                }}
-                onClick={handleDraftTrade}
-              >
-                Send Trade Offer
-              </button>
-            </div>
+        {(["food", "wood", "iron"] as Resource[]).map(res => (
+          <div key={res} style={{ display: "flex", gap: "5px", alignItems: "center" }}>
+            <span>{res}</span>
+            <input
+              type="number"
+              min="0"
+              value={draftGiveItems[res] || 0}
+              onChange={(e) =>
+                setDraftGiveItems({
+                  ...draftGiveItems,
+                  [res]: parseInt(e.target.value) || 0,
+                })
+              }
+              style={{ width: "55px" }}
+            />
           </div>
-        )}
+        ))}
+      </div>
+
+      {/* I WANT */}
+      <div style={{ display: "flex", gap: "20px", width: "100%" }}>
+        <strong style={{ display: "block", marginBottom: "6px" }}>I Want:</strong>
+
+            {(["food", "wood", "iron"] as Resource[]).map(res => (
+              <div key={res} style={{ display: "flex", gap: "5px", alignItems: "center" }}>
+                <span>{res}</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={draftReqItems[res] || 0}
+                  onChange={(e) =>
+                    setDraftReqItems({
+                      ...draftReqItems,
+                      [res]: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  style={{ width: "55px" }}
+                />
+              </div>
+            ))}
+          </div>
+
+        </div>
+
+        <div style={{ width: "100%", marginTop: "10px" }}>
+          <button
+            className="btn"
+            style={{
+              background: "#2196F3",
+              color: "white",
+              padding: "6px 12px",
+              borderRadius: "4px",
+            }}
+            onClick={handleDraftTrade}
+          >
+            Send Trade Offer
+          </button>
+        </div>
+      </>
+    )}
       </div>
 
       {/* --- SECTION 2: INBOX & OUTBOX (TWO COLUMNS) --- */}
@@ -277,7 +285,7 @@ const TradeDesk: React.FC<Props> = ({
                     <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
 
                       <div>
-                        <strong>I Give:</strong>
+                        <strong style={{ display: "block", marginBottom: "6px" }}>I Give:</strong>
 
                         {(["food", "wood", "iron"] as Resource[]).map(res => (
                           <div key={res} style={{ display: "flex", gap: "5px", alignItems: "center" }}>

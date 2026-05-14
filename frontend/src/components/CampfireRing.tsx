@@ -115,7 +115,14 @@ const CampfireRing: React.FC<Props> = ({
             }}
           >
             <span>
-              {p.name} {p.fire_status === "HOST" || p.fire_status === "GUEST" ? "🔥" : ""}
+              {p.name}{" "}
+              {p.fire_status === "HOST"
+                ? "🔥"
+                : p.fire_status === "GUEST"
+                ? "🥳"
+                : p.fire_status === "COLD"
+                ? "🥶"
+                : ""}
             </span>
 
             <div style={{ display: "flex", gap: "5px" }}>
