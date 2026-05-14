@@ -92,12 +92,13 @@ const TradeDesk: React.FC<Props> = ({
   const { me, player_list } = state;
   const getPlayerName = usePlayerName();
 
+  const [draftGiveItems, setDraftGiveItems] = useState<Partial<ResourceBundle>>({});
+  const [draftReqItems, setDraftReqItems] = useState<Partial<ResourceBundle>>({});
+
   // Drafting State
   const [targetId, setTargetId] = useState<string | null>(null);
-  const [giveAmt, setGiveAmt] = useState(1);
-  const [giveRes, setGiveRes] = useState<Resource>("food");
-  const [reqAmt, setReqAmt] = useState(1);
-  const [reqRes, setReqRes] = useState<Resource>("wood");
+  const [counterGiveItems, setCounterGiveItems] = useState<Partial<ResourceBundle>>({});
+  const [counterReqItems, setCounterReqItems] = useState<Partial<ResourceBundle>>({});
 
   // Counter-Offer State
   const [counteringId, setCounteringId] = useState<string | null>(null);
@@ -116,12 +117,16 @@ const TradeDesk: React.FC<Props> = ({
 
   const handleDraftTrade = () => {
     if (!targetId) return;
+
     onDraftTrade(
       targetId,
-      { [giveRes]: giveAmt },
-      { [reqRes]: reqAmt }
+      draftGiveItems,
+      draftReqItems
     );
-    setTargetId(null); // Close draft window after sending
+
+    setTargetId(null);
+    setDraftGiveItems({});
+    setDraftReqItems({});
   };
 
   const handleOpenCounter = (trade: TradeActionDTO) => {
@@ -143,26 +148,16 @@ const TradeDesk: React.FC<Props> = ({
     setCounterGiveAmt(giveVal || 1);
   };
   const handleSubmitCounter = (tradeId: string) => {
-    const trade = tradeActions.find(t => t.id === tradeId);
-    if (!trade) return;
-
-    const isInitiator = me.id === trade.initiator_id;
-
-    // Map the local state back to absolute initiator/target properties
-    const absoluteOfferItems = isInitiator
-      ? { [counterGiveRes]: counterGiveAmt }
-      : { [counterReqRes]: counterReqAmt };
-
-    const absoluteRequestItems = isInitiator
-      ? { [counterReqRes]: counterReqAmt }
-      : { [counterGiveRes]: counterGiveAmt };
-
     onCounterTrade(
       tradeId,
-      absoluteOfferItems,
-      absoluteRequestItems
+      counterGiveItems,
+      counterReqItems
     );
+
     setCounteringId(null);
+
+    setCounterGiveItems({});
+    setCounterReqItems({});
   };
 
   return (
@@ -191,22 +186,63 @@ const TradeDesk: React.FC<Props> = ({
 
         {/* Dynamic Draft Form */}
         {targetId && (
-          <div style={{ background: "#e3f2fd", padding: "15px", borderRadius: "8px", marginTop: "10px", border: "1px solid #bbdefb", display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-            <span>I give</span>
-            <input type="number" min="0" value={giveAmt} onChange={e => setGiveAmt(parseInt(e.target.value) || 0)} style={{ width: "50px", padding: "4px" }} />
-            <select value={giveRes} onChange={e => setGiveRes(e.target.value as Resource)} style={{ padding: "4px" }}>
-              <option value="food">Food</option>
-              <option value="wood">Wood</option>
-              <option value="iron">Iron</option>
-            </select>
-            <span>for</span>
-            <input type="number" min="0" value={reqAmt} onChange={e => setReqAmt(parseInt(e.target.value) || 0)} style={{ width: "50px", padding: "4px" }} />
-            <select value={reqRes} onChange={e => setReqRes(e.target.value as Resource)} style={{ padding: "4px" }}>
-              <option value="food">Food</option>
-              <option value="wood">Wood</option>
-              <option value="iron">Iron</option>
-            </select>
-            <button className="btn" style={{ background: "#2196F3", color: "white", marginLeft: "auto" }} onClick={handleDraftTrade}>Send Offer</button>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <div>
+              <strong>I Give:</strong>
+              {(["food", "wood", "iron"] as Resource[]).map(res => (
+                <div key={res} style={{ display: "flex", gap: "5px", alignItems: "center" }}>
+                  <span>{res}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={draftGiveItems[res] || 0}
+                    onChange={(e) =>
+                      setDraftGiveItems({
+                        ...draftGiveItems,
+                        [res]: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    style={{ width: "55px" }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div>
+              <strong>I Want:</strong>
+              {(["food", "wood", "iron"] as Resource[]).map(res => (
+                <div key={res} style={{ display: "flex", gap: "5px", alignItems: "center" }}>
+                  <span>{res}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={draftReqItems[res] || 0}
+                    onChange={(e) =>
+                      setDraftReqItems({
+                        ...draftReqItems,
+                        [res]: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    style={{ width: "55px" }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div style={{ width: "100%", marginTop: "10px" }}>
+              <button
+                className="btn"
+                style={{
+                  background: "#2196F3",
+                  color: "white",
+                  padding: "6px 12px",
+                  borderRadius: "4px",
+                }}
+                onClick={handleDraftTrade}
+              >
+                Send Trade Offer
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -238,25 +274,68 @@ const TradeDesk: React.FC<Props> = ({
                 {counteringId === trade.id ? (
                   <div style={{ background: "#fff", padding: "10px", borderRadius: "4px", border: "1px dashed #2196F3", marginBottom: "10px" }}>
                     <div style={{ fontSize: "0.8rem", color: "#2196F3", marginBottom: "5px", fontWeight: "bold" }}>Counter Offer:</div>
-                    <div style={{ display: "flex", gap: "5px", alignItems: "center", fontSize: "0.85rem", flexWrap: "wrap" }}>
-                      I give
-                      <input type="number" min="0" value={counterGiveAmt} onChange={e => setCounterGiveAmt(parseInt(e.target.value) || 0)} style={{ width: "40px" }} />
-                      <select value={counterGiveRes} onChange={e => setCounterGiveRes(e.target.value as Resource)}>
-                        <option value="food">Food</option>
-                        <option value="wood">Wood</option>
-                        <option value="iron">Iron</option>
-                      </select>
-                      for
-                      <input type="number" min="0" value={counterReqAmt} onChange={e => setCounterReqAmt(parseInt(e.target.value) || 0)} style={{ width: "40px" }} />
-                      <select value={counterReqRes} onChange={e => setCounterReqRes(e.target.value as Resource)}>
-                        <option value="food">Food</option>
-                        <option value="wood">Wood</option>
-                        <option value="iron">Iron</option>
-                      </select>
+                    <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+
+                      <div>
+                        <strong>I Give:</strong>
+
+                        {(["food", "wood", "iron"] as Resource[]).map(res => (
+                          <div key={res} style={{ display: "flex", gap: "5px", alignItems: "center" }}>
+                            <span>{res}</span>
+
+                            <input
+                              type="number"
+                              min="0"
+                              value={counterGiveItems[res] || 0}
+                              onChange={(e) =>
+                                setCounterGiveItems({
+                                  ...counterGiveItems,
+                                  [res]: parseInt(e.target.value) || 0,
+                                })
+                              }
+                              style={{ width: "55px" }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      <div>
+                        <strong>I Want:</strong>
+
+                        {(["food", "wood", "iron"] as Resource[]).map(res => (
+                          <div key={res} style={{ display: "flex", gap: "5px", alignItems: "center" }}>
+                            <span>{res}</span>
+
+                            <input
+                              type="number"
+                              min="0"
+                              value={counterReqItems[res] || 0}
+                              onChange={(e) =>
+                                setCounterReqItems({
+                                  ...counterReqItems,
+                                  [res]: parseInt(e.target.value) || 0,
+                                })
+                              }
+                              style={{ width: "55px" }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div style={{ width: "100%", marginTop: "10px" }}>
+                      <button
+                        className="btn"
+                        style={{
+                          background: "#2196F3",
+                          color: "white",
+                          padding: "6px 12px",
+                          borderRadius: "4px",
+                        }}
+                        onClick={() => handleSubmitCounter(trade.id)}
+                      >
+                        Send Counter Offer
+                      </button>
                     </div>
-                    <div style={{ display: "flex", gap: "5px", marginTop: "10px" }}>
-                      <button className="btn-sm" style={{ background: "#2196F3", color: "white" }} onClick={() => handleSubmitCounter(trade.id)}>Send Counter</button>
-                      <button className="btn-sm btn-secondary" onClick={() => setCounteringId(null)}>Cancel</button>
                     </div>
                   </div>
                 ) : (
