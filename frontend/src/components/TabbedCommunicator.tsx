@@ -96,7 +96,7 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
           onClick={() => setActiveTab("global")}
         >
           {/* left spacer */}
-          <span style={{ width: "24px" }} />
+          <span style={{ width: "20px" }} />
 
           {/* center label */}
           <span style={{ whiteSpace: "nowrap" }}>
@@ -104,7 +104,7 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
           </span>
 
           {/* right badge */}
-          <span style={{ width: "24px", display: "flex", justifyContent: "center" }}>
+          <span style={{ width: "20px", display: "flex", justifyContent: "center" }}>
             {getGlobalUnreadCount() > 0 && (
               <span
                 style={{
