@@ -58,12 +58,15 @@ class Player:
         if self.health == "dead":
             return "dead"
         elif (check < self.sickness_chance
-              and self.health == "sick" and (not ate or not warm)):
+              and self.health == "sick" and not (ate or warm)):
             return "dead"
         elif check < self.sickness_chance:
             return "sick"
-        elif self.health == "sick" and ate and warm:
+
+        elif self.health == "sick" and (ate and warm):
             return "recovering"
+        elif self.health == "sick":
+            return "sick"
         elif self.health == "recovering" and ate and warm:
             self.sickness_chance = sickness_rules["default"]
             return "healthy"
