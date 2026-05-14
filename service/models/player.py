@@ -65,8 +65,10 @@ class Player:
         elif self.health == "sick" and ate and warm:
             return "recovering"
         elif self.health == "recovering" and ate and warm:
-            return "healthy"
             self.sickness_chance = sickness_rules["default"]
+            return "healthy"
+        else:
+            return "healthy"
 
     def consume_daily(self, sickness_rules):
         """Logic for nightly consumption and sickness calculation."""
