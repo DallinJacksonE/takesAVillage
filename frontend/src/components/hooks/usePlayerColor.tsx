@@ -3,13 +3,13 @@ import { PlayerDTO, GameStateDTO } from '../../../../dtos/index';
 
 // 1. Define a palette of distinct colors for your players
 const PLAYER_PALETTE: string[] = [
-  "#F58066", // Salmon
-  "#BCF8EC", // Icy Augua
-  "#AED9E0", // Light Blue
-  "#9FA0C3", // Lavendar
-  "#7B435B", // Berry
-  "#7C7F65", // Olive
-  "#0E1428", // Prussian Blue
+  "#0058C3", // Blue
+  "#8B00B9", // Purple 
+  "#007011",
+  "#D10084",
+  "#0012b2",
+  "#8A561F",
+  "#9A2A2A",
   "#7B9E89", // Teal
   "#CBEF43", // Lime
   "F038FF", // Magenta

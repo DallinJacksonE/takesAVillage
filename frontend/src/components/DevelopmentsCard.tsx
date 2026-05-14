@@ -142,7 +142,7 @@ const DevelopmentsCard: React.FC<Props> = ({
                           <div key={app.id} style={{ display: "flex", justifyContent: "space-between", marginTop: "5px", fontSize: "0.85rem", alignItems: "center" }}>
                             <span>{getPlayerName(app.initiator_id)} asking {app.wage} {app.wage_type}</span>
                             <div style={{ display: "flex", gap: "5px" }}>
-                              <button className="btn-tooltip success" onClick={() => onAcceptApplicant(app.id)}>Hire</button>
+                              <button className="btn-tooltip info" onClick={() => onAcceptApplicant(app.id)}>Hire</button>
                               <button className="btn-tooltip danger" onClick={() => onDenyApplicant(app.id)}>Reject</button>
                             </div>
                           </div>

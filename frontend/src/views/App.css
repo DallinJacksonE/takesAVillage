@@ -115,6 +115,12 @@ h3 {
   font-weight: bold;
 }
 
+.info {
+  background-color: #3DA2F5;
+  color: white;
+  font-weight: bold;
+}
+
 .btn-tooltip:hover {
   border-bottom: solid 2px var(--dark_blue);
 
