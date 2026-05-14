@@ -17,17 +17,25 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
 
   // Mark visible messages as read when the tab changes or new messages arrive
   useEffect(() => {
-    const newRead = new Set(readMessages);
-    messages.forEach(msg => {
-      const isGlobal = msg.to_id === "GLOBAL";
-      const isCurrentPrivate = msg.from_id === activeTab || msg.to_id === activeTab;
+  setReadMessages(prev => {
+    const updated = new Set(prev);
 
-      if ((activeTab === "global" && isGlobal) || (activeTab !== "global" && isCurrentPrivate)) {
-        newRead.add(msg.id);
+    for (const msg of messages) {
+      const isGlobal = msg.to_id === "GLOBAL";
+      const isPrivate =
+        msg.from_id === activeTab || msg.to_id === activeTab;
+
+      if (
+        (activeTab === "global" && isGlobal) ||
+        (activeTab !== "global" && isPrivate)
+      ) {
+        updated.add(msg.id);
       }
-    });
-    setReadMessages(newRead);
-  }, [messages, activeTab]);
+    }
+
+    return updated;
+  });
+}, [messages, activeTab]);
 
   // Calculate unread counts for the tabs
   const getUnreadCount = (senderId: string, toId: string) => {
