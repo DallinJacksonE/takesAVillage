@@ -232,7 +232,7 @@ const Gameplay: React.FC = () => {
 
           {/* --- MAP --- */}
           {gameState.map && (
-            <div className="card">
+            <div className="card" style={{ backgroundColor: "var(--medium_honey)" }}>
               <h3>Village Map</h3>
               <VillageMap
                 mapData={gameState.map}
