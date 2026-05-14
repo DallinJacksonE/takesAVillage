@@ -72,8 +72,7 @@ const AvailableWorkCard: React.FC<Props> = ({
                   </div>
                 </div>
                 <button
-                  className="btn-secondary"
-                  style={{ background: "#388e3c", color: "white" }}
+                  className="btn-tooltip success"
                   disabled={me.finished_phase}
                   onClick={() => onCommitWork({ work_action: work })}
                 >
@@ -94,8 +93,7 @@ const AvailableWorkCard: React.FC<Props> = ({
                     </div>
                   </div>
                   <button
-                    className="btn-secondary"
-                    style={{ background: "#388e3c", color: "white" }}
+                    className="btn-tooltip success"
                     disabled={me.finished_phase}
                     onClick={() => onCommitWork({ action_id: work.id })}
                   >
@@ -118,7 +116,7 @@ const AvailableWorkCard: React.FC<Props> = ({
                 <strong>Contesting Property</strong>
               </div>
               <button
-                className="btn danger"
+                className="btn-tooltip danger"
                 style={{ padding: "4px 10px", fontSize: "0.85rem" }}
                 disabled={me.finished_phase}
                 onClick={() => onCommitWork({ action_id: contest.id })}
@@ -138,8 +136,8 @@ const AvailableWorkCard: React.FC<Props> = ({
             <div key={offer.id} style={{ background: "#e3f2fd", padding: "8px", borderRadius: "4px", marginTop: "5px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem" }}>
               <span>{getPlayerName(offer.initiator_id)} offering {offer.wage} {offer.wage_type}.</span>
               <div style={{ display: "flex", gap: "5px" }}>
-                <button className="btn-sm" style={{ background: "#2196F3", color: "white" }} onClick={() => onAcceptOffer(offer.id)}>Accept</button>
-                <button className="btn-sm danger" onClick={() => onDenyOffer(offer.id)}>Reject</button>
+                <button className="btn-tooltip info" onClick={() => onAcceptOffer(offer.id)}>Accept</button>
+                <button className="btn-tooltip danger" onClick={() => onDenyOffer(offer.id)}>Reject</button>
               </div>
             </div>
           ))}

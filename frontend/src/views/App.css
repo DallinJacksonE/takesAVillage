@@ -96,10 +96,34 @@ h3 {
 .btn-tooltip {
   background-color: var(--light_honey);
   border: none;
-  border-bottom: var(--dark_blue);
+  border-bottom: solid 2px var(--light_grey);
   color: var(--dark_blue);
   border-radius: 9px;
   cursor: pointer;
+  padding: 0.5em;
+}
+
+.danger {
+  background: var(--danger);
+  color: white;
+  font-weight: bold;
+}
+
+.success {
+  background-color: var(--success);
+  color: white;
+  font-weight: bold;
+}
+
+.info {
+  background-color: #3DA2F5;
+  color: white;
+  font-weight: bold;
+}
+
+.btn-tooltip:hover {
+  border-bottom: solid 2px var(--dark_blue);
+
 }
 
 /* Navigation */
@@ -213,4 +237,3 @@ input {
 .send_button:hover {
   background: var(--dark_blue);
 }
-

@@ -105,11 +105,11 @@ const DevelopmentsCard: React.FC<Props> = ({
                       ) : (
                         <>
                           <button
-                            className="btn-secondary"
+                            className="btn-tooltip"
                             style={{ background: "#795548", color: "white", flex: 1 }}
                             onClick={() => onMaintain(dev.id)}
                           >
-                            maintenance: {
+                            Maintenance: {
                               state.development_costs[dev.type]?.maintain
                                 ? Object.entries(state.development_costs[dev.type].maintain)
                                   .map(([resource, amount]) => `${amount} ${resource}`)
@@ -118,7 +118,7 @@ const DevelopmentsCard: React.FC<Props> = ({
                             }
                           </button>
                           <button
-                            className="btn-secondary"
+                            className="btn-tooltip"
                             style={{ background: "#f57c00", color: "white", flex: 1 }}
                             onClick={() => onUpgrade(dev.id)}
                           >
@@ -142,8 +142,8 @@ const DevelopmentsCard: React.FC<Props> = ({
                           <div key={app.id} style={{ display: "flex", justifyContent: "space-between", marginTop: "5px", fontSize: "0.85rem", alignItems: "center" }}>
                             <span>{getPlayerName(app.initiator_id)} asking {app.wage} {app.wage_type}</span>
                             <div style={{ display: "flex", gap: "5px" }}>
-                              <button className="btn-sm success" onClick={() => onAcceptApplicant(app.id)}>Hire</button>
-                              <button className="btn-sm danger" onClick={() => onDenyApplicant(app.id)}>Reject</button>
+                              <button className="btn-tooltip info" onClick={() => onAcceptApplicant(app.id)}>Hire</button>
+                              <button className="btn-tooltip danger" onClick={() => onDenyApplicant(app.id)}>Reject</button>
                             </div>
                           </div>
                         ))}
@@ -192,17 +192,26 @@ const DevelopmentsCard: React.FC<Props> = ({
                         <option value="iron">Iron</option>
                       </select>
                       <button
-                        className="btn-sm success"
+                        className="btn-tooltip success"
                         style={{ marginLeft: "auto" }}
                         onClick={() => onApplyForJob(dev.owner_id, dev.id, appWage, appWageType)}
                       >
                         Apply
                       </button>
+
                     </div>
+
+                    <div style={{
+                      width: "100%",
+                      border: "none",
+                      borderTop: "black",
+                      height: "1px",
+                      background: "var(--dark_blue)"
+                    }}></div>
 
                     {/* Contest Action */}
                     <button
-                      className="btn-sm danger"
+                      className="btn-tooltip"
                       style={{ width: "100%", padding: "6px" }}
                       disabled={true}
                       onClick={() => onContest(dev.id, dev.owner_id)}
