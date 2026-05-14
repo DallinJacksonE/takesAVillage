@@ -4,6 +4,8 @@ class EconomyResolvers:
         DEV_OUTPUT_MAP = {"Farm": "food", "Woods": "wood", "Mine": "iron"}
 
         for player in game_state.players.values():
+            if player.health in ["sick", "recovering"]:
+                continue
             ca = getattr(player, 'committed_action', None)
             if ca and isinstance(ca, dict):
                 dev_data = ca.get('development', {})

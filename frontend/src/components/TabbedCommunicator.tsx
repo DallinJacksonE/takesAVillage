@@ -30,8 +30,13 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
   }, [messages, activeTab]);
 
   // Calculate unread counts for the tabs
-  const getUnreadCount = (senderId: string) => {
-    return messages.filter(m => m.from_id === senderId && !readMessages.has(m.id)).length;
+  const getUnreadCount = (senderId: string, toId: string) => {
+    return messages.filter(
+      m =>
+        m.from_id === senderId &&
+        m.to_id === toId &&
+        !readMessages.has(m.id)
+    ).length;
   };
 
   const handleSend = () => {
@@ -71,7 +76,7 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
           Village Square
         </button>
         {otherPlayers.map(p => {
-          const unread = getUnreadCount(p.id);
+          const unread = getUnreadCount(p.id, playerId);
           return (
             <button
               key={p.id}
