@@ -61,7 +61,7 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
           textUnderlineOffset: "3px",
         }}
       >
-        {getPlayerEmoji(player.health)} {player.name} <PlayerDevelopmentsInfo playerId={playerId} />
+        {getPlayerEmoji(player.health)} {player.name}
 
       </span>
 

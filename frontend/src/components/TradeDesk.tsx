@@ -329,28 +329,28 @@ const TradeDesk: React.FC<Props> = ({
                           </div>
                         ))}
                       </div>
-                      
+
                       <div style={{ width: "100%", marginTop: "10px" }}>
-                      <button
-                        className="btn"
-                        style={{
-                          background: "#2196F3",
-                          color: "white",
-                          padding: "6px 12px",
-                          borderRadius: "4px",
-                        }}
-                        onClick={() => handleSubmitCounter(trade.id)}
-                      >
-                        Send Counter Offer
-                      </button>
-                    </div>
+                        <button
+                          className="btn-tooltip info"
+                          style={{
+                            background: "#2196F3",
+                            color: "white",
+                            padding: "6px 12px",
+                            borderRadius: "4px",
+                          }}
+                          onClick={() => handleSubmitCounter(trade.id)}
+                        >
+                          Send Counter Offer
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : (
                   <div style={{ display: "flex", gap: "5px" }}>
-                    <button className="btn-sm success" onClick={() => onAcceptTrade(trade.id)}>Accept</button>
-                    <button className="btn-sm warning" onClick={() => handleOpenCounter(trade)}>Counter</button>
-                    <button className="btn-sm danger" onClick={() => onDenyTrade(trade.id)}>Reject</button>
+                    <button className="btn-tooltip success" onClick={() => onAcceptTrade(trade.id)}>Accept</button>
+                    <button className="btn-tooltip info" onClick={() => handleOpenCounter(trade)}>Counter</button>
+                    <button className="btn-tooltip danger" onClick={() => onDenyTrade(trade.id)}>Reject</button>
                   </div>
                 )}
               </div>
@@ -374,7 +374,7 @@ const TradeDesk: React.FC<Props> = ({
               <div key={trade.id} style={{ padding: "10px", borderRadius: "6px", border: "1px dashed #ccc", marginBottom: "10px", opacity: 0.8 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
                   <strong>To: {getPlayerName(otherPersonId || "")}</strong>
-                  <button className="btn-sm danger" style={{ padding: "2px 6px", fontSize: "0.7rem" }} onClick={() => onCancelTrade(trade.id)}>Revoke</button>
+                  <button className="btn-tooltip danger" style={{ padding: "2px 6px", fontSize: "0.7rem" }} onClick={() => onCancelTrade(trade.id)}>Revoke</button>
                 </div>
                 <div style={{ fontSize: "0.8rem", color: "#555" }}>
                   <div>I Give: {renderItems(iGive)}</div>

@@ -125,137 +125,174 @@ const CampfireRing: React.FC<Props> = ({
                 : ""}
             </span>
 
-            <div style={{ display: "flex", gap: "5px" }}>
-              {p.fire_status === "HOST" && me.fire_status === "COLD" && (
-                <button className="btn-sm" onClick={() => onRequestSeat(p.id)}>
-                  Request Seat
-                </button>
-              )}
+            {me.fire_status === "GUEST" && (() => {
+              const hostAction = fireActions.find(a =>
+                a.status === "ACCEPTED" && (
+                  (a.is_request && a.initiator_id === me.id) ||
+                  (!a.is_request && a.target_id === me.id)
+                )
+              );
 
-              {me.fire_status === "HOST" &&
-                p.fire_status !== "HOST" &&
-                p.fire_status !== "GUEST" && (
-                  <button
-                    className="btn-sm"
-                    disabled={isAtCapacity}
-                    onClick={() => onOfferSeat(p.id)}
-                  >
-                    Offer Seat
+              const hostId = hostAction
+                ? (hostAction.is_request ? hostAction.target_id : hostAction.initiator_id)
+                : "";
+
+              return (
+                <div style={{ marginTop: "5px", fontSize: "0.85rem", color: "#666" }}>
+                  Warming by <strong>{getPlayerName(hostId)}</strong>'s fire
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* VILLAGE */}
+          <h4 style={{ marginTop: 0 }}>Village</h4>
+
+          {player_list.filter(p => p.id !== me.id).map(p => (
+            <div
+              key={p.id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "8px",
+                fontSize: "1rem",
+                fontWeight: "bold"
+              }}
+            >
+              <span>
+                {p.name} {p.fire_status === "HOST" || p.fire_status === "GUEST" ? "🔥" : ""}
+              </span>
+
+              <div style={{ display: "flex", gap: "5px" }}>
+                {p.fire_status === "HOST" && me.fire_status === "COLD" && (
+                  <button className="btn-tooltip info" onClick={() => onRequestSeat(p.id)}>
+                    Request Seat
                   </button>
                 )}
+
+                {me.fire_status === "HOST" &&
+                  p.fire_status !== "HOST" &&
+                  p.fire_status !== "GUEST" && (
+                    <button
+                      className="btn-tooltip info"
+                      disabled={isAtCapacity}
+                      onClick={() => onOfferSeat(p.id)}
+                    >
+                      Offer Seat
+                    </button>
+                  )}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {/* --- RIGHT COLUMN --- */}
-      <div style={{ flex: 1, minWidth: "280px", display: "flex", flexDirection: "column", gap: "15px" }}>
+        {/* --- RIGHT COLUMN --- */}
+        <div style={{ flex: 1, minWidth: "280px", display: "flex", flexDirection: "column", gap: "15px" }}>
 
-        {/* TOP RIGHT: FIRE CONTROLS */}
-        <div>
+          {/* TOP RIGHT: FIRE CONTROLS */}
+          <div>
 
-          <div style={{ marginBottom: "10px" }}>
-            {me.fire_status === "COLD" && (
-              <button
-                className="btn success"
-                style={{
-                  padding: "8px 14px",
-                  fontSize: "0.85rem",
-                  background: "#d32f2f",
-                  color: "white"
-                }}
-                disabled={me.resources.wood < 1}
-                onClick={onStartFire}
-              >
-                Start Fire (1 Wood)
-              </button>
+            <div style={{ marginBottom: "10px" }}>
+              {me.fire_status === "COLD" && (
+                <button
+                  className="btn-tooltip danger"
+                  style={{
+                    padding: "8px 14px",
+                    fontSize: "0.85rem",
+                  }}
+                  disabled={me.resources.wood < 1}
+                  onClick={onStartFire}
+                >
+                  Start Fire (1 Wood)
+                </button>
+              )}
+            </div>
+
+            {/* AT FIRE */}
+            {fireParticipantIds.length > 0 && (
+              <div style={{ marginTop: "15px", padding: "10px", background: "#fafafa", borderRadius: "8px", border: "1px solid #ddd" }}>
+                <h4 style={{ margin: "0 0 8px 0", fontSize: "0.9rem", color: "#444" }}>
+                  At the fire
+                </h4>
+
+                <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "0.85rem", color: "#666" }}>
+                  {fireParticipantIds.map(id => (
+                    <li key={id}>
+                      <strong>{getPlayerName(id)}</strong>
+                      {id === me.id ? " (You)" : ""}
+                      {id === myFireSession?.hostId ? " — Host" : ""}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
 
-          {/* AT FIRE */}
-          {fireParticipantIds.length > 0 && (
-            <div style={{ marginTop: "15px", padding: "10px", background: "#fafafa", borderRadius: "8px", border: "1px solid #ddd" }}>
-              <h4 style={{ margin: "0 0 8px 0", fontSize: "0.9rem", color: "#444" }}>
-                At the fire
-              </h4>
+          {/* BOTTOM RIGHT: STATUS FEED */}
+          <div style={{ marginTop: "auto" }}>
 
-              <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "0.85rem", color: "#666" }}>
-                {fireParticipantIds.map(id => (
-                  <li key={id}>
-                    <strong>{getPlayerName(id)}</strong>
-                    {id === me.id ? " (You)" : ""}
-                    {id === myFireSession?.hostId ? " — Host" : ""}
-                  </li>
+            {/* INVITES */}
+            {incomingOffers.length > 0 && (
+              <div style={{ background: "#e3f2fd", padding: "10px", borderRadius: "6px", marginBottom: "10px" }}>
+                <h4 style={{ margin: "0 0 5px 0", color: "#1976d2", fontSize: "0.9rem" }}>
+                  Campfire Invites
+                </h4>
+
+                {incomingOffers.map(offer => (
+                  <div key={offer.id} style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>From <strong>{getPlayerName(offer.initiator_id)}</strong></span>
+                    <div style={{ display: "flex", gap: "5px" }}>
+                      <button className="btn-tooltip success" onClick={() => onAccept(offer.id)}>Accept</button>
+                      <button className="btn-tooltip danger" onClick={() => onDeny(offer.id)}>Decline</button>
+                    </div>
+                  </div>
                 ))}
-              </ul>
-            </div>
-          )}
-        </div>
+              </div>
+            )}
 
-        {/* BOTTOM RIGHT: STATUS FEED */}
-        <div style={{ marginTop: "auto" }}>
+            {/* REQUESTS */}
+            {incomingRequests.length > 0 && (
+              <div style={{ background: "#ffebee", padding: "10px", borderRadius: "6px", marginBottom: "10px" }}>
+                <h4 style={{ margin: "0 0 5px 0", color: "#c62828", fontSize: "0.9rem" }}>
+                  Requests for warmth
+                </h4>
 
-          {/* INVITES */}
-          {incomingOffers.length > 0 && (
-            <div style={{ background: "#e3f2fd", padding: "10px", borderRadius: "6px", marginBottom: "10px" }}>
-              <h4 style={{ margin: "0 0 5px 0", color: "#1976d2", fontSize: "0.9rem" }}>
-                Campfire Invites
-              </h4>
-
-              {incomingOffers.map(offer => (
-                <div key={offer.id} style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>From <strong>{getPlayerName(offer.initiator_id)}</strong></span>
-                  <div style={{ display: "flex", gap: "5px" }}>
-                    <button onClick={() => onAccept(offer.id)}>Accept</button>
-                    <button onClick={() => onDeny(offer.id)}>Decline</button>
+                {incomingRequests.map(req => (
+                  <div key={req.id} style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span><strong>{getPlayerName(req.initiator_id)}</strong></span>
+                    <div style={{ display: "flex", gap: "5px" }}>
+                      <button className="btn-tooltip success" disabled={isAtCapacity} onClick={() => onAccept(req.id)}>Let In</button>
+                      <button className="btn-tooltip danger" onClick={() => onDeny(req.id)}>Turn Away</button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
 
-          {/* REQUESTS */}
-          {incomingRequests.length > 0 && (
-            <div style={{ background: "#ffebee", padding: "10px", borderRadius: "6px", marginBottom: "10px" }}>
-              <h4 style={{ margin: "0 0 5px 0", color: "#c62828", fontSize: "0.9rem" }}>
-                Requests for warmth
-              </h4>
+            {/* OUTGOING */}
+            {(outgoingOffers.length > 0 || outgoingRequests.length > 0) && (
+              <div style={{ background: "#fafafa", padding: "10px", borderRadius: "6px", border: "1px dashed #ccc" }}>
+                <h4 style={{ margin: "0 0 5px 0", color: "#888", fontSize: "0.9rem" }}>
+                  Awaiting Reply
+                </h4>
 
-              {incomingRequests.map(req => (
-                <div key={req.id} style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span><strong>{getPlayerName(req.initiator_id)}</strong></span>
-                  <div style={{ display: "flex", gap: "5px" }}>
-                    <button disabled={isAtCapacity} onClick={() => onAccept(req.id)}>Let In</button>
-                    <button onClick={() => onDeny(req.id)}>Turn Away</button>
+                {outgoingOffers.map(o => (
+                  <div key={o.id}>
+                    Offered seat to {getPlayerName(o.target_id || "")}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
 
-          {/* OUTGOING */}
-          {(outgoingOffers.length > 0 || outgoingRequests.length > 0) && (
-            <div style={{ background: "#fafafa", padding: "10px", borderRadius: "6px", border: "1px dashed #ccc" }}>
-              <h4 style={{ margin: "0 0 5px 0", color: "#888", fontSize: "0.9rem" }}>
-                Awaiting Reply
-              </h4>
-
-              {outgoingOffers.map(o => (
-                <div key={o.id}>
-                  Offered seat to {getPlayerName(o.target_id || "")}
-                </div>
-              ))}
-
-              {outgoingRequests.map(r => (
-                <div key={r.id}>
-                  Requested seat from {getPlayerName(r.target_id || "")}
-                </div>
-              ))}
-            </div>
-          )}
+                {outgoingRequests.map(r => (
+                  <div key={r.id}>
+                    Requested seat from {getPlayerName(r.target_id || "")}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
     </div>
   );
 };

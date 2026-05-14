@@ -16,6 +16,7 @@ import TradeDesk from "../components/TradeDesk";
 import TabbedCommunicator from "../components/TabbedCommunicator";
 import CampfireRing from "../components/CampfireRing";
 import { PlayerColorProvider } from "../components/hooks/usePlayerColor";
+import PlayerInfo from "../components/PlayerInfo";
 
 const Gameplay: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -136,7 +137,7 @@ const Gameplay: React.FC = () => {
         <PlayerProvider players={gameState.player_list}>
           {/* --- HEADER --- */}
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
-            <h2>Village: {gameId} (Player: {gameState.me.name})</h2>
+            <h2>Village: {gameId} <PlayerInfo playerId={gameState.me.id} /></h2>
             <div>
               <strong>Day {gameState.day}</strong> | Phase: {phase} | Time:{" "}
               {timeLeft}s
