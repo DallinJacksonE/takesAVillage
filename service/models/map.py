@@ -19,16 +19,15 @@ class MapTile:
 
 
 class MapFactory:
-    def __init__(self, player_count):
+    def __init__(self, player_count, farms_ratio, woods_ratio, mountains_ratio):
         self.map_tiles = {}
-        self.generate_map(player_count)
+        self.generate_map(player_count, farms_ratio, woods_ratio, mountains_ratio)
 
-    def generate_map(self, player_count):
+    def generate_map(self, player_count, farms_ratio, woods_ratio, mountains_ratio):
         # 1. Determine Tile Counts
-        # Ensure at least 1 farm per player to be safe and allow competition
-        num_farms = player_count // 2
-        num_woods = player_count + 1
-        num_mines = 2
+        num_farms = max(int(player_count * farms_ratio), 1)
+        num_woods = max(int(player_count * woods_ratio), 1)
+        num_mines = max(int(player_count * mountains_ratio), 1)
 
         tiles_to_place = ["Farm"] * num_farms + \
             ["Woods"] * num_woods + ["Mine"] * num_mines

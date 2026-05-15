@@ -37,6 +37,9 @@ class Game:
         self.starting_inventory = self.rules.STARTING_INVENTORY
         self.phase_length = self.rules.PHASE_LENGTH
         self.game_length = self.rules.GAME_LENGTH
+        self.mountains_ratio = self.rules.MOUNTAINS_RATIO
+        self.woods_ratio = self.rules.WOODS_RATIO
+        self.farms_ratio = self.rules.FARMS_RATIO
 
         self.players = {}
         self.developments = {}
@@ -71,7 +74,7 @@ class Game:
             return False
 
         # 1. Generate the map tiles based on the final player count
-        factory = MapFactory(len(self.players))
+        factory = MapFactory(len(self.players), self.farms_ratio, self.woods_ratio, self.mountains_ratio)
 
         self.map_data = factory.map_tiles
 
