@@ -214,7 +214,6 @@ const DevelopmentsCard: React.FC<Props> = ({
                       }}
                     >
 
-<<<<<<< HEAD
                       {/* NOT contested yet */}
                       {!dev.is_contested && dev.owner_id !== me.id && (
                         <button
@@ -271,16 +270,6 @@ const DevelopmentsCard: React.FC<Props> = ({
                           </span>
                         </div>
                       )}
-=======
-                      {/* Contest Action */}
-                      <button
-                        className="btn-tooltip"
-                        style={{ width: "100%", padding: "6px" }}
-                        onClick={() => onContest(dev.id, dev.owner_id)}
-                      >
-                        Contest Ownership
-                      </button>
->>>>>>> df358229a511ea833f113ec18bca6a7ee83b5168
                     </div>
                   </div>
                 )}
