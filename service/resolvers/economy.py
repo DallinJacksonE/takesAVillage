@@ -5,7 +5,6 @@ class EconomyResolvers:
 
         for player in game_state.players.values():
             if player.health in ["sick", "recovering"]:
-                player.committed_action = None
                 continue
             ca = getattr(player, 'committed_action', None)
             if ca and isinstance(ca, dict):
@@ -31,5 +30,3 @@ class EconomyResolvers:
                                                   player.session_id,
                                                   "yield": dev_level,
                                                   "type": resource_produced})
-                        player.committed_action = None
-            player.reset_phase()

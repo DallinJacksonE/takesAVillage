@@ -131,14 +131,9 @@ class Game:
                 ):
 
                     dev.is_contested = True
-                    dev.contest_initiator_id = (
-                        dev.pending_contest_initiator
-                    )
 
                     # Initiator automatically participates
-                    dev.contester_supporters = [
-                        dev.contest_initiator_id
-                    ]
+                    dev.contester_supporters = []
 
                     dev.pending_contest = False
 
@@ -161,8 +156,7 @@ class Game:
             else:
                 player.finished_phase = False
 
-            if phase_name == 'WORK':
-                player.committed_action = None
+            player.committed_action = None
 
     def get_time_remaining(self):
         return max(0, int(self.phase_end_time - time.time()))
