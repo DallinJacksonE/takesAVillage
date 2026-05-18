@@ -132,7 +132,7 @@ class ContestDevelopmentCommand(Command):
             return False
 
         if side == 'INITIATOR':
-            
+
             if (
                 dev.is_contested
                 or dev.pending_contest
@@ -142,7 +142,7 @@ class ContestDevelopmentCommand(Command):
 
             # Schedule attack for next day
             dev.pending_contest = True
-            dev.pending_contest_initiator = player.session_id
+            dev.contest_initiator_id = player.session_id
             dev.pending_contest_day = game_state.day + 1
 
             player.add_timeline_event(

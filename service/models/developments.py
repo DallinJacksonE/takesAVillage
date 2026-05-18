@@ -11,7 +11,6 @@ class Development:
         self.contester_supporters = []
         self.owner_supporters = []
         self.pending_contest = False
-        self.pending_contest_initiator = None
         self.pending_contest_day = None
 
         self.MAX_LEVEL = MAX_LEVEL

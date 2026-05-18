@@ -14,8 +14,9 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
 
   // Find the specific player from the context array
   const player = players?.find((p) => p.id === playerId);
-  const isUnderAttack = player?.developments?.some((dev: any) => dev.is_contested || dev.pending_contest)
-
+  const isUnderAttack = player?.developments?.some(
+    (dev: any) => dev.is_contested === true || dev.contest_initiator_id
+  );
   // Close the popup if the user clicks anywhere outside of it
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
