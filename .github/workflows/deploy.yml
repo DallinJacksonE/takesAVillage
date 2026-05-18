@@ -32,6 +32,8 @@ jobs:
           # 3. Connect and execute the Docker Compose rebuild
           # Note: Update /path/to/your/app to the actual directory where your docker-compose.yml lives
           ssh -o ProxyCommand="cloudflared access ssh --hostname %h" -i ~/.ssh/id_ed25519 $SERVER_USER@$CF_HOSTNAME << 'EOF'
+            set -x
+          
             cd /home/dj/takesAVillage
             
             # Pull any new changes if your server uses git directly
