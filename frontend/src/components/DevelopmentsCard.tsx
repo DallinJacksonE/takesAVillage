@@ -209,7 +209,6 @@ const DevelopmentsCard: React.FC<Props> = ({
                       <button
                         className="btn-tooltip"
                         style={{ width: "100%", padding: "6px" }}
-                        disabled={true}
                         onClick={() => onContest(dev.id, dev.owner_id)}
                       >
                         Contest Ownership

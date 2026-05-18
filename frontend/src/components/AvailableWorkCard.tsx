@@ -73,7 +73,7 @@ const AvailableWorkCard: React.FC<Props> = ({
                 </div>
                 <button
                   className="btn-tooltip success"
-                  disabled={me.finished_phase}
+                  disabled={(me.finished_phase && (me.health === "healthy"))}
                   onClick={() => onCommitWork({ work_action: work })}
                 >
                   Lock In
@@ -94,7 +94,7 @@ const AvailableWorkCard: React.FC<Props> = ({
                   </div>
                   <button
                     className="btn-tooltip success"
-                    disabled={me.finished_phase}
+                    disabled={(me.finished_phase && (me.health === "healthy"))}
                     onClick={() => onCommitWork({ action_id: work.id })}
                   >
                     Lock In
