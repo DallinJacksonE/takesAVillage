@@ -1,3 +1,4 @@
+from flask import request
 from flask_socketio import emit, join_room
 from game_manager import active_games, broadcast_state
 
@@ -18,16 +19,26 @@ def register_socket_events(socketio):
 
         if game_id in active_games:
             game = active_games[game_id]
-            game.add_player(user_id)
+
+            # 2. REJOIN SAFEGUARD: Only add them if they aren't already in the game
+            if user_id not in game.players:
+                # Prevent entirely new players from joining a game in progress
+                if game.status != "WAITING":
+                    emit('error', {
+                         'message': 'Cannot join. Game is already in progress.'}, to=request.sid)
+                    return
+
+                # It's a new player in a waiting game, safe to initialize them
+                game.add_player(user_id)
 
             join_room(game_id)
-            # 2. SCOPE: Player joins a private room
+            # 3. SCOPE: Player joins a private room
             join_room(f"{game_id}_{user_id}")
 
             emit('room_update', {"player_count": len(
                 game.players)}, to=game_id)
 
-            # 3. DIRECT EMIT: Initial state to scoped room
+            # 4. DIRECT EMIT: Send the current state back to the reconnected player
             emit('game_state', game.get_state_for_player(
                 user_id), to=f"{game_id}_{user_id}")
         else:
