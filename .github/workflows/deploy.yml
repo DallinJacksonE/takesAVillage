@@ -34,7 +34,7 @@ jobs:
           ssh -o ProxyCommand="cloudflared access ssh --hostname %h" -i ~/.ssh/id_ed25519 $SERVER_USER@$CF_HOSTNAME << 'EOF'
             cd /home/dj/takesAVillage
             
-            # Pull any new changes if your server uses git directly (optional)
+            # Pull any new changes if your server uses git directly
             GIT_SSH_COMMAND="ssh -i ~/.ssh/homelab_deploy_key -o StrictHostKeyChecking=no" git pull origin main
             
             # Rebuild and restart the frontend and backend containers
