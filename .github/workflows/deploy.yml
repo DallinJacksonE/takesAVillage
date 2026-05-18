@@ -26,20 +26,16 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           
-          # 2. Add the Cloudflare hostname to known hosts to prevent interactive prompts
-          mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          
-          # 3. Connect and execute the Docker Compose rebuild
-          # Note: Update /path/to/your/app to the actual directory where your docker-compose.yml lives
-          ssh -o ProxyCommand="cloudflared access ssh --hostname %h" -i ~/.ssh/id_ed25519 $SERVER_USER@$CF_HOSTNAME << 'EOF'
+          # 2. Connect and execute the Docker Compose rebuild
+          # Added -T to disable the terminal warning
+          # Added UserKnownHostsFile=/dev/null for bulletproof host key bypass
+          ssh -T -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="cloudflared access ssh --hostname %h" -i ~/.ssh/id_ed25519 $SERVER_USER@$CF_HOSTNAME << 'EOF'
             set -x
-
+          
             cd /home/dj/takesAVillage
             
-            # Pull any new changes if your server uses git directly
-            GIT_SSH_COMMAND="ssh -i ~/.ssh/homelab_deploy_key -o StrictHostKeyChecking=no" git pull origin main
+            # Pull any new changes securely using the deploy key
+            GIT_SSH_COMMAND="ssh -i ~/.ssh/homelab_deploy_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git pull origin main
             
             # Rebuild and restart the frontend and backend containers
             docker compose up -d --build frontend backend
