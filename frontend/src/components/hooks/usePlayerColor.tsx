@@ -12,7 +12,7 @@ const PLAYER_PALETTE: string[] = [
   "#9A2A2A",
   "#7B9E89", // Teal
   "#CBEF43", // Lime
-  "F038FF", // Magenta
+  "#F038FF", // Magenta
 ];
 
 const user_color = "#53CA6D"

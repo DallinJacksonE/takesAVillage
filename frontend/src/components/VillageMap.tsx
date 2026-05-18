@@ -24,6 +24,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  console.log(mapData)
 
   // Correct Pointy-Topped Hex Math
   const HEX_SIZE = 45;
@@ -65,7 +66,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
   const getOwnerColor = (ownerId?: string) => {
     if (!ownerId) return openBorder;
     if (ownerId === playerId) return myBorder;
-    return opponentBorder;
+    return getPlayerColor(ownerId);
   };
 
   const getTileContents = (type: string, ownerId?: string): React.ReactNode => {

@@ -7,21 +7,21 @@ class MapTile:
                  q: int,
                  r: int,
                  tile_type: str,
-                 owner_id=None,
-                 development=None):
+                 ):
 
         self.id = tile_id
         self.q = q
         self.r = r
         self.type = tile_type
-        self.owner_id = owner_id
-        self.development = development
+        self.owner_id = ""
+        self.development = None
 
 
 class MapFactory:
     def __init__(self, player_count, farms_ratio, woods_ratio, mountains_ratio):
         self.map_tiles = {}
-        self.generate_map(player_count, farms_ratio, woods_ratio, mountains_ratio)
+        self.generate_map(player_count, farms_ratio,
+                          woods_ratio, mountains_ratio)
 
     def generate_map(self, player_count, farms_ratio, woods_ratio, mountains_ratio):
         # 1. Determine Tile Counts
