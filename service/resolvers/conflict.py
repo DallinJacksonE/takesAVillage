@@ -82,6 +82,8 @@ class ConflictResolvers:
                     new_owner.developments.append(dev.id)
 
                 dev.owner = dev.contest_initiator_id
+                dev.is_contested = False
+                dev.contest_initiator_id = None
 
             # Defenders survive
             elif owner_score > contester_score:
