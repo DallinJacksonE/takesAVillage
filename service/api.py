@@ -34,6 +34,20 @@ def attach_dev_cookie(response):
     return response
 
 
+@api_bp.route('/api/verifySession', methods=['GET'])
+def verify_session():
+    # Grab the cookie from the dev context or the actual request cookies
+    user_cookie = getattr(g, 'dev_user_uuid',
+                          None) or request.cookies.get('user_session')
+
+    if user_cookie and db.user_exists(user_cookie):
+        # Session is valid! Frontend should skip the consent screen.
+        return jsonify({"userId": user_cookie, "message": "Session valid"}), 200
+
+    # No valid session found. Frontend should show the consent screen.
+    return jsonify({"error": "No valid session"}), 401
+
+
 @api_bp.route('/api/consent', methods=['POST'])
 def consent():
     user_uuid = str(uuid.uuid4())
