@@ -50,7 +50,7 @@ const AvailableWorkCard: React.FC<Props> = ({
       (a.is_application ? me.id === a.initiator_id : me.id === a.target_id) &&
       !me.available_work.some((aw) => aw.development.id === a.dev_id)
   );
-
+  console.log(me.finished_phase || me.health == "healthy")
   return (
     <div className="card" style={{ minHeight: "297px", flex: 1, display: "flex", flexDirection: "column" }}>
       <h3 style={{ marginTop: 0 }}>Work Phase Dashboard</h3>
@@ -73,7 +73,7 @@ const AvailableWorkCard: React.FC<Props> = ({
                 </div>
                 <button
                   className="btn-tooltip success"
-                  disabled={(me.finished_phase && (me.health === "healthy"))}
+                  disabled={(me.finished_phase || me.health !== "healthy")}
                   onClick={() => onCommitWork({ work_action: work })}
                 >
                   Lock In
@@ -94,7 +94,7 @@ const AvailableWorkCard: React.FC<Props> = ({
                   </div>
                   <button
                     className="btn-tooltip success"
-                    disabled={(me.finished_phase && (me.health === "healthy"))}
+                    disabled={(me.finished_phase || me.health !== "healthy")}
                     onClick={() => onCommitWork({ action_id: work.id })}
                   >
                     Lock In
@@ -118,7 +118,7 @@ const AvailableWorkCard: React.FC<Props> = ({
               <button
                 className="btn-tooltip danger"
                 style={{ padding: "4px 10px", fontSize: "0.85rem" }}
-                disabled={me.finished_phase}
+                disabled={(me.finished_phase && (me.health === "healthy"))}
                 onClick={() => onCommitWork({ action_id: contest.id })}
               >
                 Commit to Fight
