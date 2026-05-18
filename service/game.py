@@ -74,7 +74,8 @@ class Game:
             return False
 
         # 1. Generate the map tiles based on the final player count
-        factory = MapFactory(len(self.players), self.farms_ratio, self.woods_ratio, self.mountains_ratio)
+        factory = MapFactory(len(self.players), self.farms_ratio,
+                             self.woods_ratio, self.mountains_ratio)
 
         self.map_data = factory.map_tiles
 
@@ -134,7 +135,6 @@ class Game:
 
                     # Initiator automatically participates
                     dev.contester_supporters = []
-
                     dev.pending_contest = False
 
                     owner = self.players.get(dev.owner)
