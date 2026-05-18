@@ -42,15 +42,12 @@ const AvailableWorkCard: React.FC<Props> = ({
   const displayableInherentWork = me.available_work.filter(
     (work) => !sentOfferDevIds.includes(work.development.id)
   );
-  console.log(displayableInherentWork)
-  // FIX 2: Only show the "Contracted Job" UI if the backend hasn't already provided it
   const acceptedContracts = employmentActions.filter(
     (a) =>
       a.status === "ACCEPTED" &&
       (a.is_application ? me.id === a.initiator_id : me.id === a.target_id) &&
       !me.available_work.some((aw) => aw.development.id === a.dev_id)
   );
-  console.log(me.finished_phase || me.health == "healthy")
   return (
     <div className="card" style={{ minHeight: "297px", flex: 1, display: "flex", flexDirection: "column" }}>
       <h3 style={{ marginTop: 0 }}>Work Phase Dashboard</h3>

@@ -133,7 +133,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
                 top: y,
                 width: hexWidth,
                 height: hexHeight,
-                background: tile.owner_id ? getPlayerColor(tile.owner_id) : openBorder,
+                background: tile.owner_id ? getOwnerColor(tile.owner_id) : openBorder,
                 clipPath: pointyClipPath,
                 cursor: "pointer",
                 transform: `translate(-50%, -50%) ${isSelected ? "scale(1.15)" : "scale(1)"}`,
