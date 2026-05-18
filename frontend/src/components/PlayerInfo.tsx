@@ -14,6 +14,7 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
 
   // Find the specific player from the context array
   const player = players?.find((p) => p.id === playerId);
+  const isUnderAttack = player?.developments?.some((dev: any) => dev.is_contested || dev.pending_contest)
 
   // Close the popup if the user clicks anywhere outside of it
   useEffect(() => {
@@ -59,10 +60,39 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
           color: getPlayerColor(player.id),
           textDecoration: "underline dotted",
           textUnderlineOffset: "3px",
+
+          // Attack warning styling
+          background: isUnderAttack
+            ? "rgba(255,0,0,0.15)"
+            : "transparent",
+
+          border: isUnderAttack
+            ? "1px solid rgba(255,0,0,0.5)"
+            : "1px solid transparent",
+
+          borderRadius: "6px",
+          padding: "2px 6px",
+
+          boxShadow: isUnderAttack
+            ? "0 0 8px rgba(255,0,0,0.45)"
+            : "none",
+
+          transition: "all 0.2s ease",
         }}
       >
-        {getPlayerEmoji(player.health)} {player.name}
+        {isUnderAttack && (
+          <span
+            style={{
+              color: "#ff2222",
+              fontWeight: "bold",
+              marginRight: "4px",
+            }}
+          >
+            ❗
+          </span>
+        )}
 
+        {getPlayerEmoji(player.health)} {player.name}
       </span>
 
       {/* The Floating Tooltip */}

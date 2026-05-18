@@ -132,13 +132,28 @@ class ContestDevelopmentCommand(Command):
             return False
 
         if side == 'INITIATOR':
-            if dev.is_contested or dev.owner == player.session_id:
-                return False
             
-            dev.is_contested = True
-            dev.contest_initiator_id = player.session_id
+            if (
+                dev.is_contested
+                or dev.pending_contest
+                or dev.owner == player.session_id
+            ):
+                return False
 
-            dev.contester_supporters = [player.session_id]
+            # Schedule attack for next day
+            dev.pending_contest = True
+            dev.pending_contest_initiator = player.session_id
+            dev.pending_contest_day = game_state.day + 1
+
+            player.add_timeline_event(
+                "ACTION_COMPLETED",
+                {
+                    "action": "CONTEST_SCHEDULED",
+                    "dev_id": dev_id
+                }
+            )
+
+            return True
         elif side == "CONTESTER":
             if not dev.is_contested:
                 return False

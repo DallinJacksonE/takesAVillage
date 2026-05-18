@@ -10,6 +10,9 @@ class Development:
         self.contest_initiator_id = None
         self.contester_supporters = []
         self.owner_supporters = []
+        self.pending_contest = False
+        self.pending_contest_initiator = None
+        self.pending_contest_day = None
 
         self.MAX_LEVEL = MAX_LEVEL
         self.MAINTENANCE_DAYS = MAINTENANCE_DAYS

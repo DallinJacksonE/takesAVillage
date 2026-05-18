@@ -118,6 +118,41 @@ class Game:
         self.phase = phase_name
         self.phase_end_time = time.time() + self.phase_length
 
+        # ------------------------------------------------
+        # Activate pending contests at START of WORK
+        # ------------------------------------------------
+        if phase_name == 'WORK':
+
+            for dev in self.developments.values():
+
+                if (
+                    getattr(dev, 'pending_contest', False)
+                    and dev.pending_contest_day == self.day
+                ):
+
+                    dev.is_contested = True
+                    dev.contest_initiator_id = (
+                        dev.pending_contest_initiator
+                    )
+
+                    # Initiator automatically participates
+                    dev.contester_supporters = [
+                        dev.contest_initiator_id
+                    ]
+
+                    dev.pending_contest = False
+
+                    owner = self.players.get(dev.owner)
+
+                    if owner:
+                        owner.add_timeline_event(
+                            "CONTEST_STARTED",
+                            {
+                                "dev_id": dev.id,
+                                "attacker": dev.contest_initiator_id
+                            }
+                        )
+
         for player in self.players.values():
 
             # Auto-finish inactive players
@@ -125,6 +160,7 @@ class Game:
                 player.finished_phase = True
             else:
                 player.finished_phase = False
+
             if phase_name == 'WORK':
                 player.committed_action = None
 

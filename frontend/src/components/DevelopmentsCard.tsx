@@ -135,6 +135,35 @@ const DevelopmentsCard: React.FC<Props> = ({
                         </>
                       )}
                     </div>
+                    {dev.is_contested && dev.owner_id === me.id && (
+                      <div
+                        style={{
+                          marginTop: "10px",
+                          fontSize: "0.85rem",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "4px",
+                          padding: "8px",
+                          background: "#fff3f3",
+                          border: "1px solid #f0b4b4",
+                          borderRadius: "6px",
+                        }}
+                      >
+                        <strong style={{ color: "#c62828" }}>⚔️ Your Property is Under Contest</strong>
+
+                        <span>
+                          Initiator: {getPlayerName(dev.contest_initiator_id)}
+                        </span>
+
+                        <span>
+                          Attackers: {dev.contester_supporters?.length || 0}
+                        </span>
+
+                        <span>
+                          Defenders: {dev.owner_supporters?.length || 0}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Pending Applications */}
                     {pendingApplications.length > 0 && (
