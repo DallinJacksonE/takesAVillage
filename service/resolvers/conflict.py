@@ -10,7 +10,7 @@ class ConflictResolvers:
                     dev = game_state.developments.get(dev_id)
                     if dev and not getattr(dev, 'is_contested', False):
                         dev.is_contested = True
-                        dev.contester_id = player.session_id
+                        dev.contest_initiator_id = player.session_id
                         dev.just_initiated = True
 
         # 2. Reset supporters
@@ -42,23 +42,23 @@ class ConflictResolvers:
 
             contester_score = len(dev.contester_supporters)
             owner_score = len(dev.owner_supporters)
-            contester_present = dev.contester_id in dev.contester_supporters
+            contester_present = dev.contest_initiator_id in dev.contester_supporters
             owner_present = dev.owner in dev.owner_supporters
 
             if not contester_present:
                 dev.is_contested = False
-                dev.contester_id = None
+                dev.contest_initiator_id = None
             elif not owner_present:
-                dev.owner = dev.contester_id
+                dev.owner = dev.contest_initiator_id
                 dev.is_contested = False
-                dev.contester_id = None
+                dev.contest_initiator_id = None
             elif contester_score > owner_score:
-                dev.owner = dev.contester_id
+                dev.owner = dev.contest_initiator_id
                 dev.is_contested = False
                 dev.contester_id = None
             elif owner_score > contester_score:
                 dev.is_contested = False
-                dev.contester_id = None
+                dev.contest_initiator_id = None
 
             dev.contester_supporters = []
             dev.owner_supporters = []

@@ -134,7 +134,21 @@ class ContestDevelopmentCommand(Command):
         if side == 'INITIATOR':
             if dev.is_contested or dev.owner == player.session_id:
                 return False
-            dev.contester_id = player.session_id
+            
+            dev.is_contested = True
+            dev.contest_initiator_id = player.session_id
+
+            dev.contester_supporters = [player.session_id]
+        elif side == "CONTESTER":
+            if not dev.is_contested:
+                return False
+            if player.session_id not in dev.contester_supporters:
+                dev.contester_supporters.append(player.session_id)
+            elif side == "OWNER":
+                if not dev.is_contested:
+                    return False
+                if player.session_id not in dev.owner_supporters:
+                    dev.owner_supporters.append(player.session_id)
 
         player.committed_action = {
             "type": "CONTEST_ACTION",

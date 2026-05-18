@@ -7,7 +7,7 @@ interface Props {
   state: GameStateDTO;
   onMaintain: (devId: string) => void;
   onUpgrade: (devId: string) => void;
-  onContest: (devId: string, targetId?: string) => void;
+  onContest: (devId: string, side: "INITIATOR" | "CONTESTER" | "OWNER") => void;
   onApplyForJob: (targetId: string, devId: string, wage: number, wageType: Resource) => void;
   onAcceptApplicant: (actionId: string) => void;
   onDenyApplicant: (actionId: string) => void;
@@ -100,7 +100,7 @@ const DevelopmentsCard: React.FC<Props> = ({
                         <button
                           className="btn danger"
                           style={{ width: "100%" }}
-                          onClick={() => onContest(dev.id)}
+                          onClick={() => onContest(dev.id, "OWNER")}
                         >
                           Defend Property
                         </button>
@@ -203,17 +203,73 @@ const DevelopmentsCard: React.FC<Props> = ({
 
                     </div>
 
-                    <div style={{ marginTop: "15px", borderTop: "1px dashed #ccc", paddingTop: "10px", width: "90%", justifyContent: "space-between" }}>
+                    <div
+                      style={{
+                        marginTop: "15px",
+                        borderTop: "1px dashed #ccc",
+                        paddingTop: "10px",
+                        width: "90%",
+                        display: "flex",
+                        gap: "8px",
+                      }}
+                    >
 
-                      {/* Contest Action */}
-                      <button
-                        className="btn-tooltip"
-                        style={{ width: "100%", padding: "6px" }}
-                        disabled={true}
-                        onClick={() => onContest(dev.id, dev.owner_id)}
-                      >
-                        Contest Ownership
-                      </button>
+                      {/* NOT contested yet */}
+                      {!dev.is_contested && dev.owner_id !== me.id && (
+                        <button
+                          className="btn-tooltip danger"
+                          style={{ width: "100%", padding: "6px" }}
+                          onClick={() => onContest(dev.id, "INITIATOR")}
+                        >
+                          Contest Ownership
+                        </button>
+                      )}
+
+                      {/* Already contested */}
+                      {dev.is_contested && (
+                        <>
+                          {/* Support attackers */}
+                          <button
+                            className="btn-tooltip warning"
+                            style={{ flex: 1, padding: "6px" }}
+                            onClick={() => onContest(dev.id, "CONTESTER")}
+                          >
+                            Support Contesters
+                          </button>
+
+                          {/* Support owner */}
+                          <button
+                            className="btn-tooltip success"
+                            style={{ flex: 1, padding: "6px" }}
+                            onClick={() => onContest(dev.id, "OWNER")}
+                          >
+                            Support Owner
+                          </button>
+                        </>
+                      )}
+                      {dev.is_contested && (
+                        <div
+                          style={{
+                            marginTop: "10px",
+                            fontSize: "0.8rem",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "4px",
+                          }}
+                        >
+                          <span>
+                            ⚔️ Initiator: {getPlayerName(dev.contest_initiator_id)}
+                          </span>
+
+                          <span>
+                            Attackers: {dev.contester_supporters?.length || 0}
+                          </span>
+
+                          <span>
+                            Defenders: {dev.owner_supporters?.length || 0}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

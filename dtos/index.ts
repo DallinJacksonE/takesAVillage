@@ -171,7 +171,7 @@ export interface DevelopmentDTO {
   maintenance_days: number;
   owner_id: string;
   is_contested?: boolean;
-  contester_id?: string;
+  contest_initiator_id?: string;
   contester_supporters?: string[];
   owner_supporters?: string[];
 }

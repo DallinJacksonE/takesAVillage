@@ -7,7 +7,7 @@ class Development:
         self.owner = dev_owner  # the id
         self.maintenance_days = MAINTENANCE_DAYS
         self.is_contested = False
-        self.contester_id = None
+        self.contest_initiator_id = None
         self.contester_supporters = []
         self.owner_supporters = []
 

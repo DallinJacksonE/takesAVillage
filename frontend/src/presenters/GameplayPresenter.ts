@@ -144,10 +144,9 @@ export class GameplayPresenter extends Presenter<GameplayView> {
   // Conflict Actions
   // --------------------------------------------------------
 
-  public contestDevelopment = (devId: string, targetId?: string, side?: "INITIATOR" | "CONTESTER" | "OWNER") => {
+  public contestDevelopment = (devId: string, side?: "INITIATOR" | "CONTESTER" | "OWNER") => {
     this.dispatchAction<ContestDevPayload>("CONTEST_DEV", {
       dev_id: devId,
-      target_id: targetId,
       side: side
     });
   }

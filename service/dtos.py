@@ -126,7 +126,7 @@ class DevelopmentDTO:
 
     # --- Conflict Flags ---
     is_contested: bool
-    contester_id: Optional[str]
+    contest_initiator_id: Optional[str]
     contester_supporters: List[str]
     owner_supporters: List[str]
 
@@ -139,7 +139,7 @@ class DevelopmentDTO:
             maintenance_days=dev.maintenance_days,
             owner_id=dev.owner,
             is_contested=dev.is_contested,
-            contester_id=dev.contester_id,
+            contest_initiator_id=dev.contest_initiator_id,
             # We use list() here to ensure we pass a copy of the list,
             # preventing accidental reference mutations
             contester_supporters=list(dev.contester_supporters),
@@ -157,10 +157,24 @@ class DevelopmentDTO:
             "maintenance_days": self.maintenance_days,
             "owner_id": self.owner_id,
             "is_contested": self.is_contested,
-            "contester_id": self.contester_id,
+            "contest_initiator_id": self.contest_initiator_id,
             "contester_supporters": self.contester_supporters,
             "owner_supporters": self.owner_supporters
         }
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(
+            id=data["id"],
+            type=data["type"],
+            level=data["level"],
+            maintenance_days=data["maintenance_days"],
+            owner_id=data["owner_id"],
+            is_contested=data["is_contested"],
+            contest_initiator_id=data.get("contest_initiator_id"),
+            contester_supporters=data.get("contester_supporters", []),
+            owner_supporters=data.get("owner_supporters", [])
+        )
 
 
 @dataclass
@@ -345,17 +359,21 @@ class PlayerDTO:
         if getattr(player, 'committed_action', None):
             ca = player.committed_action
             if isinstance(ca, dict):
-                dev_data = ca.get('development', {})
-                committed_dto = WorkActionDTO(
-                    development=DevelopmentDTO(**dev_data),
-                    wage=ca.get('wage', 0),
-                    wage_type=ca.get('wage_type', 'food'),
-                    employer_id=ca.get('employer_id', ''),
-                    action_id=ca.get('action_id')
-                )
+                dev_data = ca.get('development')
+
+                if isinstance(dev_data, dict):
+                    committed_dev = DevelopmentDTO.from_dict(dev_data)
+                    committed_dto = WorkActionDTO(
+                        development=committed_dev,
+                        wage=ca.get("wage", 0),
+                        wage_type=ca.get("wage_type", "food"),
+                        employer_id=ca.get("employer_id", ""),
+                        action_id=ca.get("action_id")
+                    )
 
         # --- 4. Serialize the Actions ---
         actions_dto = [action_dto_factory(a) for a in player.actions.values()]
+        print(actions_dto)
 
         return cls(
             id=player.session_id,
