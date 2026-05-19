@@ -1,7 +1,6 @@
 import uuid
-from dataclasses import asdict
 from models.developments import Development
-from dtos import DevelopmentDTO
+from models.map import MapTile
 
 # ==========================================
 # BASE COMMAND
@@ -37,7 +36,7 @@ class BuildDevelopmentCommand(Command):
             return False
 
         tile_id = self.payload.get('tile_id')
-        target_tile = game_state.map_data.get(tile_id)
+        target_tile: MapTile = game_state.map_data.get(tile_id)
         if not target_tile or not tile_id:
             print("No tile or id found")
             return False
@@ -71,7 +70,6 @@ class BuildDevelopmentCommand(Command):
         player.developments.append(dev_id)
 
         target_tile.development = new_dev
-        target_tile.owner_id = player.session_id
         player.add_timeline_event("ACTION_COMPLETED", {
                                   "action": "BUILD_DEV",
                                   "dev_id": dev_id,
@@ -92,7 +90,8 @@ class MaintainDevelopmentCommand(Command):
         if self._deduct_resources(player, maintain_cost):
             dev.maintenance()
             player.add_timeline_event(
-                "ACTION_COMPLETED", {"action": "MAINTAIN_DEV", "dev_id": dev_id})
+                "ACTION_COMPLETED",
+                {"action": "MAINTAIN_DEV", "dev_id": dev_id})
             return True
         return False
 
@@ -110,7 +109,8 @@ class UpgradeDevelopmentCommand(Command):
         if self._deduct_resources(player, upgrade_cost):
             dev.upgrade()
             player.add_timeline_event(
-                "ACTION_COMPLETED", {"action": "UPGRADE_DEV", "dev_id": dev_id})
+                "ACTION_COMPLETED",
+                {"action": "UPGRADE_DEV", "dev_id": dev_id})
             return True
         return False
 
@@ -172,7 +172,8 @@ class ContestDevelopmentCommand(Command):
         }
 
         player.add_timeline_event(
-            "ACTION_COMPLETED", {"action": "CONTEST", "dev_id": dev_id, "side": side})
+            "ACTION_COMPLETED",
+            {"action": "CONTEST", "dev_id": dev_id, "side": side})
         return True
 
 # ==========================================
@@ -203,7 +204,8 @@ class CommitWorkCommand(Command):
     def execute(self, game_state, player):
         # 0. Sick/recovering players cannot do work themselves.
         if player.health in ["sick", "recovering", "dead"]:
-            print(f"CommitWork denied: player {player.session_id} is {player.health} and cannot work.")
+            print(f"CommitWork denied: player {player.session_id} is"
+                  f"{player.health} and cannot work.")
             return False
 
         # 1. Check if the payload is a Contract/Conflict Lock-in
@@ -227,7 +229,8 @@ class CommitWorkCommand(Command):
 
                 # Cleanup other accepted offers
                 for act in list(player.actions.values()):
-                    if getattr(act, 'type', None) == 'EMPLOYMENT' and act.status == 'ACCEPTED' and act.id != action_id:
+                    if getattr(act, 'type', None) == 'EMPLOYMENT' and (
+                            act.status == 'ACCEPTED' and act.id != action_id):
                         act.status = 'CANCELED'
                 return True
 

@@ -1,4 +1,3 @@
-from dtos import GameStateDTO, PlayerDTO, MapTileDTO
 
 
 def _normalize_committed_action(committed_action):
@@ -22,7 +21,7 @@ def add_player_hist(game, session_id):
     if day is None:
         return False
 
-    session_hist = game.player_history.setdefault(game.day , {})
+    session_hist = game.player_history.setdefault(game.day, {})
     session_hist[session_id] = {
         'resources': player.resources.copy(),
         'health': player.health,
@@ -74,7 +73,6 @@ def add_map_hist(game):
             'q': tile.q,
             'r': tile.r,
             'type': tile.type,
-            'owner_id': tile.owner_id,
             'development': tile.development
         }
 

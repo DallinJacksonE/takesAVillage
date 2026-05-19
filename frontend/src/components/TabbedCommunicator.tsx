@@ -20,22 +20,25 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
   // Mark visible messages as read when the tab changes or new messages arrive
   useEffect(() => {
     setReadMessages(prev => {
+      let hasChanges = false;
       const updated = new Set(prev);
 
       for (const msg of messages) {
         const isGlobal = msg.to_id === "GLOBAL";
-        const isPrivate =
-          msg.from_id === activeTab || msg.to_id === activeTab;
+        const isPrivate = msg.from_id === activeTab || msg.to_id === activeTab;
 
-        if (
-          (activeTab === "global" && isGlobal) ||
-          (activeTab !== "global" && isPrivate)
-        ) {
-          updated.add(msg.id);
+        if ((activeTab === "global" && isGlobal) || (activeTab !== "global" && isPrivate)) {
+          // Only flag as changed if it wasn't already in the Set
+          if (!updated.has(msg.id)) {
+            updated.add(msg.id);
+            hasChanges = true;
+          }
         }
       }
 
-      return updated;
+      // CRITICAL: If no new messages were marked as read, return the original Set reference.
+      // This tells React to cancel the re-render, instantly breaking the infinite loop!
+      return hasChanges ? updated : prev;
     });
   }, [messages, activeTab]);
 
@@ -75,12 +78,12 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
       (msg.from_id === playerId && msg.to_id === activeTab);
   });
 
-  // 2. Trigger the instant snap whenever displayMessages changes
+  // 2. Trigger the instant snap ONLY when the amount of messages changes
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [displayMessages]);
+  }, [displayMessages.length]); // <-- Check the length, not the array reference
 
   return (
     <div className="card" style={{

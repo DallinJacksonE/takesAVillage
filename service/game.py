@@ -5,8 +5,8 @@ import copy
 import random
 # Core Models
 from models.player import Player
-from dtos import ChatMessageDTO
 from models.map import MapFactory
+from models.chat_message import ChatMessage
 # Extracted Utilities
 from serializers.state_builder import build_player_state
 from serializers.game_info_builder import add_player_hist, add_map_hist
@@ -55,6 +55,10 @@ class Game:
         self.day = 1
         self.phase = 'WORK'
         self.phase_end_time = 0
+
+        # Histoty functions
+        self.add_player_hist = add_player_hist
+        self.add_map_hist = add_map_hist
 
     def add_player(self, session_id):
         if session_id not in self.players:
@@ -124,6 +128,8 @@ class Game:
         # ------------------------------------------------
         if phase_name == 'WORK':
 
+            ActionDispatcher.start_day(self)
+
             for dev in self.developments.values():
 
                 if (
@@ -170,7 +176,7 @@ class Game:
         # Default to global chat if no target
         to_id = data.get('to_id', 'GLOBAL')
 
-        chat_msg = ChatMessageDTO(
+        chat_msg = ChatMessage(
             id=str(uuid.uuid4()),
             from_id=user_id,
             to_id=to_id,
@@ -194,14 +200,9 @@ class Game:
         return True
 
     def handle_action(self, user_id, data):
-        if self.players[user_id].health == "dead":
-            return False  # Dead players can't act
+        # Any logical checks for player action handling should go in
+        # ActionDispatcher.player_can_perform_action
         return ActionDispatcher.dispatch(self, user_id, data)
-
-    def action_finish_phase(self, player):
-        player.finished_phase = True
-        self.check_all_players_locked()
-        return True
 
     # ==========================================
     # PHASE RESOLUTIONS & EXPORT
@@ -213,28 +214,9 @@ class Game:
         pass
 
     def resolve_night_phase(self):
-        add_map_hist(self)
-        for player in self.players.values():
-            add_player_hist(self, player.session_id)
-        if self.day >= self.game_length:
-            self.status = 'ENDED'
-            return
-        self.contract_factory.cleanup_campfire_contracts()
-        for player in self.players.values():
-            player.consume_daily({
-                "recovery": self.rules.RECOVERY_RATE,
-                "default": self.rules.DEFAULT_SICKNESS,
-                "hunger_increase": self.rules.HUNGER_SICKNESS_INCREASE,
-                "cold_increase": self.rules.COLD_SICKNESS_INCREASE
-            })
-        for dev in self.developments.values():
-            still_exists = dev.degrade()
-            if not still_exists:
-                self.developments.pop(dev.id)
-                self.players[dev.owner].developments.pop(dev.id)
-
-        self.actions = []
-        self.status = "ENDED" if self.is_game_over() else "RUNNING"
+        # End of day logical operations or checks should go in
+        # ActionDispactcher.resolve_night
+        ActionDispatcher.resolve_night(self)
 
     def is_game_over(self):
         all_dead = True

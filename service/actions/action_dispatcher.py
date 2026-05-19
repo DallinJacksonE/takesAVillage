@@ -20,20 +20,37 @@ class ActionDispatcher:
     }
 
     @staticmethod
+    def player_can_perform_action(game_state, player, action_command) -> bool:
+        if player.health == "dead":
+            return False
+
+        if (player.finished_phase and
+                action_command not in ['FINISH_PHASE', 'ACCEPT',
+                                       'DENY', 'CANCEL']):
+            print(f"ActionDispatcher: player "
+                  f"{player.session_id} already finished phase;"
+                  f"rejecting {action_command}")
+            return False
+        return True
+
+    @staticmethod
     def dispatch(game_state, user_id, data):
         player = game_state.players.get(user_id)
         if not player:
             return False
+        print(f"-------ActionDispatcher------\n"
+              f"userId: {data.get('userId')}\n"
+              f"action_command: {data.get('action_command')}\n"
+              f"payload: {data.get('payload')}\n")
+        action_command = data.get('action_command')
 
-        action_command = data.get('action_command') or data.get(
-            'actionId') or data.get('actionCommand')
         payload = data.get('payload', data)
 
-        if player.finished_phase and action_command not in ['FINISH_PHASE', 'ACCEPT', 'DENY', 'CANCEL']:
-            print(f"ActionDispatcher: player "
-                  f"{user_id} already finished phase; rejecting {action_command}")
+        # TODO all logic for whether a player can play or not here
+        if not ActionDispatcher.player_can_perform_action(game_state,
+                                                          player,
+                                                          action_command):
             return False
-
         # 1. Execute Instant Commands
         if action_command in ActionDispatcher.COMMAND_MAP:
             CommandClass = ActionDispatcher.COMMAND_MAP[action_command]
@@ -73,3 +90,32 @@ class ActionDispatcher:
         EconomyResolvers.resolve_work_phase(game_state)
 
         game_state.contract_factory.cleanup_end_of_phase()
+
+    @staticmethod
+    def resolve_night(game_state):
+        game_state.add_map_hist(game_state)
+        for player in game_state.players.values():
+            game_state.add_player_hist(game_state, player.session_id)
+        if game_state.day >= game_state.game_length:
+            game_state.status = 'ENDED'
+            return
+        game_state.contract_factory.cleanup_campfire_contracts()
+        for player in game_state.players.values():
+            player.consume_daily({
+                "recovery": game_state.rules.RECOVERY_RATE,
+                "default": game_state.rules.DEFAULT_SICKNESS,
+                "hunger_increase": game_state.rules.HUNGER_SICKNESS_INCREASE,
+                "cold_increase": game_state.rules.COLD_SICKNESS_INCREASE
+            })
+        for dev in game_state.developments.values():
+            still_exists = dev.degrade()
+            if not still_exists:
+                game_state.developments.pop(dev.id)
+                game_state.players[dev.owner].developments.pop(dev.id)
+
+        game_state.actions = []
+        game_state.status = "ENDED" if game_state.is_game_over() else "RUNNING"
+
+    @staticmethod
+    def start_day(game_state):
+        EconomyResolvers.start_work_phase(game_state)

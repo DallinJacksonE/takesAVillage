@@ -19,7 +19,7 @@ class Player:
         # Phase specific states
         self.fire_status = "COLD"  # COLD, HOST, GUEST
         self.fire_guests = []
-        self.available_work = self.developments
+        self.available_work = []
         self.finished_phase = False
         self.committed_action = None
 
@@ -103,7 +103,7 @@ class Player:
         # Daily flags
         self.fire_status = "COLD"
         self.fire_guests = []  # Reset to nobody for the next day
-        self.available_work = self.developments
+        self.available_work = []
 
     def reset_phase(self):
         if self.health != "dead":
@@ -112,16 +112,59 @@ class Player:
             self.finished_phase = True
         self.fire_guests = []
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
+        """
+        Serializes the Player into a dictionary, ensuring all nested
+        (like Development) call their specific to_dict() methods to maintain
+        naming consistency and prevent JSON errors.
+        """
         return {
+            "id": self.session_id,
             "name": self.name,
-            "resources": self.resources,
             "health": self.health,
             "sickness_chance": self.sickness_chance,
-            "developments": self.developments,
             "fire_status": self.fire_status,
-            "finished_phase": self.finished_phase,
-            "actions": [a.__dict__ for a in self.actions.values()],
+            "fire_guests": self.fire_guests,
+            "resources": self.resources,
+
+            "developments": [
+                d.to_dict() if hasattr(d, 'to_dict') else d
+                for d in self.developments
+            ],
+
+            # Convert values array to list of dicts safely
+            "actions": [
+                a.to_dict() if hasattr(a, 'to_dict') else a.__dict__
+                for a in self.actions.values()
+            ],
             "timeline": self.timeline,
-            "available_work": self.available_work
+            "finished_phase": self.finished_phase,
+
+            "available_work": [
+                w.to_dict() if hasattr(w, 'to_dict') else w
+                for w in self.available_work
+            ],
+
+            "committed_action": (
+                self.committed_action.to_dict() if hasattr(
+                    self.committed_action, 'to_dict')
+                else self.committed_action
+            ) if self.committed_action else None
         }
+
+
+"""export interface PlayerDTO {
+  id: string;
+  name: string;
+  health: "healthy" | "sick" | "recovering" | "dead";
+  sickness_chance: number;
+  fire_status: "COLD" | "HOST" | "GUEST";
+  fire_guests?: string[];
+  resources: ResourceBundle;
+  developments: string[];
+  available_work: WorkActionDTO[];
+  committed_action: WorkActionDTO | ContestActionDTO | null;
+  actions: ActionDTO[];
+  timeline: any[]; // Lightweight research log left as any[]
+  finished_phase: boolean;
+"""

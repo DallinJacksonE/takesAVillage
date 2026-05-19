@@ -1,3 +1,4 @@
+
 class EconomyResolvers:
     @staticmethod
     def resolve_work_phase(game_state):
@@ -30,3 +31,36 @@ class EconomyResolvers:
                                                   player.session_id,
                                                   "yield": dev_level,
                                                   "type": resource_produced})
+
+    @staticmethod
+    def start_work_phase(game_state):
+        DEV_OUTPUT_MAP = {"Farm": "food", "Woods": "wood", "Mine": "iron"}
+
+        # 1. Clear out yesterday's available work for all players
+        for player in game_state.players.values():
+            player.available_work = []
+
+        # 2. Generate inherent work actions for uncontested developments
+        for dev in game_state.developments.values():
+            if getattr(dev, 'is_contested', False):
+                continue
+
+            owner = game_state.players.get(dev.owner)
+            if not owner:
+                continue
+
+            res_type = DEV_OUTPUT_MAP.get(dev.type, "food")
+            wage = dev.level
+
+            # Construct the pure dictionary the frontend expects
+            inherent_job = {
+                "development": dev.to_dict() if hasattr(
+                    dev, 'to_dict') else dev.__dict__,
+                "wage": wage,
+                "wage_type": res_type,
+                "employer_id": owner.session_id,
+                "action_id": None  # No contract ID because it is inherent
+            }
+
+            # Append directly to the owner's available_work array
+            owner.available_work.append(inherent_job)

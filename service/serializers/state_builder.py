@@ -1,4 +1,5 @@
-from dtos import GameStateDTO, PlayerDTO, MapTileDTO
+
+# called by broadcast state in game_manager
 
 
 def build_player_state(game, session_id):
@@ -6,54 +7,52 @@ def build_player_state(game, session_id):
     if not player:
         return None
 
-    # 1. Build the 'me' DTO for the specific requester
-    # Passing game.developments allows the DTO to resolve employment contracts [cite: 184]
-    me_dto = PlayerDTO.from_model(
-        player,
-        [dev for dev in game.developments.values() if dev.owner == session_id],
-        game.developments
-    )
+    me_dict = player.to_dict()
+    player_list = [player.to_dict() for player in game.players.values()]
 
-    # 2. Build the full player list for the village scoreboard/trade selectors
-    player_list_dto = []
-    for p_id, p_model in game.players.items():
-        p_devs = [dev for dev in game.developments.values()
-                  if dev.owner == p_id]
-        player_list_dto.append(PlayerDTO.from_model(
-            p_model, p_devs, game.developments))
-
-    # 3. Build the Map Dictionary (Keyed by Tile ID for O(1) frontend lookup) [cite: 40, 184]
     map_dto = {
-        tile_id: MapTileDTO.from_model(tile, game.developments.get(tile_id))
+        tile_id: tile.to_dict()
         for tile_id, tile in game.map_data.items()
     }
 
-    # 4. Construct the GameStateDTO with separated economy values [cite: 26, 34]
-    state_dto = GameStateDTO(
-        status=game.status,
-        is_host=(session_id == getattr(game, 'host_id', None)),
-        me=me_dto,
-        day=game.day,
-        phase=game.phase,
-        time_remaining=game.get_time_remaining(),
-        player_list=player_list_dto,
-        map=map_dto,
-        # Accessing the ruleset directly to separate these values [cite: 316]
-        development_costs=game.rules.DEVELOPMENT_COSTS,
-        campfire_cost=game.rules.CAMPFIRE_COST,
-        max_fire_seats=game.rules.MAX_FIRE_SEATS,
-        chat_messages=[
-            # Ensure chat messages are handled as DTOs or serializable dicts [cite: 34]
-            msg if isinstance(msg, dict) else msg.to_dict()
-            for msg in game.chat_messages
-        ],
-        ruleset={
-            "development_costs": game.rules.DEVELOPMENT_COSTS,
-            "campfire_cost": game.rules.CAMPFIRE_COST,
-            "max_fire_seats": game.rules.MAX_FIRE_SEATS,
-            "starting_inventory": getattr(game.rules, 'STARTING_INVENTORY', {})
-        },
-        session_id=session_id
-    )
+    development_list = [value.to_dict()
+                        for _, value in game.developments.items()]
 
-    return state_dto.to_dict()
+    state_dto = {
+        "status": game.status,
+        "is_host": (session_id == getattr(game, 'host_id', None)),
+        "me": me_dict,
+        "day": game.day,
+        "phase": game.phase,
+        "time_remaining": game.get_time_remaining(),
+        "player_list": player_list,
+        "map": map_dto,
+        "developments": development_list,
+        "chat_messages": [msg.to_dict() for msg in game.chat_messages],
+        "development_costs": game.rules.DEVELOPMENT_COSTS,
+        "max_fire_seats": game.rules.MAX_FIRE_SEATS,
+        "campfire_cost": game.rules.CAMPFIRE_COST,
+        "session_id": session_id
+    }
+    # print(f"-------State_Builder-------\n"
+    #      f"player: {state_dto['me']}")
+    return state_dto
+
+
+"""export interface GameStateDTO {
+  status: "WAITING" | "ACTIVE" | "ENDED";
+  is_host: boolean;
+  me: PlayerDTO;
+  day: number;
+  phase: Phase;
+  time_remaining: number;
+  player_list: PlayerDTO[];
+  map: MapTileDTO[];
+  developments: DevelopmentDTO[];
+  chat_messages: ChatMessageDTO[];
+  economy_config: Record<"Farm" | "Woods" | "Mine", DevelopmentCostConfig>;
+  development_costs: DevelopmentCostsDict;
+  max_fire_seats: number;
+  campfire_cost: ResourceBundle;
+  session_id?: string;
+}"""

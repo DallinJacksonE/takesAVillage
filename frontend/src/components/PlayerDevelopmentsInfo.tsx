@@ -1,5 +1,7 @@
+import React from "react";
 import { usePlayers } from "./hooks/usePlayerName";
-import { DevelopmentDTO } from "../../../dtos/index"
+import { DevelopmentDTO } from "../../../dtos/index";
+import { useGameState } from "./hooks/useGameState";
 
 interface Props {
   playerId: string;
@@ -7,21 +9,27 @@ interface Props {
 
 const PlayerDevelopmentsInfo: React.FC<Props> = ({ playerId }) => {
   const { players } = usePlayers();
-
+  const gameState = useGameState();
   const player = players?.find((p) => p.id === playerId);
 
   if (!player) {
-    return (<></>)
+    return <></>;
   }
+
   return (
     <span>
-      {player.developments && player.developments.map((dev: DevelopmentDTO, index) => (
-        <span key={index} style={{ marginLeft: "5px", overflowY: "auto" }}>
-          {dev.type} (L.{dev.level})
-        </span>
-      ))}
+      {player.developments &&
+        gameState.developments
+          // 1. Filter out developments that are not in the player's ID list
+          .filter((dev: DevelopmentDTO) => player.developments.includes(dev.id))
+          // 2. Map over the remaining developments
+          .map((dev: DevelopmentDTO, index) => (
+            <span key={dev.id} style={{ marginLeft: "5px", overflowY: "auto" }}>
+              {dev.type} (L.{dev.level})
+            </span>
+          ))}
     </span>
+  );
+};
 
-  )
-}
 export default PlayerDevelopmentsInfo;

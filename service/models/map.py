@@ -16,6 +16,27 @@ class MapTile:
         self.owner_id = ""
         self.development = None
 
+    def to_dict(self) -> dict:
+        """
+        Serializes the DTO into a standard Python dictionary for JSON conversion.
+        """
+        return {
+            "id": self.id,
+            "q": self.q,
+            "r": self.r,
+            "type": self.type,
+            "development": self.development.to_dict() if self.development else None
+        }
+
+
+"""export interface MapTileDTO {
+  id: string;
+  q: number;
+  r: number;
+  type: "Farm" | "Woods" | "Mine";
+  development?: DevelopmentDTO;
+}"""
+
 
 class MapFactory:
     def __init__(self, player_count, farms_ratio, woods_ratio, mountains_ratio):

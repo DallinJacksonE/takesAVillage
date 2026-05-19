@@ -1,21 +1,20 @@
 import React from "react";
-import { GameStateDTO, EmploymentActionDTO, CommitWorkPayload } from "../../../dtos/index";
+import { EmploymentActionDTO, CommitWorkPayload } from "../../../dtos/index";
 import { usePlayerName } from "./hooks/usePlayerName";
-
+import { useGameState } from "./hooks/useGameState";
 interface Props {
-  state: GameStateDTO;
   onCommitWork: (payload: CommitWorkPayload) => void;
   onAcceptOffer: (actionId: string) => void;
   onDenyOffer: (actionId: string) => void;
 }
 
 const AvailableWorkCard: React.FC<Props> = ({
-  state,
   onCommitWork,
   onAcceptOffer,
   onDenyOffer
 }) => {
-  const { me } = state;
+  const gameState = useGameState();
+  const { me } = gameState
   const getPlayerName = usePlayerName();
 
   const employmentActions = (me.actions || []).filter(
@@ -40,8 +39,9 @@ const AvailableWorkCard: React.FC<Props> = ({
   const sentOfferDevIds = sentOffers.map(a => a.dev_id);
 
   const displayableInherentWork = me.available_work.filter(
-    (work) => !sentOfferDevIds.includes(work.development.id)
+    (work) => !sentOfferDevIds.includes(work.development?.id)
   );
+  // FIX 2: Only showm port the "Contracted Job" UI if the backend hasn't already provided it
   const acceptedContracts = employmentActions.filter(
     (a) =>
       a.status === "ACCEPTED" &&

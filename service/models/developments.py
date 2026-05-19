@@ -39,3 +39,33 @@ class Development:
         else:
             self.level += 1
             self.maintenance_days = self.MAINTENANCE_DAYS
+
+    def to_dict(self) -> dict:
+        """
+        Serializes the DTO into a standard Python dictionary for JSON conversion.
+        Should match DevelopmentDTO in index.ts
+        """
+        return {
+            "id": self.id,
+            "type": self.type,
+            "level": self.level,
+            "maintenance_days": self.maintenance_days,
+            "owner_id": self.owner,
+            "is_contested": self.is_contested,
+            "contest_initiator_id": self.contest_initiator_id,
+            "contester_supporters": self.contester_supporters,
+            "owner_supporters": self.owner_supporters
+        }
+
+
+"""export interface DevelopmentDTO {
+  id: string;
+  type: "Farm" | "Woods" | "Mine";
+  level: number;
+  maintenance_days: number;
+  owner_id: string;
+  is_contested?: boolean;
+  contest_initiator_id?: string;
+  contester_supporters?: string[];
+  owner_supporters?: string[];
+}"""

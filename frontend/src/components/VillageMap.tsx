@@ -24,7 +24,6 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  console.log(mapData)
 
   // Correct Pointy-Topped Hex Math
   const HEX_SIZE = 45;
@@ -134,7 +133,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
                 top: y,
                 width: hexWidth,
                 height: hexHeight,
-                background: tile.owner_id ? getOwnerColor(tile.owner_id) : openBorder,
+                background: tile.development ? getOwnerColor(tile.development.owner_id) : openBorder,
                 clipPath: pointyClipPath,
                 cursor: "pointer",
                 transform: `translate(-50%, -50%) ${isSelected ? "scale(1.15)" : "scale(1)"}`,
@@ -155,7 +154,8 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
                   color: "#333",
                 }}
               >
-                <span style={{ fontSize: "0.8rem", fontWeight: "bold", color: "white" }}>{getTileContents(tile.type, tile.owner_id)}</span>
+                <span style={{ fontSize: "0.8rem", fontWeight: "bold", color: "white" }}>
+                  {getTileContents(tile.type, tile.development?.owner_id || "")}</span>
               </div>
             </div>
           );
@@ -181,15 +181,15 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
           >
             <h4 style={{ margin: "0 0 10px 0" }}>{selectedTile.type}</h4>
 
-            {selectedTile.owner_id ? (
+            {selectedTile.development ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 <div>
                   <strong style={{ fontSize: "0.8rem", color: "#666" }}>OWNER:</strong>
                   <br />
-                  <PlayerInfo playerId={selectedTile.owner_id} />
+                  <PlayerInfo playerId={selectedTile.development.owner_id} />
                 </div>
 
-                {selectedTile.owner_id === playerId && (
+                {selectedTile.development.owner_id === playerId && (
                   <div style={{ fontSize: "0.8rem", color: "#2196F3", fontStyle: "italic" }}>
                     This is your property.
                   </div>

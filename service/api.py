@@ -1,14 +1,9 @@
 import uuid
 from flask import Blueprint, g, jsonify, make_response, request
-from typing import Any, Dict, cast
-from dataclasses import asdict
 
 from db import db
 from game_manager import active_games, create_game
-from dtos import (
-    ActiveGamesDTO, ConsentDTO, JoinableGameDTO,
-    JoinGameDTO, NewGameDTO, ResearchGameDTO
-)
+
 
 api_bp = Blueprint('api', __name__)
 
@@ -53,8 +48,8 @@ def consent():
     user_uuid = str(uuid.uuid4())
     db.create_user(user_uuid, True)
 
-    consent_dto = ConsentDTO(message="Consent logged", userId=user_uuid)
-    resp = make_response(jsonify(asdict(consent_dto)))
+    resp = make_response(
+        jsonify({"message": "Consent logged", "userId": user_uuid}))
     resp.set_cookie('user_session', user_uuid, max_age=60 *
                     60*24, secure=False, samesite='Lax')
     return resp
@@ -73,28 +68,27 @@ def get_active_games():
     for game in active_games.values():
         is_user_in_game = user_cookie in game.players
         if is_user_in_game and game.status in ["WAITING", "RUNNING"]:
-            rejoinable_games.append(JoinableGameDTO(
-                id=game.id, name=f"Village {game.id}",
-                players=f"{len(game.players)}/10", isRejoinable=True
-            ))
+            rejoinable_games.append({
+                "id": game.id,
+                "name": f"Village {game.id}",
+                "players": f"{len(game.players)}/10",
+                "isRejoinable": True
+            })
         elif game.status == "WAITING" and not is_user_in_game:
-            games_list.append(JoinableGameDTO(
-                id=game.id, name=f"Village {game.id}",
-                players=f"{len(game.players)}/10", isRejoinable=False
-            ))
+            games_list.append({
+                "id": game.id,
+                "name": f"Village {game.id}",
+                "players": f"{len(game.players)}/10",
+                "isRejoinable": False
+            })
 
-    active_games_dto = ActiveGamesDTO(games=rejoinable_games + games_list)
-    return jsonify(asdict(active_games_dto))
+    return jsonify({"games": rejoinable_games + games_list})
 
 
 @api_bp.route('/api/research/games', methods=['GET'])
 def get_research_games():
     game_history = db.get_all_game_history()
-    research_games = [
-        asdict(ResearchGameDTO(**cast(Dict[str, Any], game)))
-        for game in game_history
-    ]
-    return jsonify(research_games)
+    return jsonify(game_history)
 
 
 @api_bp.route('/api/newGame', methods=['POST'])
@@ -107,8 +101,7 @@ def new_game():
     # Delegate game creation strictly to the game manager
     game_id = create_game(user_cookie)
 
-    new_game_dto = NewGameDTO(gameId=game_id)
-    return jsonify(asdict(new_game_dto))
+    return jsonify({"gameId": game_id})
 
 
 @api_bp.route('/api/joinGame', methods=['POST'])
@@ -116,6 +109,5 @@ def join_game():
     data = request.json
     game_id = data.get('gameId')
     if game_id in active_games:
-        join_game_dto = JoinGameDTO(gameId=game_id)
-        return jsonify(asdict(join_game_dto))
+        return jsonify({"gameId": game_id})
     return jsonify({"error": "Game not found"}), 404

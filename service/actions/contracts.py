@@ -2,10 +2,6 @@ import uuid
 from datetime import datetime
 
 
-import uuid
-from datetime import datetime
-
-
 class Contract:
     """Multi-step agreements between players."""
 
@@ -25,6 +21,17 @@ class Contract:
         self.command_map = {
             'DENY': self._handle_deny,
             'CANCEL': self._handle_cancel
+        }
+
+    def to_dict(self) -> dict:
+        """Base serialization for all contracts."""
+        return {
+            "id": self.id,
+            "initiator_id": self.initiator_id,
+            "target_id": self.target_id,
+            "type": self.type,
+            "status": self.status,
+            "waiting_on_id": self.waiting_on_id
         }
 
     def process_action(self, action_command, user_id, data, context):
@@ -102,6 +109,18 @@ class TradeContract(Contract):
 
         return f"UPDATED_{self.status}"
 
+    def to_dict(self) -> dict:
+        base = super().to_dict()
+        base.update({
+            "offer_items": getattr(self, 'offer_items', {}),
+            "request_items": getattr(self, 'request_items', {}),
+            "actual_offer_items": getattr(self, 'actual_offer_items', {}),
+            "actual_request_items": getattr(self, 'actual_request_items', {}),
+            "initiator_finalized": getattr(self, 'initiator_finalized', False),
+            "target_finalized": getattr(self, 'target_finalized', False)
+        })
+        return base
+
 
 class EmploymentContract(Contract):
     def __init__(self, initiator_id, target_id, dev_id, wage, wage_type, is_application=False):
@@ -115,45 +134,64 @@ class EmploymentContract(Contract):
         self.command_map['ACCEPT'] = self._handle_accept
 
     def _handle_accept(self, user_id, data, context):
-        # 1. Define roles based on whether this is an application or an offer
-        if self.is_application:
-            # The initiator (worker) applied. The target (employer) must accept.
-            employer_id = self.target_id
-            worker_id = self.initiator_id
-        else:
-            # The initiator (employer) sent an offer. The target (worker) must accept.
-            employer_id = self.initiator_id
-            worker_id = self.target_id
-
-        # 2. Strict Validation: Only the target can accept the contract
-        if user_id != self.target_id:
-            print(f"Action Denied: User "
-                  f"{user_id} is not authorized to accept this contract.")
-            return "ILLEGAL"
-
-        # 3. Bind the worker to the development
+        players = context.get('players', {})
         developments = context.get('developments', {})
-        development = developments.get(self.dev_id)
 
+        worker_id = self.initiator_id if getattr(
+            self, 'is_application', False) else self.target_id
+        employer_id = self.target_id if getattr(
+            self, 'is_application', False) else self.initiator_id
+
+        worker = players.get(worker_id)
+        employer = players.get(employer_id)
+
+        development = developments.get(self.dev_id)
         if development:
             development.worker_id = worker_id
             print(f"Successfully bound Worker "
                   f"{worker_id} to Development {self.dev_id}")
+
+            # ---> NEW: Generate the explicit job dict for the worker <---
+            if worker:
+                hired_job = {
+                    "development": development.to_dict() if hasattr(development, 'to_dict') else development.__dict__,
+                    "wage": getattr(self, 'wage', 1),
+                    "wage_type": getattr(self, 'wage_type', 'food'),
+                    "employer_id": employer_id,
+                    "action_id": self.id
+                }
+
+                if not hasattr(worker, 'available_work'):
+                    worker.available_work = []
+                worker.available_work.append(hired_job)
         else:
             print(f"Warning: Development "
                   f"{self.dev_id} not found during contract acceptance.")
 
-        # 4. Finalize the state
+        # Finalize the state
         self.status = 'ACCEPTED'
         self.waiting_on_id = None
 
         return f"UPDATED_{self.status}"
 
+    def to_dict(self) -> dict:
+        """Extends base serialization with employment-specific fields."""
+        base = super().to_dict()
+        base.update({
+            "dev_id": getattr(self, 'dev_id', None),
+            "wage": getattr(self, 'wage', None),
+            "wage_type": getattr(self, 'wage_type', None),
+            "is_application": getattr(self, 'is_application', False)
+        })
+        return base
+
     def is_legal(self, player):
         # The employer must own the development to hire someone
         employer_id = self.target_id if self.is_application else self.initiator_id
         if player.session_id == employer_id:
-            if str(self.dev_id) not in [str(d) for d in getattr(player, 'developments', [])]:
+            if str(self.dev_id) not in [str(d) for d in getattr(player,
+                                                                'developments',
+                                                                [])]:
                 return False
         return True
 
@@ -169,6 +207,13 @@ class CampfireContract(Contract):
         self.status = 'ACCEPTED'
         self.waiting_on_id = None
         return f"UPDATED_{self.status}"
+
+    def to_dict(self) -> dict:
+        base = super().to_dict()
+        base.update({
+            "is_request": getattr(self, 'is_request', False)
+        })
+        return base
 
     def is_legal(self, player):
         # If it's an offer, the initiator must not be actively hosting another fire

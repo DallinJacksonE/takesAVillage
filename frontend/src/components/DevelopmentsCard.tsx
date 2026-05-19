@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { GameStateDTO, EmploymentActionDTO, Resource } from "../../../dtos/index";
+import { EmploymentActionDTO, Resource, DevelopmentDTO } from "../../../dtos/index";
 import { usePlayerName } from "./hooks/usePlayerName";
 import { usePlayerColors } from "./hooks/usePlayerColor";
+import { useGameState } from "./hooks/useGameState";
 
 interface Props {
-  state: GameStateDTO;
   onMaintain: (devId: string) => void;
   onUpgrade: (devId: string) => void;
   onContest: (devId: string, side: "INITIATOR" | "CONTESTER" | "OWNER") => void;
@@ -14,7 +14,6 @@ interface Props {
 }
 
 const DevelopmentsCard: React.FC<Props> = ({
-  state,
   onMaintain,
   onUpgrade,
   onContest,
@@ -22,9 +21,26 @@ const DevelopmentsCard: React.FC<Props> = ({
   onAcceptApplicant,
   onDenyApplicant
 }) => {
-  const { me, player_list } = state;
+  const gameState = useGameState();
+  const { me, player_list, developments } = gameState;
   const getPlayerName = usePlayerName();
   const { getPlayerColor } = usePlayerColors();
+
+  // --- HYDRATION LOGIC ---
+  const hydratedMe = {
+    ...me,
+    developments: gameState.developments.filter(
+      (dev) => dev.owner_id === me.id
+    )
+  };
+
+  // Hydrate the 'player_list' using the exact same filtering logic
+  const hydratedPlayerList = player_list.map((p) => ({
+    ...p,
+    developments: gameState.developments.filter(
+      (dev) => dev.owner_id === p.id // Note: Use p.id here if your PlayerDTO uses 'id' instead of 'session_id' on the frontend
+    )
+  }));  // -----------------------
 
   // Accordion State
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -37,13 +53,15 @@ const DevelopmentsCard: React.FC<Props> = ({
     setExpandedId(expandedId === id ? null : id);
   };
 
-  const employmentActions = (me.actions || []).filter(
+  // Note: Use hydratedMe here instead of the raw me!
+  const employmentActions = (hydratedMe.actions || []).filter(
     (a): a is EmploymentActionDTO => a.type === "EMPLOYMENT"
   );
 
   // Aggregate foreign developments
-  const villageDevelopments = player_list
-    .filter((p) => p.id !== me.id)
+  // Note: Use hydratedPlayerList here instead of the raw player_list!
+  const villageDevelopments = hydratedPlayerList
+    .filter((p) => p.id !== hydratedMe.id)
     .flatMap((p) =>
       p.developments.map((dev) => ({ ...dev, owner_id: p.id }))
     );
@@ -54,10 +72,10 @@ const DevelopmentsCard: React.FC<Props> = ({
       {/* --- SECTION 1: MY DEVELOPMENTS --- */}
       <div>
         <h3 style={{ marginTop: 0 }}>My Properties</h3>
-        {me.developments.length === 0 ? (
+        {hydratedMe.developments.length === 0 ? (
           <p style={{ color: "#888", fontStyle: "italic", fontSize: "0.85rem" }}>You own no land.</p>
         ) : (
-          me.developments.map((dev) => {
+          hydratedMe.developments.map((dev) => {
             const pendingApplications = employmentActions.filter(
               (a) => a.dev_id === dev.id && a.is_application && a.status === "PENDING"
             );
@@ -112,8 +130,8 @@ const DevelopmentsCard: React.FC<Props> = ({
                             onClick={() => onMaintain(dev.id)}
                           >
                             Maintenance: {
-                              state.development_costs[dev.type]?.maintain
-                                ? Object.entries(state.development_costs[dev.type].maintain)
+                              gameState.development_costs[dev.type]?.maintain
+                                ? Object.entries(gameState.development_costs[dev.type].maintain)
                                   .map(([resource, amount]) => `${amount} ${resource}`)
                                   .join(", ")
                                 : "Unknown Cost"
@@ -125,8 +143,8 @@ const DevelopmentsCard: React.FC<Props> = ({
                             onClick={() => onUpgrade(dev.id)}
                           >
                             Upgrade: {
-                              state.development_costs[dev.type]?.upgrade
-                                ? Object.entries(state.development_costs[dev.type].upgrade)
+                              gameState.development_costs[dev.type]?.upgrade
+                                ? Object.entries(gameState.development_costs[dev.type].upgrade)
                                   .map(([resource, amount]) => `${amount} ${resource}`)
                                   .join(", ")
                                 : "Unknown Cost"

@@ -181,7 +181,6 @@ export interface MapTileDTO {
   q: number;
   r: number;
   type: "Farm" | "Woods" | "Mine";
-  owner_id?: string;
   development?: DevelopmentDTO;
 }
 
@@ -207,7 +206,7 @@ export interface PlayerDTO {
   fire_status: "COLD" | "HOST" | "GUEST";
   fire_guests?: string[];
   resources: ResourceBundle;
-  developments: DevelopmentDTO[];
+  developments: string[];
   available_work: WorkActionDTO[];
   committed_action: WorkActionDTO | ContestActionDTO | null;
   actions: ActionDTO[];

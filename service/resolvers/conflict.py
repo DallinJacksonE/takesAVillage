@@ -2,7 +2,7 @@ class ConflictResolvers:
 
     @staticmethod
     def resolve_contests(game_state):
-        
+
         for dev in game_state.developments.values():
 
             if not getattr(dev, 'is_contested', False):
@@ -14,7 +14,6 @@ class ConflictResolvers:
 
             dev.contester_supporters = []
             dev.owner_supporters = []
-
 
             # -----------------------------------------------
             # Tally support
@@ -38,7 +37,6 @@ class ConflictResolvers:
 
                     elif side == 'OWNER':
                         dev.owner_supporters.append(player.session_id)
-
 
             # -----------------------------------------------
             # Resolve
@@ -91,6 +89,7 @@ class ConflictResolvers:
                 dev.is_contested = False
                 dev.contest_initiator_id = None
 
-
             dev.contester_supporters = []
             dev.owner_supporters = []
+
+# Put pending conflict logic here from game loop

@@ -1,14 +1,11 @@
 import React from "react";
 import { GameStateDTO } from "../../../dtos/index";
+import { useGameState } from "./hooks/useGameState"; // Import the hook
 
-interface Props {
-  state: GameStateDTO;
-}
 
-const PlayerStatusCard: React.FC<Props> = ({ state }) => {
-  const { me } = state;
-  console.log(me)
-
+const PlayerStatusCard: React.FC = () => {
+  const gameState = useGameState();
+  const { me } = gameState;
   return (
     <div
       className='card bar'
