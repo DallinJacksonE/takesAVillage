@@ -159,11 +159,11 @@ class ContestDevelopmentCommand(Command):
                 return False
             if player.session_id not in dev.contester_supporters:
                 dev.contester_supporters.append(player.session_id)
-            elif side == "OWNER":
-                if not dev.is_contested:
-                    return False
-                if player.session_id not in dev.owner_supporters:
-                    dev.owner_supporters.append(player.session_id)
+        elif side == "OWNER":
+            if not dev.is_contested:
+                return False
+            if player.session_id not in dev.owner_supporters:
+                dev.owner_supporters.append(player.session_id)
 
         player.committed_action = {
             "type": "CONTEST_ACTION",
