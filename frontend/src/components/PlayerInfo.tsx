@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { usePlayers } from "./hooks/usePlayerName";
 import { usePlayerColors } from "./hooks/usePlayerColor";
-import PlayerDevelopmentsInfo from "./PlayerDevelopmentsInfo";
+import { usePlayerDevelopments } from "./hooks/usePlayerDevelopments";
 interface Props {
   playerId: string;
 }
@@ -14,7 +14,7 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
 
   // Find the specific player from the context array
   const player = players?.find((p) => p.id === playerId);
-  const isUnderAttack = player?.developments?.some(
+  const isUnderAttack = usePlayerDevelopments(player?.id)?.some(
     (dev: any) => dev.is_contested === true || dev.contest_initiator_id
   );
   // Close the popup if the user clicks anywhere outside of it
