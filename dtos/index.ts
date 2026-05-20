@@ -115,8 +115,7 @@ export interface ContestDevPayload {
 }
 
 export interface CommitWorkPayload {
-  work_action?: WorkActionDTO; // For inherent work commitments
-  action_id?: string;          // For accepted contracts or conflict lock-ins
+  job: WorkActionDTO;
 }
 
 // For ACCEPT, DENY, CANCEL actions
@@ -189,7 +188,7 @@ export interface WorkActionDTO {
   wage: number;
   wage_type: Resource;
   employer_id: string;
-  action_id?: string;
+  action_id: string;
 }
 
 export interface DevelopmentCostConfig {
