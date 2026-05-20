@@ -63,4 +63,29 @@ class SocialResolvers:
                                   "trade_id": action.id,
                                   "sent": target_box,
                                   "received": initiator_box})
+        trade_record_for_initiator = {
+            "id": action.id,
+            "initiator_id": action.initiator_id,
+            "target_id": action.target_id,
+
+            "offered": action.offer_items,
+            "requested": action.request_items,
+
+            "actual_sent": action.actual_offer_items,
+            "actual_received": action.actual_request_items,
+        }
+
+        trade_record_for_target = {
+            "id": action.id,
+            "initiator_id": action.target_id,
+            "target_id": action.initiator_id,
+
+            "offered": action.request_items,
+            "requested": action.offer_items,
+
+            "actual_sent": action.actual_request_items,
+            "actual_received": action.actual_offer_items
+        }
+        initiator.trade_history.append(trade_record_for_initiator)
+        target.trade_history.append(trade_record_for_target)
         return True

@@ -15,6 +15,7 @@ class Player:
 
         self.actions = {}
         self.timeline = []  # Chronological log for research data extraction
+        self.trade_history = []  # Log of trades for research and player reference
 
         # Phase specific states
         self.fire_status = "COLD"  # COLD, HOST, GUEST
@@ -149,7 +150,9 @@ class Player:
                 self.committed_action.to_dict() if hasattr(
                     self.committed_action, 'to_dict')
                 else self.committed_action
-            ) if self.committed_action else None
+            ) if self.committed_action else None,
+
+            "trade_history": self.trade_history # Assuming trade_history is already a list of dicts or simple data     
         }
 
 

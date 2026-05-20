@@ -58,6 +58,19 @@ export interface TradeActionDTO extends BaseActionDTO {
   waiting_on_id: string;
 }
 
+export interface TradeHistoryDTO {
+  id: string;
+
+  initiator_id: string;
+  target_id: string;
+
+  offered: Partial<ResourceBundle>;
+  requested: Partial<ResourceBundle>;
+
+  actual_sent: Partial<ResourceBundle>;
+  actual_received: Partial<ResourceBundle>
+}
+
 export interface CampfireActionDTO extends BaseActionDTO {
   type: "CAMPFIRE" | "START_FIRE";
   is_request: boolean;
@@ -211,6 +224,7 @@ export interface PlayerDTO {
   actions: ActionDTO[];
   timeline: any[]; // Lightweight research log left as any[]
   finished_phase: boolean;
+  trade_history?: TradeHistoryDTO[];
 }
 
 export interface GameStateDTO {
