@@ -5,7 +5,8 @@ import {
   ActionDTO,
   ChatMessageDTO,
   DevelopmentCostConfig,
-  DevelopmentCostsDict
+  DevelopmentCostsDict,
+  DevelopmentDTO
 } from "../../../dtos/index"; // Ensure this path is correct for your project
 
 // --------------------------------------------------------
@@ -13,9 +14,9 @@ import {
 // --------------------------------------------------------
 
 export const MOCK_MAP: MapTileDTO[] = [
-  { id: "tile-1", q: 0, r: 0, type: "Farm", owner_id: "mock-user-1" },
-  { id: "tile-2", q: 1, r: -1, type: "Woods", owner_id: "mock-user-3" },
-  { id: "tile-3", q: -1, r: 1, type: "Mine", owner_id: "mock-user-4" },
+  { id: "tile-1", q: 0, r: 0, type: "Farm" },
+  { id: "tile-2", q: 1, r: -1, type: "Woods" },
+  { id: "tile-3", q: -1, r: 1, type: "Mine" },
   { id: "tile-4", q: -1, r: 0, type: "Farm" },
   { id: "tile-5", q: -1, r: -1, type: "Woods" },
   { id: "tile-6", q: 0, r: -1, type: "Woods" },
@@ -159,7 +160,7 @@ export const MOCK_ME: PlayerDTO = {
   sickness_chance: 0.05,
   fire_status: "COLD",
   resources: { wood: 5, food: 12, iron: 2 },
-  developments: [{ id: "tile-1", type: "Farm", level: 2, maintenance_days: 3, owner_id: "mock-user-1" }],
+  developments: ["tile-1"],
   available_work: [
     { development: { id: "tile-1", type: "Farm", level: 2, maintenance_days: 3, owner_id: "mock-user-1" }, wage: 2, wage_type: "food", employer_id: "mock-user-1" }
   ],
@@ -193,6 +194,15 @@ const MOCK_ECONOMY_CONFIG: Record<"Farm" | "Woods" | "Mine", DevelopmentCostConf
   }
 };
 
+const MOCK_DEVS: DevelopmentDTO[] = [
+  {
+    id: "dev_01",
+    type: "Farm",
+    level: 3,
+    maintenance_days: 4,
+    owner_id: "mock-user-4",
+  }]
+
 const MOCK_DEV_COSTS: DevelopmentCostsDict = {
   "tile-1": {
     build: { wood: 5, food: 0, iron: 0 },
@@ -210,7 +220,7 @@ const BASE_STATE: GameStateDTO = {
   time_remaining: 45,
   player_list: [MOCK_ME, ...MOCK_OPPONENTS],
   map: MOCK_MAP,
-  developments: MOCK_ME.developments, // Simplified for mock: just including the single mocked development
+  developments: MOCK_DEVS,
   chat_messages: MOCK_CHATS,
   economy_config: MOCK_ECONOMY_CONFIG,
   development_costs: MOCK_DEV_COSTS,
