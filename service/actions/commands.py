@@ -208,49 +208,33 @@ class CommitWorkCommand(Command):
                   f"{player.health} and cannot work.")
             return False
 
-        # 1. Check if the payload is a Contract/Conflict Lock-in
-        action_id = self.payload.get('action_id')
-
-        if action_id:
-            # Handle accepted job contract execution
-            chosen_action = game_state.contract_factory.find_contract(
-                action_id)
-            if chosen_action:
-                # Ensure the property isn't contested before allowing work
-                dev_id = getattr(chosen_action, 'dev_id', None)
-                live_dev = game_state.developments.get(
-                    dev_id) if dev_id else None
-
-                if live_dev and getattr(live_dev, 'is_contested', False):
-                    return False
-
-                chosen_action.status = 'COMPLETED'
-                player.committed_action = {"action_id": action_id}
-
-                # Cleanup other accepted offers
-                for act in list(player.actions.values()):
-                    if getattr(act, 'type', None) == 'EMPLOYMENT' and (
-                            act.status == 'ACCEPTED' and act.id != action_id):
-                        act.status = 'CANCELED'
-                return True
-
-            # If it was a conflict action rather than employment
-            player.committed_action = {"action_id": action_id}
-            return True
-
-        # 2. Fallback check for Inherent Work Lock-in
-        work_action = self.payload.get('work_action')
-        if not work_action:
+        # 1. Extract the unified job payload
+        job_data = self.payload.get('job')
+        if not job_data:
             return False
 
-        dev_id = work_action.get('development', {}).get('id')
+        action_id = job_data.get('action_id')
+        dev_id = job_data.get('development', {}).get('id')
         live_dev = game_state.developments.get(dev_id)
 
         # Stop work if property is currently under active hold
         if live_dev and getattr(live_dev, 'is_contested', False):
             return False
 
-        player.committed_action = work_action
+        # 2. If this is a contracted job, clean up the other offers
+        if action_id:
+            chosen_action = game_state.contract_factory.find_contract(
+                action_id)
+            if chosen_action:
+                chosen_action.status = 'COMPLETED'
+                # Cleanup other accepted offers
+                for act in list(player.actions.values()):
+                    if getattr(act, 'type', None) == 'EMPLOYMENT' and (
+                            act.status == 'ACCEPTED' and act.id != action_id):
+                        act.status = 'CANCELED'
+
+        # 3. Save the FULL dictionary so EconomyResolvers can read it
+        player.committed_action = job_data
         return True
 
 

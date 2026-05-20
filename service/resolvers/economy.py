@@ -8,8 +8,12 @@ class EconomyResolvers:
             if player.health in ["sick", "recovering"]:
                 continue
             ca = getattr(player, 'committed_action', None)
+            print(f"ca: {ca}")
             if ca and isinstance(ca, dict):
+
                 dev_data = ca.get('development', {})
+
+                print(f"dev_data: {dev_data}")
                 owner_id = dev_data.get('owner_id')
                 dev_type = dev_data.get('type')
                 dev_level = int(dev_data.get('level', 1))

@@ -51,13 +51,16 @@ class ContractFactory:
         elif contract_type == 'CAMPFIRE':
             is_request = data.get('is_request', False)
             # Only allow HOST players to offer seats (is_request=False)
-            if not is_request and initiator and getattr(initiator, 'fire_status', 'COLD') != 'HOST':
+            if not is_request and initiator and getattr(initiator,
+                                                        'fire_status',
+                                                        'COLD') != 'HOST':
                 raise ValueError("Only hosts can offer seats")
             return CampfireContract(initiator_id, target_id, is_request)
         else:
             raise ValueError(f"Unknown contract type: {contract_type}")
 
-    def _update_contract(self, user_id, contract_id, data, provided_action_command=None):
+    def _update_contract(self, user_id, contract_id,
+                         data, provided_action_command=None):
         original_contract = self.find_contract(contract_id)
         if not original_contract:
             return "NOT_FOUND", None
@@ -71,7 +74,8 @@ class ContractFactory:
         print(f"Executing Contract Action: {action_command}")
 
         # 1. Delegate ALL lifecycle changes to the Contract's Command Map
-        context = {'developments': self.developments}
+        context = {'players': self.players,
+                   'developments': self.developments}
         status = contract_copy.process_action(
             action_command, user_id, data, context)
 
