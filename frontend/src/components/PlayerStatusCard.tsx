@@ -14,6 +14,19 @@ const PlayerStatusCard: React.FC = () => {
   const healthStateTextHealthy = "You are good! Keep eating and staying warm to have a low sickness chance."
   const healthStateTextRecovering = "You are recovering! Keep eating and staying warm to get healthy tomorrow."
   const healthStateTextSick = "You are sick! If you don't eat and stay warm and get sick again, you will die."
+
+  const getHealthTooltipText = (health: string) => {
+    switch (health) {
+      case "healthy":
+        return healthStateTextHealthy;
+      case "sick":
+        return healthStateTextSick;
+      case "recovering":
+        return healthStateTextRecovering;
+      default:
+        return "Your current health status is unknown.";
+    }
+  };
   return (
     <div
       className='card bar'
@@ -76,14 +89,33 @@ const PlayerStatusCard: React.FC = () => {
           </span>
         </div>
         <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <p style={{ margin: 0 }}>
+              <InfoTooltip
+                displayText={`State: `}
+                infoText={getHealthTooltipText(me.health)}
+              />
+
+              <strong style={{ color: me.health === "healthy" ? "#2e7d32" : "#c62828" }}>
+                {me.health ? me.health.toUpperCase() : "UNKNOWN"}
+              </strong>
+            </p>
+
+
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <p style={{ margin: 0 }}>
+              <InfoTooltip
+                displayText={`Sickness: ${((me.sickness_chance || 0) * 100).toFixed(0)}%`}
+                infoText={healthInfoText}
+              />
+
+            </p>
+
+
+          </div>
+
           <p style={{ margin: 0 }}>
-            State:{" "}
-            <strong style={{ color: me.health === "healthy" ? "#2e7d32" : "#c62828" }}>
-              {me.health ? me.health.toUpperCase() : "UNKNOWN"}
-            </strong>
-          </p>
-          <p style={{ margin: 0 }}>
-            Sickness: {((me.sickness_chance || 0) * 100).toFixed(0)}%
           </p>
         </div>
       </div>
