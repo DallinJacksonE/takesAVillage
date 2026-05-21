@@ -71,7 +71,7 @@ const DevelopmentsCard: React.FC<Props> = ({
   const maintenanceInfoText = "Level will decrease if maintenance is at 0, level is amount of resources generated per employed person."
   const upgradeInfoText = "Increase the level and resource output by 1."
   const villageDevelopmentsInfoText = "Other village developments, send an application to work there and request a wage, or contest ownsership to takes the development for yourself."
-
+  const contestInfoText = "Start a contest for this dev. Spends your work action. Will need to break a tie with the owner so get people on your side to join the contest next work phase."
   return (
     <div className="card" style={{ flex: 1, display: "flex", flexDirection: "column", gap: "20px" }}>
 
@@ -331,35 +331,43 @@ const DevelopmentsCard: React.FC<Props> = ({
 
                       {/* NOT contested yet */}
                       {!dev.is_contested && dev.owner_id !== me.id && (
-                        <button
-                          className="btn-tooltip danger"
-                          style={{ width: "100%", padding: "6px" }}
-                          onClick={() => onContest(dev.id, "INITIATOR")}
-                        >
-                          Contest Ownership
-                        </button>
+                        <InfoTooltip infoText={contestInfoText} >
+                          <button
+                            className="btn-tooltip danger"
+                            style={{ width: "100%", padding: "6px" }}
+                            onClick={() => onContest(dev.id, "INITIATOR")}
+                          >
+                            Contest Ownership
+                          </button>
+                        </InfoTooltip>
+
                       )}
 
                       {/* Already contested */}
                       {dev.is_contested && (
                         <>
                           {/* Support attackers */}
-                          <button
-                            className="btn-tooltip warning"
-                            style={{ flex: 1, padding: "6px" }}
-                            onClick={() => onContest(dev.id, "CONTESTER")}
-                          >
-                            Support Contesters
-                          </button>
+                          <InfoTooltip infoText={"Spend work phase supporting attackers"}>
+                            <button
+                              className="btn-tooltip warning"
+                              style={{ flex: 1, padding: "6px" }}
+                              onClick={() => onContest(dev.id, "CONTESTER")}
+                            >
+                              Support Contesters
+                            </button>
+                          </InfoTooltip>
 
                           {/* Support owner */}
-                          <button
-                            className="btn-tooltip success"
-                            style={{ flex: 1, padding: "6px" }}
-                            onClick={() => onContest(dev.id, "OWNER")}
-                          >
-                            Support Owner
-                          </button>
+                          <InfoTooltip infoText={"Spend work phase supporting the owner"}>
+                            <button
+                              className="btn-tooltip success"
+                              style={{ flex: 1, padding: "6px" }}
+                              onClick={() => onContest(dev.id, "OWNER")}
+                            >
+                              Support Owner
+                            </button>
+
+                          </InfoTooltip>
                         </>
                       )}
                       {dev.is_contested && (
@@ -387,13 +395,14 @@ const DevelopmentsCard: React.FC<Props> = ({
                       )}
                     </div>
                   </div>
-                )}
+                )
+                }
               </div>
             );
           })
         )}
       </div>
-    </div>
+    </div >
   );
 };
 
