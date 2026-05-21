@@ -54,7 +54,8 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
     >
       {/* The Clickable Player Name */}
       <span
-        onClick={() => setIsOpen(!isOpen)}
+        onMouseOver={() => setIsOpen(!isOpen)}
+        onMouseOut={() => setIsOpen(false)}
         style={{
           cursor: "pointer",
           fontWeight: "bold",
@@ -146,14 +147,6 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
               </ul>
             )}
           </div>
-
-          <button
-            className="btn btn-secondary"
-            style={{ marginTop: "10px", width: "100%", padding: "5px", color: "black" }}
-            onClick={() => setIsOpen(false)}
-          >
-            Close
-          </button>
         </div>
       )}
     </span>
