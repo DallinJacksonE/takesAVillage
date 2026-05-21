@@ -4,6 +4,7 @@ import { usePlayerName } from "./hooks/usePlayerName";
 import { usePlayerColors } from "./hooks/usePlayerColor";
 import { useGameState } from "./hooks/useGameState";
 import InfoTooltip from "./InfoTooltip";
+import { useEffect } from "react";
 
 interface Props {
   onMaintain: (devId: string) => void;
@@ -44,14 +45,32 @@ const DevelopmentsCard: React.FC<Props> = ({
   }));  // -----------------------
 
   // Accordion State
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
+    return new Set(); // start empty, then populate via effect
+  });
+  const didInitRef = React.useRef(false);
+
+  useEffect(() => {
+    if (didInitRef.current) return;
+
+    didInitRef.current = true;
+
+    setExpandedIds(
+      new Set(hydratedMe.developments.map(d => d.id))
+    );
+  }, [hydratedMe.developments]);
 
   // Draft Job Application State
   const [appWage, setAppWage] = useState<number>(1);
   const [appWageType, setAppWageType] = useState<Resource>("food");
 
   const toggleExpand = (id: string) => {
-    setExpandedId(expandedId === id ? null : id);
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   // Note: Use hydratedMe here instead of the raw me!
@@ -96,7 +115,7 @@ const DevelopmentsCard: React.FC<Props> = ({
             if (dev.is_contested) borderColor = "#c62828"; // Red for contested
             else if (pendingApplications.length > 0) borderColor = "#2e7d32"; // Green for applicants
 
-            const isExpanded = expandedId === dev.id;
+            const isExpanded = expandedIds.has(dev.id);
             return (
               <div
                 key={dev.id}
@@ -236,7 +255,7 @@ const DevelopmentsCard: React.FC<Props> = ({
           <p style={{ color: "#888", fontStyle: "italic", fontSize: "0.85rem" }}>No other properties exist.</p>
         ) : (
           villageDevelopments.map((dev) => {
-            const isExpanded = expandedId === dev.id;
+            const isExpanded = expandedIds.has(dev.id);
 
             const borderColor = dev.is_contested
               ? "#c62828"
