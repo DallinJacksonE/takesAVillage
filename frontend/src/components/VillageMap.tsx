@@ -100,7 +100,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
     <div
       className="card card-map_background"
       style={{
-        width: "94.5%",
+        width: "90%",
         height: "250px",
         position: "relative",
         overflow: "hidden",
