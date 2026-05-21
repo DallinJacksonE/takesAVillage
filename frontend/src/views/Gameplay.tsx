@@ -203,6 +203,56 @@ const Gameplay: React.FC = () => {
                     onDeny={(actionId) => presenter.denyContract(actionId)}
                   />
                 )}
+
+                {/* LEFT: Small End Phase Sidebar */}
+                <div
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                    position: "sticky",
+                    top: "20px"
+                  }}
+                >
+                  {!gameState.me.finished_phase ? (
+                    <div
+                      className="card card-finish_phase"
+                      style={{
+                        color: "white",
+                        textAlign: "center",
+                        padding: "12px",
+                        width: "100%"
+                      }}
+                    >
+                      <button
+                        className="btn"
+                        style={{
+                          width: "100%",
+                          fontSize: "0.9rem",
+                          padding: "10px"
+                        }}
+                        onClick={() => presenter.finishPhase()}
+                      >
+                        {gameState.phase === "NIGHT"
+                          ? "End Day"
+                          : "End Phase"}
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      className="card card-waiting"
+                      style={{
+                        textAlign: "center",
+                        fontSize: "0.9rem",
+                        padding: "12px"
+                      }}
+                    >
+                      Waiting For Others
+                    </div>
+                  )}
+                </div>
+
               </div>
 
               {/* RIGHT COLUMN: Roster & Social Chat */}
@@ -215,91 +265,29 @@ const Gameplay: React.FC = () => {
                   players={gameState.player_list}
                   onSend={(content: string, toId: string) => presenter.sendChat(content, toId)}
                 />
+                {/* RIGHT: Large Map Area */}
+                <div
+                  className="card"
+                  style={{
+                    backgroundColor: "var(--medium_honey)",
+                    width: "95%",
+                    minWidth: 0
+                  }}
+                >
+                  <h3>Village Map</h3>
+
+                  <VillageMap
+                    mapData={gameState.map}
+                    playerId={userId}
+                    development_costs={gameState.development_costs}
+                    onBuild={(tileId) =>
+                      presenter.buildDevelopment(tileId)
+                    }
+                  />
+                </div>
               </div>
             </div>
 
-            {/* --- MAP + END PHASE ROW --- */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(350px, 40%) 1fr",
-                gap: "20px",
-                alignItems: "start",
-                marginTop: "20px",
-                width: "100%"
-              }}
-            >
-
-              {/* LEFT: Small End Phase Sidebar */}
-              <div
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "12px",
-                  position: "sticky",
-                  top: "20px"
-                }}
-              >
-                {!gameState.me.finished_phase ? (
-                  <div
-                    className="card card-finish_phase"
-                    style={{
-                      color: "white",
-                      textAlign: "center",
-                      padding: "12px",
-                      width: "100%"
-                    }}
-                  >
-                    <button
-                      className="btn"
-                      style={{
-                        width: "100%",
-                        fontSize: "0.9rem",
-                        padding: "10px"
-                      }}
-                      onClick={() => presenter.finishPhase()}
-                    >
-                      {gameState.phase === "NIGHT"
-                        ? "End Day"
-                        : "End Phase"}
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    className="card card-waiting"
-                    style={{
-                      textAlign: "center",
-                      fontSize: "0.9rem",
-                      padding: "12px"
-                    }}
-                  >
-                    Waiting For Others
-                  </div>
-                )}
-              </div>
-
-              {/* RIGHT: Large Map Area */}
-              <div
-                className="card"
-                style={{
-                  backgroundColor: "var(--medium_honey)",
-                  width: "95%",
-                  minWidth: 0
-                }}
-              >
-                <h3>Village Map</h3>
-
-                <VillageMap
-                  mapData={gameState.map}
-                  playerId={userId}
-                  development_costs={gameState.development_costs}
-                  onBuild={(tileId) =>
-                    presenter.buildDevelopment(tileId)
-                  }
-                />
-              </div>
-            </div>
           </PlayerProvider>
         </PlayerColorProvider>
       </GameStateProvider>
