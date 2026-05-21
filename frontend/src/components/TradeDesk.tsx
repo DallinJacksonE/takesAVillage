@@ -418,88 +418,88 @@ const TradeDesk: React.FC<Props> = ({
           })}
         </div>
         {/* TRADE HISTORY COLUMN */}
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            background: "#fafafa",
+            border: "1px solid #ddd",
+            borderRadius: "8px",
+            padding: "12px",
+            maxHeight: "200px",
+            overflowY: "auto",
+          }}
+        >
+          <strong
+            style={{
+              color: "#6a1b9a",
+              borderBottom: "2px solid #ce93d8",
+              paddingBottom: "4px",
+              display: "block",
+              marginBottom: "10px",
+            }}
+          >
+            Recent Trades
+          </strong>
+
+          {(me.trade_history || []).length === 0 && (
+            <div style={{ color: "#777", fontSize: "0.9rem" }}>
+              No recent trades
+            </div>
+          )}
+
+          {(me.trade_history || []).slice().reverse().map((trade) => (
+            <div
+              key={trade.id}
+              style={{
+                background: "#fff",
+                border: "1px solid #ddd",
+                borderRadius: "6px",
+                padding: "8px",
+                marginBottom: "10px",
+                fontSize: "0.82rem",
+              }}
+            >
               <div
                 style={{
-                  width: "320px",
-                  minWidth: "320px",
-                  background: "#fafafa",
-                  border: "1px solid #ddd",
-                  borderRadius: "8px",
-                  padding: "12px",
-                  maxHeight: "200px",
-                  overflowY: "auto",
+                  fontWeight: "bold",
+                  marginBottom: "6px",
+                  color: "#333",
                 }}
               >
-                <strong
-                  style={{
-                    color: "#6a1b9a",
-                    borderBottom: "2px solid #ce93d8",
-                    paddingBottom: "4px",
-                    display: "block",
-                    marginBottom: "10px",
-                  }}
-                >
-                  Recent Trades
-                </strong>
-
-                {(me.trade_history || []).length === 0 && (
-                  <div style={{ color: "#777", fontSize: "0.9rem" }}>
-                    No recent trades
-                  </div>
-                )}
-
-                {(me.trade_history || []).slice().reverse().map((trade) => (
-                  <div
-                    key={trade.id}
-                    style={{
-                      background: "#fff",
-                      border: "1px solid #ddd",
-                      borderRadius: "6px",
-                      padding: "8px",
-                      marginBottom: "10px",
-                      fontSize: "0.82rem",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontWeight: "bold",
-                        marginBottom: "6px",
-                        color: "#333",
-                      }}
-                    >
-                      With {getPlayerName(trade.target_id)}
-                    </div>
-
-                    <div style={{ marginBottom: "4px" }}>
-                      <strong>Offered:</strong>
-                      <div>{renderItems(trade.offered)}</div>
-                    </div>
-
-                    <div style={{ marginBottom: "4px" }}>
-                      <strong>Requested:</strong>
-                      <div>{renderItems(trade.requested)}</div>
-                    </div>
-
-                    <div
-                      style={{
-                        borderTop: "1px dashed #ccc",
-                        marginTop: "6px",
-                        paddingTop: "6px",
-                      }}
-                    >
-                      <div style={{ marginBottom: "4px" }}>
-                        <strong>Sent:</strong>
-                        <div>{renderItems(trade.actual_sent)}</div>
-                      </div>
-
-                      <div>
-                        <strong>Received:</strong>
-                        <div>{renderItems(trade.actual_received)}</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                With {getPlayerName(trade.target_id)}
               </div>
+
+              <div style={{ marginBottom: "4px" }}>
+                <strong>Offered:</strong>
+                <div>{renderItems(trade.offered)}</div>
+              </div>
+
+              <div style={{ marginBottom: "4px" }}>
+                <strong>Requested:</strong>
+                <div>{renderItems(trade.requested)}</div>
+              </div>
+
+              <div
+                style={{
+                  borderTop: "1px dashed #ccc",
+                  marginTop: "6px",
+                  paddingTop: "6px",
+                }}
+              >
+                <div style={{ marginBottom: "4px" }}>
+                  <strong>Sent:</strong>
+                  <div>{renderItems(trade.actual_sent)}</div>
+                </div>
+
+                <div>
+                  <strong>Received:</strong>
+                  <div>{renderItems(trade.actual_received)}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* --- SECTION 3: THE SHIPPING WINDOW (ACCEPTED) --- */}
@@ -513,7 +513,7 @@ const TradeDesk: React.FC<Props> = ({
           ))}
         </div>
       )}
-      </div>
+    </div>
   );
 };
 
