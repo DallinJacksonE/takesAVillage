@@ -215,8 +215,25 @@ const DevelopmentsCard: React.FC<Props> = ({
           villageDevelopments.map((dev) => {
             const isExpanded = expandedId === dev.id;
 
+            const borderColor = dev.is_contested
+              ? "#c62828"
+              : "#ccc";
+
             return (
-              <div key={dev.id} style={{ border: "1px solid #ccc", borderRadius: "6px", marginBottom: "8px", background: "#fff" }}>
+              <div
+                key={dev.id}
+                style={{
+                  border: `2px solid ${borderColor}`,
+                  borderRadius: "6px",
+                  marginBottom: "8px",
+                  background: dev.is_contested ? "#fff5f5" : "#fff",
+                  overflow: "hidden",
+                  boxShadow: dev.is_contested
+                    ? "0 0 8px rgba(198,40,40,0.35)"
+                    : "none",
+                  transition: "all 0.2s ease"
+                }}
+              >
 
                 {/* Accordion Header */}
                 <div
@@ -232,23 +249,51 @@ const DevelopmentsCard: React.FC<Props> = ({
                   <div style={{ padding: "10px", borderTop: "1px solid #ddd", display: "flex", flexDirection: "column", gap: "10px" }}>
 
                     {/* Apply for Job Form */}
-                    <div style={{ display: "flex", gap: "5px", alignItems: "center", fontSize: "0.85rem" }}>
-                      <span>Ask for:</span>
-                      <input type="number" min="1" value={appWage} onChange={e => setAppWage(parseInt(e.target.value) || 1)} style={{ width: "40px", padding: "2px" }} />
-                      <select value={appWageType} onChange={e => setAppWageType(e.target.value as Resource)} style={{ padding: "2px" }}>
-                        <option value="food">Food</option>
-                        <option value="wood">Wood</option>
-                        <option value="iron">Iron</option>
-                      </select>
-                      <button
-                        className="btn-tooltip success"
-                        style={{ marginLeft: "auto" }}
-                        onClick={() => onApplyForJob(dev.owner_id, dev.id, appWage, appWageType)}
+                    {!dev.is_contested && (
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "5px",
+                          alignItems: "center",
+                          fontSize: "0.85rem"
+                        }}
                       >
-                        Apply
-                      </button>
+                        <span>Ask for:</span>
 
-                    </div>
+                        <input
+                          type="number"
+                          min="1"
+                          value={appWage}
+                          onChange={e => setAppWage(parseInt(e.target.value) || 1)}
+                          style={{ width: "40px", padding: "2px" }}
+                        />
+
+                        <select
+                          value={appWageType}
+                          onChange={e => setAppWageType(e.target.value as Resource)}
+                          style={{ padding: "2px" }}
+                        >
+                          <option value="food">Food</option>
+                          <option value="wood">Wood</option>
+                          <option value="iron">Iron</option>
+                        </select>
+
+                        <button
+                          className="btn-tooltip success"
+                          style={{ marginLeft: "auto" }}
+                          onClick={() =>
+                            onApplyForJob(
+                              dev.owner_id,
+                              dev.id,
+                              appWage,
+                              appWageType
+                            )
+                          }
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    )}
 
                     <div
                       style={{

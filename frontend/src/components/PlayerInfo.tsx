@@ -89,7 +89,7 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
               marginRight: "4px",
             }}
           >
-            ❗
+            ⚔️
           </span>
         )}
 
