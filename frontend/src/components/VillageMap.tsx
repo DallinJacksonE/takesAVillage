@@ -26,7 +26,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   // Correct Pointy-Topped Hex Math
-  const HEX_SIZE = 45;
+  const HEX_SIZE = 38;
   const hexWidth = HEX_SIZE * Math.sqrt(3);
   const hexHeight = HEX_SIZE * 2;
   const pointyClipPath = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
@@ -113,6 +113,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onClick={() => setSelectedTile(null)}
     >
       <div
         style={{
@@ -129,7 +130,10 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
           return (
             <div
               key={tile.id}
-              onClick={() => setSelectedTile(tile)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedTile(tile);
+              }}
               style={{
                 position: "absolute",
                 left: x,
@@ -169,10 +173,12 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
           <div
             className="card"
             style={{
+              fontSize: 15,
               position: "absolute",
               zIndex: 100,
-              width: "220px",
-              padding: "15px",
+              height: "65px",
+              width: "115px",
+              padding: "8px",
               boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
               transform: "translate(-50%, -110%)",
               left: hexToPixel(selectedTile.q, selectedTile.r).x,
@@ -193,18 +199,22 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
                 </div>
 
                 {selectedTile.development.owner_id === playerId && (
-                  <div style={{ fontSize: "0.8rem", color: "#2196F3", fontStyle: "italic" }}>
+                  <div style={{ fontSize: "0.6rem", color: "#2196F3", fontStyle: "italic" }}>
                     This is your property.
                   </div>
                 )}
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                <div style={{ color: "#2e7d32", fontStyle: "italic", marginBottom: "5px", fontSize: "0.85rem" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "5px", fontSize: ".06rem" }}>
+                <div style={{ color: "#2e7d32", fontStyle: "italic", marginBottom: "5px", fontSize: "0.6rem" }}>
                   Available for Development
                 </div>
                 <button
                   className="btn-tooltip success"
+                  style={{
+                    fontSize: "0.6rem",
+                    padding: "4px 6px"
+                  }}
                   onClick={() => {
                     onBuild(selectedTile.id);
                     setSelectedTile(null);
@@ -220,14 +230,6 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
                 </button>
               </div>
             )}
-
-            <button
-              className="btn-tooltip"
-              style={{ marginTop: "10px", width: "100%", padding: "5px", fontSize: "0.75rem" }}
-              onClick={() => setSelectedTile(null)}
-            >
-              Close
-            </button>
           </div>
         )}
       </div>
