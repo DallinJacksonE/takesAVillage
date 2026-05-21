@@ -135,32 +135,39 @@ const DevelopmentsCard: React.FC<Props> = ({
                         </button>
                       ) : (
                         <>
-                          <button
-                            className="btn-tooltip"
-                            style={{ background: "#795548", color: "white", flex: 1 }}
-                            onClick={() => onMaintain(dev.id)}
-                          >
-                            Maintenance: {
-                              gameState.development_costs[dev.type]?.maintain
-                                ? Object.entries(gameState.development_costs[dev.type].maintain)
-                                  .map(([resource, amount]) => `${amount} ${resource}`)
-                                  .join(", ")
-                                : "Unknown Cost"
-                            }
-                          </button>
-                          <button
-                            className="btn-tooltip"
-                            style={{ background: "#f57c00", color: "white", flex: 1 }}
-                            onClick={() => onUpgrade(dev.id)}
-                          >
-                            Upgrade: {
-                              gameState.development_costs[dev.type]?.upgrade
-                                ? Object.entries(gameState.development_costs[dev.type].upgrade)
-                                  .map(([resource, amount]) => `${amount} ${resource}`)
-                                  .join(", ")
-                                : "Unknown Cost"
-                            }
-                          </button>
+                          {/* Wrapped Maintenance Button */}
+                          <InfoTooltip infoText={maintenanceInfoText}>
+                            <button
+                              className="btn-tooltip"
+                              style={{ background: "#795548", color: "white", width: "100%" }}
+                              onClick={() => onMaintain(dev.id)}
+                            >
+                              Maintenance: {
+                                gameState.development_costs[dev.type]?.maintain
+                                  ? Object.entries(gameState.development_costs[dev.type].maintain)
+                                    .map(([resource, amount]) => `${amount} ${resource}`)
+                                    .join(", ")
+                                  : "Unknown Cost"
+                              }
+                            </button>
+                          </InfoTooltip>
+
+                          {/* Wrapped Upgrade Button */}
+                          <InfoTooltip infoText={upgradeInfoText}>
+                            <button
+                              className="btn-tooltip"
+                              style={{ background: "#f57c00", color: "white", width: "100%" }}
+                              onClick={() => onUpgrade(dev.id)}
+                            >
+                              Upgrade: {
+                                gameState.development_costs[dev.type]?.upgrade
+                                  ? Object.entries(gameState.development_costs[dev.type].upgrade)
+                                    .map(([resource, amount]) => `${amount} ${resource}`)
+                                    .join(", ")
+                                  : "Unknown Cost"
+                              }
+                            </button>
+                          </InfoTooltip>
                         </>
                       )}
                     </div>
