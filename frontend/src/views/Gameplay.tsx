@@ -205,6 +205,7 @@ const Gameplay: React.FC = () => {
                 )}
 
                 {/* LEFT: Small End Phase Sidebar */}
+                {/* LEFT: Small End Phase Sidebar */}
                 <div
                   style={{
                     width: "100%",
@@ -212,7 +213,8 @@ const Gameplay: React.FC = () => {
                     flexDirection: "column",
                     gap: "12px",
                     position: "sticky",
-                    top: "20px"
+                    top: "20px",
+                    boxSizing: "border-box" /* Added to contain width */
                   }}
                 >
                   {!gameState.me.finished_phase ? (
@@ -222,7 +224,8 @@ const Gameplay: React.FC = () => {
                         color: "white",
                         textAlign: "center",
                         padding: "12px",
-                        width: "100%"
+                        width: "100%",
+                        boxSizing: "border-box" /* Added to contain padding */
                       }}
                     >
                       <button
@@ -230,7 +233,8 @@ const Gameplay: React.FC = () => {
                         style={{
                           width: "100%",
                           fontSize: "0.9rem",
-                          padding: "10px"
+                          padding: "10px",
+                          boxSizing: "border-box" /* Added to contain padding */
                         }}
                         onClick={() => presenter.finishPhase()}
                       >
@@ -245,7 +249,9 @@ const Gameplay: React.FC = () => {
                       style={{
                         textAlign: "center",
                         fontSize: "0.9rem",
-                        padding: "12px"
+                        padding: "12px",
+                        width: "100%",
+                        boxSizing: "border-box" /* Added to contain padding */
                       }}
                     >
                       Waiting For Others
@@ -270,11 +276,13 @@ const Gameplay: React.FC = () => {
                   className="card"
                   style={{
                     backgroundColor: "var(--medium_honey)",
-                    width: "95%",
-                    minWidth: 0
+                    width: "100%",           /* Changed from 95% to 100% for alignment */
+                    minWidth: 0,
+                    boxSizing: "border-box", /* Keeps padding inside the container */
+                    overflow: "hidden"       /* Prevents the map from blowing out the bounds */
                   }}
                 >
-                  <h3>Village Map</h3>
+                  <h3 style={{ marginTop: 0 }}>Village Map</h3>
 
                   <VillageMap
                     mapData={gameState.map}
