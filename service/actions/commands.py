@@ -123,6 +123,9 @@ class ContestDevelopmentCommand(Command):
     def execute(self, game_state, player):
         if game_state.phase != 'WORK':
             return False
+        
+        if player.health in ["sick", "recovering"]:
+            return False
 
         dev_id = self.payload.get('dev_id')
         side = self.payload.get('side')  # 'INITIATOR', 'CONTESTER', 'OWNER'
