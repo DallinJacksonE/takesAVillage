@@ -10,7 +10,6 @@ import {
 import PlayerStatusCard from "../components/PlayerStatusCard";
 import DevelopmentsCard from "../components/DevelopmentsCard";
 import AvailableWorkCard from "../components/AvailableWorkCard";
-import { MOCK_STATE, MOCK_ME } from "./mockData";
 import PlayerRoster from "../components/PlayerRoster";
 import TradeDesk from "../components/TradeDesk";
 import TabbedCommunicator from "../components/TabbedCommunicator";
@@ -29,37 +28,37 @@ const Gameplay: React.FC = () => {
   const [userId, setUserId] = useState("");
 
   useEffect(() => {
-    if (gameId === "test-render") {
-      setGameState(MOCK_STATE);
-      setPlayerCount(MOCK_STATE.player_list.length);
-      setTimeLeft(MOCK_STATE.time_remaining);
-      setUserId(MOCK_ME.id);
-
-      // Update mock to reflect new specific presenter methods
-      const dummyPresenter = {
-        handleStartGame: () => console.log("Mock: Start Game"),
-        sendChat: (content: string, toId: string) => console.log("Mock Chat:", content, toId),
-        buildDevelopment: (id: string) => console.log("Mock Build:", id),
-        maintainDevelopment: (id: string) => console.log("Mock Maintain:", id),
-        upgradeDevelopment: (id: string) => console.log("Mock Upgrade:", id),
-        contestDevelopment: (id: string) => console.log("Mock Contest:", id),
-        draftTrade: (target: string, offer: any, req: any) => console.log("Mock Draft Trade:", target),
-        counterTrade: (id: string, offer: any, req: any) => console.log("Mock Counter Trade:", id),
-        finalizeTrade: (id: string, items: any) => console.log("Mock Finalize Trade:", id),
-        draftEmployment: (target: string, dev: string, wage: number) => console.log("Mock Job App to:", target),
-        startFire: () => console.log("Mock Start Fire"),
-        draftCampfire: (target: string, isReq: boolean) => console.log("Mock Campfire:", target),
-        acceptContract: (id: string) => console.log("Mock Accept:", id),
-        denyContract: (id: string) => console.log("Mock Deny:", id),
-        cancelContract: (id: string) => console.log("Mock Cancel:", id),
-        commitWork: (payload: any) => console.log("Mock Commit Work:", payload),
-        finishPhase: () => console.log("Mock Finish Phase"),
-        destroy: () => { },
-      } as unknown as GameplayPresenter;
-
-      setPresenter(dummyPresenter);
-      return;
-    }
+    // if (gameId === "test-render") {
+    //   setGameState(MOCK_STATE);
+    //   setPlayerCount(MOCK_STATE.player_list.length);
+    //   setTimeLeft(MOCK_STATE.time_remaining);
+    //   setUserId(MOCK_ME.id);
+    //
+    //   // Update mock to reflect new specific presenter methods
+    //   const dummyPresenter = {
+    //     handleStartGame: () => console.log("Mock: Start Game"),
+    //     sendChat: (content: string, toId: string) => console.log("Mock Chat:", content, toId),
+    //     buildDevelopment: (id: string) => console.log("Mock Build:", id),
+    //     maintainDevelopment: (id: string) => console.log("Mock Maintain:", id),
+    //     upgradeDevelopment: (id: string) => console.log("Mock Upgrade:", id),
+    //     contestDevelopment: (id: string) => console.log("Mock Contest:", id),
+    //     draftTrade: (target: string, offer: any, req: any) => console.log("Mock Draft Trade:", target),
+    //     counterTrade: (id: string, offer: any, req: any) => console.log("Mock Counter Trade:", id),
+    //     finalizeTrade: (id: string, items: any) => console.log("Mock Finalize Trade:", id),
+    //     draftEmployment: (target: string, dev: string, wage: number) => console.log("Mock Job App to:", target),
+    //     startFire: () => console.log("Mock Start Fire"),
+    //     draftCampfire: (target: string, isReq: boolean) => console.log("Mock Campfire:", target),
+    //     acceptContract: (id: string) => console.log("Mock Accept:", id),
+    //     denyContract: (id: string) => console.log("Mock Deny:", id),
+    //     cancelContract: (id: string) => console.log("Mock Cancel:", id),
+    //     commitWork: (payload: any) => console.log("Mock Commit Work:", payload),
+    //     finishPhase: () => console.log("Mock Finish Phase"),
+    //     destroy: () => { },
+    //   } as unknown as GameplayPresenter;
+    //
+    //   setPresenter(dummyPresenter);
+    //   return;
+    // }
 
     const view: GameplayView = {
       setGameState,
