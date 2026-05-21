@@ -133,6 +133,7 @@ const Gameplay: React.FC = () => {
       </div>
     );
   }
+
   console.log(gameState)
   return (
     <div style={{ padding: "20px" }}>

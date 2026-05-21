@@ -245,3 +245,42 @@ input {
 .send_button:hover {
   background: var(--dark_blue);
 }
+
+/* --- Player Tooltip --- */
+.player-tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+  font-weight: bold;
+  color: var(--medium_blue);
+}
+
+.player-tooltip-bubble {
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: max-content;
+  max-width: 220px;
+  padding: 10px;
+  background-color: var(--light_grey);
+  color: var(--text-secondary);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: normal;
+  pointer-events: none;
+  white-space: normal;
+  text-align: center;
+}
+
+.player-tooltip-arrow {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: var(--light_grey) transparent transparent transparent;
+}
