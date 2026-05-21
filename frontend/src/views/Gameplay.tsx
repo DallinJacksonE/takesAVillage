@@ -251,7 +251,7 @@ const Gameplay: React.FC = () => {
                         fontSize: "0.9rem",
                         padding: "12px",
                         width: "100%",
-                        boxSizing: "border-box" /* Added to contain padding */
+                        boxSizing: "border-box"
                       }}
                     >
                       Waiting For Others
@@ -276,10 +276,10 @@ const Gameplay: React.FC = () => {
                   className="card"
                   style={{
                     backgroundColor: "var(--medium_honey)",
-                    width: "100%",           /* Changed from 95% to 100% for alignment */
+                    width: "100%",
                     minWidth: 0,
-                    boxSizing: "border-box", /* Keeps padding inside the container */
-                    overflow: "hidden"       /* Prevents the map from blowing out the bounds */
+                    boxSizing: "border-box",
+                    overflow: "hidden"
                   }}
                 >
                   <h3 style={{ marginTop: 0 }}>Village Map</h3>

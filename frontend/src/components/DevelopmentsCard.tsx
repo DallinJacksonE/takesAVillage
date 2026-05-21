@@ -3,6 +3,7 @@ import { EmploymentActionDTO, Resource, DevelopmentDTO } from "../../../dtos/ind
 import { usePlayerName } from "./hooks/usePlayerName";
 import { usePlayerColors } from "./hooks/usePlayerColor";
 import { useGameState } from "./hooks/useGameState";
+import InfoTooltip from "./InfoTooltip";
 
 interface Props {
   onMaintain: (devId: string) => void;
@@ -66,12 +67,22 @@ const DevelopmentsCard: React.FC<Props> = ({
       p.developments.map((dev) => ({ ...dev, owner_id: p.id }))
     );
 
+  const propertiesInfoText = "These are your developments, you can choose to spend your work phase at one of them or spend it upgrading or maintaining it."
+  const maintenanceInfoText = "Level will decrease if maintenance is at 0, level is amount of resources generated per employed person."
+  const upgradeInfoText = "Increase the level and resource output by 1."
+  const villageDevelopmentsInfoText = "Other village developments, send an application to work there and request a wage, or contest ownsership to takes the development for yourself."
+
   return (
     <div className="card" style={{ flex: 1, display: "flex", flexDirection: "column", gap: "20px" }}>
 
       {/* --- SECTION 1: MY DEVELOPMENTS --- */}
       <div>
-        <h3 style={{ marginTop: 0 }}>My Properties</h3>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "left", gap: "8px", marginBottom: "1em" }}>
+          <h3 style={{ margin: 0 }}>My Developments</h3>
+          <span style={{ color: "var(--light_grey)" }}>
+            <InfoTooltip displayText={"ⓘ"} infoText={propertiesInfoText} />
+          </span>
+        </div>
         {hydratedMe.developments.length === 0 ? (
           <p style={{ color: "#888", fontStyle: "italic", fontSize: "0.85rem" }}>You own no land.</p>
         ) : (
@@ -208,7 +219,12 @@ const DevelopmentsCard: React.FC<Props> = ({
 
       {/* --- SECTION 2: VILLAGE DEVELOPMENTS --- */}
       <div>
-        <h3 style={{ marginTop: 0 }}>Village Properties</h3>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "left", gap: "8px", marginBottom: "1em" }}>
+          <h3 style={{ margin: 0 }}>Village Developments</h3>
+          <span style={{ color: "var(--light_grey)" }}>
+            <InfoTooltip displayText={"ⓘ"} infoText={villageDevelopmentsInfoText} />
+          </span>
+        </div>
         {villageDevelopments.length === 0 ? (
           <p style={{ color: "#888", fontStyle: "italic", fontSize: "0.85rem" }}>No other properties exist.</p>
         ) : (
