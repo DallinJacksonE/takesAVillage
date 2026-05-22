@@ -71,11 +71,7 @@ class Player:
                 self.sickness_chance = sickness_rules["default"]
                 return "healthy"
 
-            else:
-                if check < self.sickness_chance:
-                    return "sick"
-
-        # Normal sickness checks when not fully cared for
+        # Normal sickness checks
         if check < self.sickness_chance:
             if self.health == "sick":
                 return "dead"
