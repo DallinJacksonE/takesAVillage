@@ -52,27 +52,38 @@ class Player:
                 self.sickness_chance - sickness_rules["recovery"])
 
     def update_health(self, ate: bool, warm: bool,
-                      check: float, sickness_rules):
+                  check: float, sickness_rules):
+
         for key, value in sickness_rules.items():
             print(f"Key: {key} \nValue: {value}")
+
         self.update_sickness_chance(ate, warm, sickness_rules)
+
         if self.health == "dead":
             return "dead"
-        elif (check < self.sickness_chance
-              and self.health == "sick" and not (ate or warm)):
-            return "dead"
-        elif check < self.sickness_chance:
-            return "sick"
 
-        elif self.health == "sick" and (ate and warm):
-            return "recovering"
-        elif self.health == "sick":
-            return "sick"
-        elif self.health == "recovering" and ate and warm:
-            self.sickness_chance = sickness_rules["default"]
-            return "healthy"
-        else:
-            return "healthy"
+        # Recovery path first
+        if ate and warm:
+            if self.health == "sick":
+                return "recovering"
+
+            elif self.health == "recovering":
+                self.sickness_chance = sickness_rules["default"]
+                return "healthy"
+
+            else:
+                if check < self.sickness_chance:
+                    return "sick"
+
+        # Normal sickness checks when not fully cared for
+        if check < self.sickness_chance:
+            if self.health == "sick":
+                return "dead"
+            else:
+                return "sick"
+
+        # No sickness roll triggered
+        return self.health
 
     def consume_daily(self, sickness_rules):
         """Logic for nightly consumption and sickness calculation."""
