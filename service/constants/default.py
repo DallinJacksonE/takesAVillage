@@ -7,7 +7,7 @@ DEVELOPMENT_COSTS = {
     "Woods": {
         "build": {"food": 1, "wood": 1},
         "maintain": {"food": 2, "iron": 2},
-        "upgrade": {"food": 5, "iron": 3}
+        "upgrade": {"food": 5, "iron": 2}
     },
     "Mine": {
         "build": {"wood": 2, "food": 2},

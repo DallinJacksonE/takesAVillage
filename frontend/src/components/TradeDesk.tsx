@@ -260,8 +260,7 @@ const TradeDesk: React.FC<Props> = ({
         style={{
           display: "flex",
           gap: "20px",
-          alignItems: "flex-start",
-          maxHeight: "250px",
+          alignItems: "stretch", // 👈 change this
         }}
       >
 
@@ -294,8 +293,15 @@ const TradeDesk: React.FC<Props> = ({
                       borderRadius: "6px",
                       border: "1px dashed #2196F3",
                       marginBottom: "10px",
-                      width: "100%",        // 👈 ADD THIS
+
+                      width: "100%",
                       boxSizing: "border-box",
+
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+
+                      maxHeight: "220px",
                     }}
                   >
                     <div
@@ -310,10 +316,19 @@ const TradeDesk: React.FC<Props> = ({
                     </div>
 
                     {/* MATCH DRAFT LAYOUT */}
-                    <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "10px",
+                        width: "100%",
+                        boxSizing: "border-box",
+                        fontSize: "0.75rem",
+                      }}
+                    >
 
                       {/* I GIVE */}
-                      <div style={{ display: "flex", gap: "20px", width: "100%" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: 0 }}>
                         <strong style={{ display: "block", marginBottom: "6px" }}>
                           I Give:
                         </strong>
@@ -338,7 +353,7 @@ const TradeDesk: React.FC<Props> = ({
                       </div>
 
                       {/* I WANT */}
-                      <div style={{ display: "flex", gap: "20px", width: "100%" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: 0 }}>
                         <strong style={{ display: "block", marginBottom: "6px" }}>
                           I Want:
                         </strong>

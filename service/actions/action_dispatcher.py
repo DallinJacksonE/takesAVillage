@@ -26,7 +26,8 @@ class ActionDispatcher:
 
         if (player.finished_phase and
                 action_command not in ['FINISH_PHASE', 'ACCEPT',
-                                       'DENY', 'CANCEL']):
+                                       'DENY', 'CANCEL', 'BARTER',
+                                       'FINALIZE']):
             print(f"ActionDispatcher: player "
                   f"{player.session_id} already finished phase;"
                   f"rejecting {action_command}")
