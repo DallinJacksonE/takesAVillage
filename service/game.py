@@ -40,6 +40,7 @@ class Game:
         self.mountains_ratio = self.rules.MOUNTAINS_RATIO
         self.woods_ratio = self.rules.WOODS_RATIO
         self.farms_ratio = self.rules.FARMS_RATIO
+        self.resource_costs = self.rules.RESOURCE_COSTS
 
         self.players = {}
         self.developments = {}

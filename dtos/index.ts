@@ -186,6 +186,8 @@ export interface DevelopmentDTO {
   contest_initiator_id?: string;
   contester_supporters?: string[];
   owner_supporters?: string[];
+  maintenance_cost: Record<string, number>;
+  upgrade_cost: Record<string, number>;
 }
 
 export interface MapTileDTO {

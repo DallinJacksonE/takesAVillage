@@ -64,7 +64,9 @@ class BuildDevelopmentCommand(Command):
             dev_type,
             player.session_id,
             game_state.rules.MAX_DEVELOPMENT_LEVEL,
-            game_state.rules.MAINTENANCE_DAYS)
+            game_state.rules.MAINTENANCE_DAYS,
+            game_state.rules.RESOURCE_COSTS
+            )
 
         game_state.developments[dev_id] = new_dev
         player.developments.append(dev_id)
@@ -85,8 +87,8 @@ class MaintainDevelopmentCommand(Command):
         if not dev:
             return False
 
-        maintain_cost = game_state.development_costs.get(
-            dev.type, {}).get("maintain", {})
+        maintain_cost = dev.get_maintenance_cost()
+
         if self._deduct_resources(player, maintain_cost):
             dev.maintenance()
             player.add_timeline_event(
@@ -104,8 +106,8 @@ class UpgradeDevelopmentCommand(Command):
         if not dev or dev.level >= 3:
             return False
 
-        upgrade_cost = game_state.development_costs.get(
-            dev.type, {}).get("upgrade", {})
+        upgrade_cost = dev.get_upgrade_cost()
+
         if self._deduct_resources(player, upgrade_cost):
             dev.upgrade()
             player.add_timeline_event(

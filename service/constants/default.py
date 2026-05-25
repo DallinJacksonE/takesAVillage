@@ -1,4 +1,7 @@
 DEVELOPMENT_COSTS = {
+    # CURRENTLY USES ONLY THE BUILD INFORMATION SINCE UPGRADE
+    # AND MAINTENANCE COSTS ARE COMPUTED DYNAMICALLY IN developments.py 
+    # USING get_maintenance_cost AND get_upgrade_cost
     "Farm": {
         "build": {"wood": 2},
         "maintain": {"wood": 2, "iron": 1},
@@ -6,7 +9,7 @@ DEVELOPMENT_COSTS = {
     },
     "Woods": {
         "build": {"food": 1, "wood": 1},
-        "maintain": {"food": 2, "iron": 2},
+        "maintain": {"food": 2, "iron": 1},
         "upgrade": {"food": 5, "iron": 2}
     },
     "Mine": {
@@ -15,6 +18,12 @@ DEVELOPMENT_COSTS = {
         "upgrade": {"wood": 2, "food": 2, "iron": 5}
     }
 }
+
+RESOURCE_COSTS = {
+    "Farm": "wood",
+    "Woods": "food"
+}
+
 
 MAX_DEVELOPMENT_LEVEL = 3
 MAINTENANCE_DAYS = 7

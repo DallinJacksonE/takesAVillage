@@ -162,8 +162,8 @@ const DevelopmentsCard: React.FC<Props> = ({
                               onClick={() => onMaintain(dev.id)}
                             >
                               Maintenance: {
-                                gameState.development_costs[dev.type]?.maintain
-                                  ? Object.entries(gameState.development_costs[dev.type].maintain)
+                                dev.maintenance_cost
+                                  ? Object.entries(dev.maintenance_cost)
                                     .map(([resource, amount]) => `${amount} ${resource}`)
                                     .join(", ")
                                   : "Unknown Cost"
@@ -179,8 +179,8 @@ const DevelopmentsCard: React.FC<Props> = ({
                               onClick={() => onUpgrade(dev.id)}
                             >
                               Upgrade: {
-                                gameState.development_costs[dev.type]?.upgrade
-                                  ? Object.entries(gameState.development_costs[dev.type].upgrade)
+                                dev.upgrade_cost
+                                  ? Object.entries(dev.upgrade_cost)
                                     .map(([resource, amount]) => `${amount} ${resource}`)
                                     .join(", ")
                                   : "Unknown Cost"
