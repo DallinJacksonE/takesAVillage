@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { usePlayers } from "./hooks/usePlayerName";
 import { usePlayerColors } from "./hooks/usePlayerColor";
 import { usePlayerDevelopments } from "./hooks/usePlayerDevelopments";
+import { useGameState } from "./hooks/useGameState";
 interface Props {
   playerId: string;
 }
@@ -11,6 +12,7 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
   const { getPlayerColor } = usePlayerColors();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLSpanElement>(null);
+  const state = useGameState();
 
   // Find the specific player from the context array
   const player = players?.find((p) => p.id === playerId);
@@ -139,11 +141,19 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
               </div>
             ) : (
               <ul style={{ margin: "4px 0 0 0", paddingLeft: "20px" }}>
-                {player.developments.map((dev: any, idx: number) => (
-                  <li key={idx}>
-                    {dev.type} (Lvl {dev.level})
-                  </li>
-                ))}
+                {player.developments.map((devId: string) => {
+                  const dev = state.developments.find(
+                    (d) => d.id === devId
+                  );
+
+                  if (!dev) return null;
+
+                  return (
+                    <li key={dev.id}>
+                      {dev.type} (Lvl {dev.level})
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
