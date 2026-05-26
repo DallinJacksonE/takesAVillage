@@ -78,7 +78,7 @@ class BaseBot(ABC):
             score -= 100
 
         return score
-        
+
     def get_possible_actions(self, game_state):
 
         player = self.get_player(game_state)
