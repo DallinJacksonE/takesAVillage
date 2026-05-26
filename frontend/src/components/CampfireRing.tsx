@@ -70,37 +70,37 @@ const CampfireRing: React.FC<Props> = ({
 
       <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
 
-      {/* --- LEFT COLUMN --- */}
-      <div style={{ flex: 1, borderRight: "1px solid #eee", paddingRight: "15px", minWidth: "220px" }}>
+        {/* --- LEFT COLUMN --- */}
+        <div style={{ flex: 1, borderRight: "1px solid #eee", paddingRight: "15px", minWidth: "220px" }}>
 
-        {/* MY STATUS (moved to top) */}
-        <div style={{ marginBottom: "15px", paddingBottom: "10px", borderBottom: "1px solid #eee" }}>
-          <strong>My Status:</strong>{" "}
-          <span style={{ color: me.fire_status === "COLD" ? "#1976d2" : "#d32f2f", fontWeight: "bold" }}>
-            {me.fire_status} {me.fire_status === "HOST" && "🔥"}
-          </span>
+          {/* MY STATUS (moved to top) */}
+          <div style={{ marginBottom: "15px", paddingBottom: "10px", borderBottom: "1px solid #eee" }}>
+            <strong>My Status:</strong>{" "}
+            <span style={{ color: me.fire_status === "COLD" ? "#1976d2" : "#d32f2f", fontWeight: "bold" }}>
+              {me.fire_status} {me.fire_status === "HOST" && "🔥"}
+            </span>
 
-          {me.fire_status === "GUEST" && (() => {
-            const hostAction = fireActions.find(a =>
-              a.status === "ACCEPTED" && (
-                (a.is_request && a.initiator_id === me.id) ||
-                (!a.is_request && a.target_id === me.id)
-              )
-            );
+            {me.fire_status === "GUEST" && (() => {
+              const hostAction = fireActions.find(a =>
+                a.status === "ACCEPTED" && (
+                  (a.is_request && a.initiator_id === me.id) ||
+                  (!a.is_request && a.target_id === me.id)
+                )
+              );
 
-            const hostId = hostAction
-              ? (hostAction.is_request ? hostAction.target_id : hostAction.initiator_id)
-              : "";
+              const hostId = hostAction
+                ? (hostAction.is_request ? hostAction.target_id : hostAction.initiator_id)
+                : "";
 
-            return (
-              <div style={{ marginTop: "5px", fontSize: "0.85rem", color: "#666" }}>
-                Warming by <strong>{getPlayerName(hostId)}</strong>'s fire
-              </div>
-            );
-          })()}
-        </div>
+              return (
+                <div style={{ marginTop: "5px", fontSize: "0.85rem", color: "#666" }}>
+                  Warming by <strong>{getPlayerName(hostId)}</strong>'s fire
+                </div>
+              );
+            })()}
+          </div>
 
-        {/* VILLAGE */}
+          {/* VILLAGE */}
           <h4 style={{ marginTop: 0 }}>Village</h4>
 
           {player_list
@@ -118,13 +118,15 @@ const CampfireRing: React.FC<Props> = ({
               >
                 <span>
                   {p.name}{" "}
-                  {p.fire_status === "HOST"
-                    ? "🔥"
-                    : p.fire_status === "GUEST"
-                    ? "🥳"
-                    : p.fire_status === "COLD"
-                    ? "🥶"
-                    : ""}
+                  {p.health === "dead"
+                    ? "⚰️"
+                    : p.fire_status === "HOST"
+                      ? "🔥"
+                      : p.fire_status === "GUEST"
+                        ? "🥳"
+                        : p.fire_status === "COLD"
+                          ? "🥶"
+                          : ""}
                 </span>
 
                 <div style={{ display: "flex", gap: "5px" }}>
@@ -132,7 +134,8 @@ const CampfireRing: React.FC<Props> = ({
                   {/* HOST → OFFER SEAT */}
                   {me.fire_status === "HOST" &&
                     p.fire_status !== "HOST" &&
-                    p.fire_status !== "GUEST" && (
+                    p.fire_status !== "GUEST" &&
+                    p.health !== "dead" && (
                       <button
                         className="btn-tooltip info"
                         disabled={isAtCapacity}
@@ -140,7 +143,7 @@ const CampfireRing: React.FC<Props> = ({
                       >
                         Offer Seat
                       </button>
-                  )}
+                    )}
 
                   {/* COLD → REQUEST SEAT FROM HOST */}
                   {me.fire_status === "COLD" && p.fire_status === "HOST" && (
