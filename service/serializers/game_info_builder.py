@@ -1,37 +1,4 @@
-def _safe_serialize(obj):
-    """
-    Recursively convert custom objects into JSON-safe structures.
-    """
-
-    if obj is None:
-        return None
-
-    # Primitive JSON-safe types
-    if isinstance(obj, (str, int, float, bool)):
-        return obj
-
-    # Lists / tuples / sets
-    if isinstance(obj, (list, tuple, set)):
-        return [_safe_serialize(v) for v in obj]
-
-    # Dicts
-    if isinstance(obj, dict):
-        return {
-            str(k): _safe_serialize(v)
-            for k, v in obj.items()
-        }
-
-    # Prefer explicit serializer
-    if hasattr(obj, 'to_dict'):
-        return _safe_serialize(obj.to_dict())
-
-    # Fallback to __dict__
-    if hasattr(obj, '__dict__'):
-        return _safe_serialize(vars(obj))
-
-    # Final fallback
-    return str(obj)
-
+from .snapshots import _safe_serialize
 
 def _normalize_committed_action(committed_action):
     return _safe_serialize(committed_action)

@@ -6,6 +6,7 @@ import io
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any
+from serializers.snapshots import _safe_serialize
 # --- Configuration Loader ---
 
 
@@ -194,24 +195,184 @@ class MySQLDB(DatabaseProvider):
               `created_at` DATETIME NOT NULL
             );
             CREATE TABLE IF NOT EXISTS `game_history` (
-              `id` INT AUTO_INCREMENT PRIMARY KEY,
-              `game_id` VARCHAR(12) NOT NULL,
-              `data` JSON NOT NULL,
-              `finished_at` DATETIME NOT NULL
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+
+                `game_id` VARCHAR(64) NOT NULL,
+                `day_num` INT NOT NULL,
+                `phase` VARCHAR(32) NOT NULL,
+
+                `data` JSON NOT NULL,
+
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+                INDEX(`game_id`),
+                INDEX(`day_num`),
+                INDEX(`phase`)
+            );
+
+            CREATE TABLE IF NOT EXISTS `player_snapshots` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+
+                `game_id` VARCHAR(64) NOT NULL,
+                `day_num` INT NOT NULL,
+                `phase` VARCHAR(32) NOT NULL,
+
+                `player_id` VARCHAR(64) NOT NULL,
+                `name` VARCHAR(32) NOT NULL,
+
+                `health` VARCHAR(16) NOT NULL,
+                `sickness_chance` FLOAT NOT NULL,
+
+                `resources` JSON NOT NULL,
+
+                `fire_status` VARCHAR(16) NOT NULL,
+                `fire_guests` JSON NOT NULL,
+
+                `developments` JSON NOT NULL,
+                `actions` JSON NOT NULL,
+                `committed_action` JSON,
+
+                `available_work` JSON NOT NULL,
+
+                `finished_phase` BOOLEAN NOT NULL,
+
+                `timeline` JSON NOT NULL,
+                `trade_history` JSON NOT NULL,
+
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+                INDEX(`game_id`),
+                INDEX(`player_id`),
+                INDEX(`day_num`),
+                INDEX(`phase`)
             );
         """
 
-    def store_game_result(self, game_id: str, game_data_json: str):
+    def store_game_result(
+        self,
+        game_id: str,
+        day_num: int,
+        phase: str,
+        snapshot_json: str
+    ):
         conn = self.get_connection()
+
         if not conn:
             return
+
         cursor = conn.cursor()
-        query = "INSERT INTO game_history (game_id, data, finished_at) VALUES (%s, %s, NOW())"
+
+        query = """
+            INSERT INTO game_history
+            (
+                game_id,
+                day_num,
+                phase,
+                data
+            )
+            VALUES (%s, %s, %s, %s)
+        """
+
         try:
-            cursor.execute(query, (game_id, game_data_json))
+            cursor.execute(
+                query,
+                (
+                    game_id,
+                    day_num,
+                    phase,
+                    snapshot_json
+                )
+            )
+
             conn.commit()
+
         except mysql.connector.Error as err:
             print(f"Error storing game result: {err}")
+
+        finally:
+            cursor.close()
+            conn.close()
+
+    def store_player_snapshot(self, game_id, day_num, phase, player):
+        conn = self.get_connection()
+
+        if not conn:
+            return
+
+        cursor = conn.cursor()
+
+        query = """
+            INSERT INTO player_snapshots
+            (
+                game_id,
+                day_num,
+                phase,
+
+                player_id,
+                name,
+
+                health,
+                sickness_chance,
+
+                resources,
+                fire_status,
+                fire_guests,
+
+                developments,
+                actions,
+                committed_action,
+                available_work,
+
+                finished_phase,
+
+                timeline,
+                trade_history
+            )
+            VALUES
+            (
+                %s, %s, %s,
+                %s, %s,
+                %s, %s,
+                %s, %s, %s,
+                %s, %s, %s, %s,
+                %s,
+                %s, %s
+            )
+        """
+
+        try:
+
+            cursor.execute(query, (
+                game_id,
+                day_num,
+                phase,
+
+                player.session_id,
+                player.name,
+
+                player.health,
+                player.sickness_chance,
+
+                json.dumps(_safe_serialize(player.resources)),
+                player.fire_status,
+                json.dumps(_safe_serialize(player.fire_guests)),
+
+                json.dumps(_safe_serialize(player.developments)),
+                json.dumps(_safe_serialize(player.actions)),
+                json.dumps(_safe_serialize(player.committed_action)),
+                json.dumps(_safe_serialize(player.available_work)),
+
+                player.finished_phase,
+
+                json.dumps(_safe_serialize(player.timeline)),
+                json.dumps(_safe_serialize(player.trade_history))
+            ))
+
+            conn.commit()
+
+        except mysql.connector.Error as err:
+            print(f"Error storing player snapshot: {err}")
+
         finally:
             cursor.close()
             conn.close()
@@ -222,7 +383,16 @@ class MySQLDB(DatabaseProvider):
             return []
 
         cursor = conn.cursor(dictionary=True)
-        query = "SELECT game_id, data, finished_at FROM game_history ORDER BY finished_at DESC"
+        query = """
+            SELECT
+                game_id,
+                day_num,
+                phase,
+                data,
+                created_at
+            FROM game_history
+            ORDER BY created_at DESC
+            """
         try:
             cursor.execute(query)
             results = cursor.fetchall()

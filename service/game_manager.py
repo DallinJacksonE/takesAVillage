@@ -44,7 +44,12 @@ def game_loop(socketio):
                 }
 
                 # 2. Pass the game.id and the stringified JSON payload
-                db.store_game_result(game.id, json.dumps(game_data))
+                db.store_game_result(
+                    game.id,
+                    game.day,
+                    game.phase,
+                    json.dumps(game_data)
+                )
 
                 del active_games[game.id]
 

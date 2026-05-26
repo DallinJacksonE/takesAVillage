@@ -13,6 +13,9 @@ from serializers.game_info_builder import add_player_hist, add_map_hist
 
 from actions.contract_factory import ContractFactory
 from actions.action_dispatcher import ActionDispatcher
+from db import db
+from serializers.snapshots import build_game_snapshot, build_player_snapshot
+import json
 
 
 class Game:
@@ -121,7 +124,35 @@ class Game:
             self.start_phase('WORK')
 
     def start_phase(self, phase_name):
+
         self.phase = phase_name
+
+        # -------------------------
+        # GAME SNAPSHOT
+        # -------------------------
+
+        game_snapshot = build_game_snapshot(self)
+
+        db.store_game_result(
+            self.id,
+            self.day,
+            self.phase,
+            json.dumps(game_snapshot)
+        )
+
+        # -------------------------
+        # PLAYER SNAPSHOTS
+        # -------------------------
+
+        for player in self.players.values():
+
+            db.store_player_snapshot(
+                game_id=self.id,
+                day_num=self.day,
+                phase=self.phase,
+                player=player
+            )
+
         self.phase_end_time = time.time() + self.phase_length
 
         # ------------------------------------------------
