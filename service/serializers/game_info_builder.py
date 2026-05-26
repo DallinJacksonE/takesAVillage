@@ -1,16 +1,47 @@
+def _safe_serialize(obj):
+    """
+    Recursively convert custom objects into JSON-safe structures.
+    """
+
+    if obj is None:
+        return None
+
+    # Primitive JSON-safe types
+    if isinstance(obj, (str, int, float, bool)):
+        return obj
+
+    # Lists / tuples / sets
+    if isinstance(obj, (list, tuple, set)):
+        return [_safe_serialize(v) for v in obj]
+
+    # Dicts
+    if isinstance(obj, dict):
+        return {
+            str(k): _safe_serialize(v)
+            for k, v in obj.items()
+        }
+
+    # Prefer explicit serializer
+    if hasattr(obj, 'to_dict'):
+        return _safe_serialize(obj.to_dict())
+
+    # Fallback to __dict__
+    if hasattr(obj, '__dict__'):
+        return _safe_serialize(vars(obj))
+
+    # Final fallback
+    return str(obj)
 
 
 def _normalize_committed_action(committed_action):
-    if not committed_action:
-        return None
-    if isinstance(committed_action, dict):
-        return committed_action
-    return getattr(committed_action, '__dict__', str(committed_action))
+    return _safe_serialize(committed_action)
 
 
 def add_player_hist(game, session_id):
     """Capture a daily snapshot for one player into game.player_history."""
+
     player = game.players.get(session_id)
+
     if not player:
         return False
 
@@ -18,70 +49,83 @@ def add_player_hist(game, session_id):
         game.player_history = {}
 
     day = getattr(game, 'day', None)
+
     if day is None:
         return False
 
-    session_hist = game.player_history.setdefault(game.day, {})
+    session_hist = game.player_history.setdefault(day, {})
+
     session_hist[session_id] = {
-        'resources': player.resources.copy(),
+        'resources': _safe_serialize(player.resources),
         'health': player.health,
         'sickness_chance': player.sickness_chance,
-        'developments': list(player.developments),
+
+        # FIXED
+        'developments': _safe_serialize(player.developments),
+
         'fire_status': getattr(player, 'fire_status', 'COLD'),
         'finished_phase': player.finished_phase,
-        'committed_action': _normalize_committed_action(player.committed_action),
-        'actions': [getattr(a, 'id', None) for a in player.actions.values()]
+
+        'committed_action': _normalize_committed_action(
+            player.committed_action
+        ),
+
+        'actions': _safe_serialize(
+            list(player.actions.values())
+        )
     }
 
     return True
 
 
 def build_player_hist(game):
-    """Return the accumulated player history as day -> session_id -> snapshot."""
+    """Return the accumulated player history."""
+
     if not hasattr(game, 'player_history'):
         return {}
 
-    daily_history = {}
-    for day, hist in game.player_history.items():
-        for session_id, snapshot in hist.items():
-            day_hist = daily_history.setdefault(day, {})
-            day_hist[session_id] = snapshot
-
     return {
         day: {
-            session_id: daily_history[day][session_id]
-            for session_id in sorted(daily_history[day].keys())
+            session_id: snapshot
+            for session_id, snapshot in sorted(hist.items())
         }
-        for day in sorted(daily_history.keys())
+        for day, hist in sorted(game.player_history.items())
     }
 
 
 def add_map_hist(game):
-    """Capture a daily snapshot of the map into game.map_history."""
+    """Capture a daily snapshot of the map."""
+
     day = getattr(game, 'day', None)
+
     if day is None:
         return False
 
     if not hasattr(game, 'map_history'):
         game.map_history = {}
 
-    # Serialize the map data to dicts for storage
     map_snapshot = {}
+
     for tile_id, tile in game.map_data.items():
+
         map_snapshot[tile_id] = {
             'id': tile.id,
             'q': tile.q,
             'r': tile.r,
             'type': tile.type,
-            'development': tile.development
+
+            # FIXED
+            'development': _safe_serialize(tile.development)
         }
 
     game.map_history[day] = map_snapshot
+
     return True
 
 
 def build_map_hist(game):
-    """Return the accumulated map history as day -> map_snapshot."""
+    """Return accumulated map history."""
+
     if not hasattr(game, 'map_history'):
         return {}
 

@@ -9,18 +9,18 @@ services:
       - MYSQL_USER=village
       - MYSQL_PASSWORD=village_db
     ports:
-      - "3307:3306" 
+      - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "village", "-pvillage_db"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "village", "-pvillage_db" ]
       interval: 10s
       timeout: 10s
       retries: 15
-      start_period: 90s 
+      start_period: 90s
 
   backend:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.backend
     container_name: village_backend
@@ -29,7 +29,7 @@ services:
       - "5000:5000"
     environment:
       - PYTHONUNBUFFERED=1
-      - DB_TYPE=memory  # <-- Set this to 'memory' to bypass MySQL
+      - DB_TYPE=mysql # <-- Set this to 'memory' to bypass MySQL
       - DB_HOST=db
       - DB_USER=village
       - DB_PASSWORD=village_db

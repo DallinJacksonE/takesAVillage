@@ -136,8 +136,7 @@ class Player:
             "resources": self.resources,
 
             "developments": [
-                d.to_dict() if hasattr(d, 'to_dict') else d
-                for d in self.developments
+                d for d in self.developments
             ],
 
             # Convert values array to list of dicts safely
