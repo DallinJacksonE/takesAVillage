@@ -61,7 +61,7 @@ const PlayerStatusCard: React.FC = () => {
             /> <strong>{me.resources?.wood || 0}</strong>
           </li>
           <li>
-            🍖 <InfoTooltip
+            🍎 <InfoTooltip
               displayText={"Food: "}
               infoText={foodInfoText}
             />
