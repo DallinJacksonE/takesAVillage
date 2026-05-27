@@ -23,8 +23,8 @@ const ShippingWindow: React.FC<ShippingWindowProps> = ({ trade, meId, onFinalize
 
   // Keep state synced if the trade updates
   useEffect(() => {
-    setActualItems(expectedToSend || {});
-  }, [trade, isInitiator]);
+    setActualItems({ ...(expectedToSend || {}) });
+  }, [trade.id]);
 
   const handleShip = () => {
     onFinalizeTrade(trade.id, actualItems);
