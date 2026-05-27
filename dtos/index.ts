@@ -188,6 +188,7 @@ export interface DevelopmentDTO {
   owner_supporters?: string[];
   maintenance_cost: Record<string, number>;
   upgrade_cost: Record<string, number>;
+  can_upgrade: boolean;
 }
 
 export interface MapTileDTO {

@@ -17,6 +17,10 @@ class Development:
         self.MAX_LEVEL = MAX_LEVEL
         self.MAINTENANCE_DAYS = MAINTENANCE_DAYS
 
+    @property
+    def can_upgrade(self):
+        return self.level < self.MAX_LEVEL
+
     def get_upgrade_cost(self):
         if self.type not in self.RESOURCE_COSTS:
             return {
@@ -82,7 +86,8 @@ class Development:
             "contester_supporters": self.contester_supporters,
             "owner_supporters": self.owner_supporters,
             "maintenance_cost": self.get_maintenance_cost(),
-            "upgrade_cost": self.get_upgrade_cost()
+            "upgrade_cost": self.get_upgrade_cost(),
+            "can_upgrade": self.can_upgrade
         }
 
 

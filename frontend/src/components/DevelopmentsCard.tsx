@@ -175,16 +175,25 @@ const DevelopmentsCard: React.FC<Props> = ({
                           <InfoTooltip infoText={upgradeInfoText}>
                             <button
                               className="btn-tooltip"
-                              style={{ background: "#f57c00", color: "white", width: "100%" }}
+                              style={{
+                                background: dev.can_upgrade ? "#f57c00" : "#777",
+                                color: "white",
+                                width: "100%",
+                                cursor: dev.can_upgrade ? "pointer" : "not-allowed",
+                                opacity: dev.can_upgrade ? 1 : 0.7
+                              }}
                               onClick={() => onUpgrade(dev.id)}
+                              disabled={!dev.can_upgrade}
                             >
-                              Upgrade: {
-                                dev.upgrade_cost
-                                  ? Object.entries(dev.upgrade_cost)
-                                    .map(([resource, amount]) => `${amount} ${resource}`)
-                                    .join(", ")
-                                  : "Unknown Cost"
-                              }
+                              {dev.can_upgrade
+                                ? `Upgrade: ${
+                                    dev.upgrade_cost
+                                      ? Object.entries(dev.upgrade_cost)
+                                          .map(([resource, amount]) => `${amount} ${resource}`)
+                                          .join(", ")
+                                      : "Unknown Cost"
+                                  }`
+                                : "Max Level"}
                             </button>
                           </InfoTooltip>
                         </>
