@@ -14,7 +14,7 @@ from serializers.game_info_builder import add_player_hist, add_map_hist
 from actions.contract_factory import ContractFactory
 from actions.action_dispatcher import ActionDispatcher
 from db import db
-from serializers.snapshots import build_game_snapshot, build_player_snapshot
+from serializers.snapshots import build_game_snapshot, build_work_snapshot, build_night_snapshot, build_trade_snapshot
 import json
 
 
@@ -110,27 +110,8 @@ class Game:
             self.next_phase()
 
     def next_phase(self):
-        if self.phase == 'WORK':
-            self.resolve_work_phase()
-            self.start_phase('TRADE')
-
-        elif self.phase == 'TRADE':
-            self.resolve_trade_phase()
-            self.start_phase('NIGHT')
-
-        elif self.phase == 'NIGHT':
-            self.resolve_night_phase()
-            self.day += 1
-            self.start_phase('WORK')
-
-    def start_phase(self, phase_name):
-
-        self.phase = phase_name
-
-        # -------------------------
-        # GAME SNAPSHOT
-        # -------------------------
-
+        
+        # GAME SNAPSHOTS
         game_snapshot = build_game_snapshot(self)
 
         db.store_game_result(
@@ -146,12 +127,49 @@ class Game:
 
         for player in self.players.values():
 
-            db.store_player_snapshot(
-                game_id=self.id,
-                day_num=self.day,
-                phase=self.phase,
-                player=player
-            )
+            if self.phase == "WORK":
+
+                snapshot = build_work_snapshot(
+                    player,
+                    self
+                )
+
+                db.store_work_snapshot(snapshot)
+
+            elif self.phase == "TRADE":
+
+                snapshot = build_trade_snapshot(
+                    player,
+                    self
+                )
+
+                db.store_trade_snapshot(snapshot)
+
+            elif self.phase == "NIGHT":
+
+                snapshot = build_night_snapshot(
+                    player,
+                    self
+                )
+
+                db.store_night_snapshot(snapshot)
+        if self.phase == 'WORK':
+            self.resolve_work_phase()
+            self.start_phase('TRADE')
+
+        elif self.phase == 'TRADE':
+            self.resolve_trade_phase()
+            self.start_phase('NIGHT')
+
+        elif self.phase == 'NIGHT':
+            
+            self.resolve_night_phase()
+            self.day += 1
+            self.start_phase('WORK')
+
+    def start_phase(self, phase_name):
+
+        self.phase = phase_name
 
         self.phase_end_time = time.time() + self.phase_length
 

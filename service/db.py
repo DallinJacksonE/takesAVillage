@@ -117,16 +117,30 @@ class MySQLDB(DatabaseProvider):
         self.config = config
 
     def get_connection(self):
-        try:
-            return mysql.connector.connect(**self.config)
-        except mysql.connector.Error as err:
-            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                print("Something is wrong with your user name or password")
-            elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                print("Database does not exist")
-            else:
-                print(err)
-            return None
+
+        attempts = 10
+
+        for attempt in range(attempts):
+
+            try:
+                conn = mysql.connector.connect(**self.config)
+
+                print("✅ Connected to MySQL")
+
+                return conn
+
+            except mysql.connector.Error as err:
+
+                print(
+                    f"MySQL connection attempt "
+                    f"{attempt + 1}/{attempts} failed: {err}"
+                )
+
+                time.sleep(3)
+
+        print("❌ Could not connect to MySQL after retries")
+
+        return None
 
     def create_user(self, user_uuid: str, consent_agreed: bool) -> bool:
         conn = self.get_connection()
@@ -210,41 +224,82 @@ class MySQLDB(DatabaseProvider):
                 INDEX(`phase`)
             );
 
-            CREATE TABLE IF NOT EXISTS `player_snapshots` (
-                `id` INT AUTO_INCREMENT PRIMARY KEY,
+            CREATE TABLE IF NOT EXISTS `work_phase_snapshots` (
+
+                `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
 
                 `game_id` VARCHAR(64) NOT NULL,
-                `day_num` INT NOT NULL,
-                `phase` VARCHAR(32) NOT NULL,
-
                 `player_id` VARCHAR(64) NOT NULL,
-                `name` VARCHAR(32) NOT NULL,
+
+                `day_num` INT NOT NULL,
+
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
                 `health` VARCHAR(16) NOT NULL,
                 `sickness_chance` FLOAT NOT NULL,
 
-                `resources` JSON NOT NULL,
-
-                `fire_status` VARCHAR(16) NOT NULL,
-                `fire_guests` JSON NOT NULL,
-
-                `developments` JSON NOT NULL,
-                `actions` JSON NOT NULL,
-                `committed_action` JSON,
+                `wood` INT NOT NULL DEFAULT 0,
+                `food` INT NOT NULL DEFAULT 0,
+                `iron` INT NOT NULL DEFAULT 0,
 
                 `available_work` JSON NOT NULL,
 
-                `finished_phase` BOOLEAN NOT NULL,
-
-                `timeline` JSON NOT NULL,
-                `trade_history` JSON NOT NULL,
-
-                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `committed_action` JSON,
 
                 INDEX(`game_id`),
                 INDEX(`player_id`),
-                INDEX(`day_num`),
-                INDEX(`phase`)
+                INDEX(`day_num`)
+            );
+
+            CREATE TABLE IF NOT EXISTS `trade_phase_snapshots` (
+
+                `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+                `game_id` VARCHAR(64) NOT NULL,
+                `player_id` VARCHAR(64) NOT NULL,
+
+                `day_num` INT NOT NULL,
+
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+                `health` VARCHAR(16) NOT NULL,
+                `sickness_chance` FLOAT NOT NULL,
+
+                `wood` INT NOT NULL DEFAULT 0,
+                `food` INT NOT NULL DEFAULT 0,
+                `iron` INT NOT NULL DEFAULT 0,
+
+                `trade_history` JSON NOT NULL,
+
+                INDEX(`game_id`),
+                INDEX(`player_id`),
+                INDEX(`day_num`)
+            );
+            CREATE TABLE IF NOT EXISTS `night_phase_snapshots` (
+
+                `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+                `game_id` VARCHAR(64) NOT NULL,
+                `player_id` VARCHAR(64) NOT NULL,
+
+                `day_num` INT NOT NULL,
+
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+                `health` VARCHAR(16) NOT NULL,
+                `sickness_chance` FLOAT NOT NULL,
+
+                `wood` INT NOT NULL DEFAULT 0,
+                `food` INT NOT NULL DEFAULT 0,
+                `iron` INT NOT NULL DEFAULT 0,
+
+                `fire_status` VARCHAR(16) NOT NULL,
+
+                `fire_guests` JSON NOT NULL,
+
+                INDEX(`game_id`),
+                INDEX(`player_id`),
+                INDEX(`day_num`)
             );
         """
 
@@ -377,6 +432,200 @@ class MySQLDB(DatabaseProvider):
             cursor.close()
             conn.close()
 
+    def store_work_snapshot(self, snapshot):
+
+        conn = self.get_connection()
+
+        if not conn:
+            return
+
+        cursor = conn.cursor()
+
+        query = """
+            INSERT INTO work_phase_snapshots
+            (
+                game_id,
+                player_id,
+                day_num,
+
+                health,
+                sickness_chance,
+
+                wood,
+                food,
+                iron,
+
+                available_work,
+
+                committed_action
+            )
+            VALUES
+            (
+                %s, %s, %s,
+                %s, %s,
+                %s, %s, %s,
+                %s,
+                %s
+            )
+        """
+
+        try:
+
+            committed = snapshot.get("committed_action")
+
+            cursor.execute(query, (
+
+                snapshot["game_id"],
+                snapshot["player_id"],
+                snapshot["day_num"],
+
+                snapshot["health"],
+                snapshot["sickness_chance"],
+
+                snapshot["wood"],
+                snapshot["food"],
+                snapshot["iron"],
+
+                json.dumps(snapshot["available_work"]),
+
+                json.dumps(committed)
+                if committed else None
+            ))
+
+            conn.commit()
+
+        except mysql.connector.Error as err:
+            print(f"Error storing work snapshot: {err}")
+
+        finally:
+            cursor.close()
+            conn.close()
+
+    def store_trade_snapshot(self, snapshot):
+
+        conn = self.get_connection()
+
+        if not conn:
+            return
+
+        cursor = conn.cursor()
+
+        query = """
+            INSERT INTO trade_phase_snapshots
+            (
+                game_id,
+                player_id,
+                day_num,
+
+                health,
+                sickness_chance,
+
+                wood,
+                food,
+                iron,
+
+                trade_history
+            )
+            VALUES
+            (
+                %s, %s, %s,
+                %s, %s,
+                %s, %s, %s,
+                %s
+            )
+        """
+
+        try:
+
+            cursor.execute(query, (
+
+                snapshot["game_id"],
+                snapshot["player_id"],
+                snapshot["day_num"],
+
+                snapshot["health"],
+                snapshot["sickness_chance"],
+
+                snapshot["wood"],
+                snapshot["food"],
+                snapshot["iron"],
+
+                json.dumps(snapshot["trade_history"])
+            ))
+
+            conn.commit()
+
+        except mysql.connector.Error as err:
+            print(f"Error storing trade snapshot: {err}")
+
+        finally:
+            cursor.close()
+            conn.close()
+
+    def store_night_snapshot(self, snapshot):
+
+        conn = self.get_connection()
+
+        if not conn:
+            return
+
+        cursor = conn.cursor()
+
+        query = """
+            INSERT INTO night_phase_snapshots
+            (
+                game_id,
+                player_id,
+                day_num,
+
+                health,
+                sickness_chance,
+
+                wood,
+                food,
+                iron,
+
+                fire_status,
+                fire_guests
+            )
+            VALUES
+            (
+                %s, %s, %s,
+                %s, %s,
+                %s, %s, %s,
+                %s, %s
+            )
+        """
+
+        try:
+
+            cursor.execute(query, (
+
+                snapshot["game_id"],
+                snapshot["player_id"],
+                snapshot["day_num"],
+
+                snapshot["health"],
+                snapshot["sickness_chance"],
+
+                snapshot["wood"],
+                snapshot["food"],
+                snapshot["iron"],
+
+                snapshot["fire_status"],
+
+                json.dumps(snapshot["fire_guests"])
+            ))
+
+            conn.commit()
+
+        except mysql.connector.Error as err:
+            print(f"Error storing night snapshot: {err}")
+
+        finally:
+            cursor.close()
+            conn.close()
+
     def get_all_game_history(self) -> list:
         conn = self.get_connection()
         if not conn:
@@ -441,4 +690,5 @@ config_data = load_config()
 db = get_database(config_data)
 
 # 3. Ensure tables/dicts are primed for action
+print("INITIALIZING DATABASE...")
 db.initialize_database()
