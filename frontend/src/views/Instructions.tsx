@@ -34,16 +34,16 @@ const Instructions: React.FC = () => {
             development, be aware that this takes your action, and you will be unable to work
             normal jobs if you chose to contest or defend. At the end of the day, if the attackers
             have more people supporting, the development falls into the hands of the initiator, whereas
-            if the defenders win, the development stays with the owner. Upon a tie, the development stays
-            under contest the following day. For either the owner or initail contester to win, they must
-            to participate in the contest, or the other respective party wins regardless of supporter count.
+            if the defenders win, the development stays with the owner. In the event of a tie the development
+            remains under contest the following day. For either the owner or initial contester to win, they must
+            participate in the contest, or the other respective party wins regardless of supporter count.
           </p>
 
           <h4>2. Trade Phase</h4>
           <p>
             Trade your resources with others. Players can "cheat" in trades by promising
             one thing but delivering another, or nothing at all. Honest trade builds trust;
-            swindling builds wealth but hurts reputation. Contanct between players allows for
+            swindling builds wealth but hurts reputation. Contact between players allows for
             some trades to be dependent upon other actions later. For example, one player might
             offer another 1 food and iron in exchange for helping contest a development the
             following day, or sharing fire for the next 2 days.
@@ -57,7 +57,7 @@ const Instructions: React.FC = () => {
             players die and their property can be stolen by a contest action much easier than before.
             to get warm players have the option to start fires by spending wood, and inviting other players
             to sit with them. The fire hosts have the power to turn away or invite whoever they please.
-            food is always consumed from the player's own inventory automatically.
+            Food is always consumed from the player's own inventory automatically.
           </p>
         </div>
 
@@ -73,9 +73,9 @@ const Instructions: React.FC = () => {
           </li>
           <li>
             <strong>Sickness/Recovery:</strong> If you get sick, you cannot work, but you can still trade, after
-            a sick day if you both eat and find warmth, your sickness chance will fall, and your state will
+            a sick day, if you both eat and find warmth, your sickness chance will fall, and your state will
             be recovering. Eat and find warmth again to return to healthy. This system means that for every time
-            you get sick you lose 2 days worth of actions at the very least. The default rate for sickness chance
+            you get sick you lose 2 days' worth of actions at the very least. The default rate for sickness chance
             decrease is 7%
           </li>
         </ul>
