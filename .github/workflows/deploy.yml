@@ -8,21 +8,21 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-        
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'          
+          python-version: '3.12'
+          
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install --no-cache-dir flask flask-socketio gevent gevent-websocket mysql-connector-python matplotlib uuid
           pip install pytest pytest-mock
-          
+
       - name: Run Pytest
         run: |
           pytest
@@ -30,7 +30,6 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    
     steps:
       - name: Install cloudflared
         run: |
@@ -45,7 +44,7 @@ jobs:
           CF_CLIENT_ID: ${{ secrets.CF_CLIENT_ID }}
           CF_CLIENT_SECRET: ${{ secrets.CF_CLIENT_SECRET }}
         run: |
-          # 1. Set up the SSH directory and private key
+          # 1. Set up the SSH directory and inject the Runner Key
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
@@ -54,13 +53,13 @@ jobs:
           ssh -T -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="cloudflared access ssh --hostname %h --service-token-id $CF_CLIENT_ID --service-token-secret $CF_CLIENT_SECRET" -i ~/.ssh/id_ed25519 $SERVER_USER@$CF_HOSTNAME << 'EOF'
             set -x
 
-            # Ensure we are navigating to the NEW user's directory
+            # Navigate to the correct user directory
             cd /home/tav/takesAVillage
 
-            # Pull any new changes securely using the NEW deploy key
+            # Pull changes securely using the local Deploy Key
             GIT_SSH_COMMAND="ssh -i ~/.ssh/github_actions -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git pull origin main
 
-            # Rebuild and restart the frontend and backend containers
+            # Rebuild and restart the containers
             docker compose up -d --build frontend backend
 
             # Clean up old unused images to save disk space
