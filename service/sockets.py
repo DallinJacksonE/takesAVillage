@@ -1,90 +1,125 @@
-from flask import request
-from flask_socketio import emit, join_room
-from game_manager import active_games, broadcast_state
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from game_manager import active_games
+
+ws_router = APIRouter()
 
 
-def register_socket_events(socketio):
+class ConnectionManager:
+    def __init__(self):
+        # Maps game_id -> { user_id: WebSocket instance }
+        self.active_connections: dict[str, dict[str, WebSocket]] = {}
 
-    @socketio.on('join_room')
-    def on_join(data):
-        game_id = data.get('gameId')
-        user_id = data.get('userId')
+    async def connect(self, websocket: WebSocket, game_id: str, user_id: str):
+        await websocket.accept()
+        if game_id not in self.active_connections:
+            self.active_connections[game_id] = {}
+        self.active_connections[game_id][user_id] = websocket
 
-        # 1. PURGE: Remove the player from any other active games
-        for g_id, g in list(active_games.items()):
-            if g_id != game_id and user_id in g.players:
-                del g.players[user_id]
-                if len(g.players) == 0:
-                    del active_games[g_id]
+    def disconnect(self, game_id: str, user_id: str):
+        if (game_id in self.active_connections and
+                user_id in self.active_connections[game_id]):
+            del self.active_connections[game_id][user_id]
+            # Clean up empty games to prevent memory leaks
+            if not self.active_connections[game_id]:
+                del self.active_connections[game_id]
 
-        if game_id in active_games:
-            game = active_games[game_id]
+    async def send_personal_message(self, message: dict,
+                                    game_id: str, user_id: str):
+        if (game_id in self.active_connections and
+                user_id in self.active_connections[game_id]):
+            ws = self.active_connections[game_id][user_id]
+            await ws.send_json(message)
 
-            # 2. REJOIN SAFEGUARD: Only add them if they aren't already in the game
-            if user_id not in game.players:
-                # Prevent entirely new players from joining a game in progress
-                if game.status != "WAITING":
-                    emit('error', {
-                         'message': 'Cannot join. Game is already in progress.'}, to=request.sid)
-                    return
+    async def broadcast_to_game(self, message: dict, game_id: str):
+        if game_id in self.active_connections:
+            for ws in self.active_connections[game_id].values():
+                await ws.send_json(message)
 
-                # It's a new player in a waiting game, safe to initialize them
-                game.add_player(user_id)
+    async def broadcast_game_state(self, game):
+        """Helper to send individualized states to all players in a game."""
+        if game.id in self.active_connections:
+            for pid, ws in self.active_connections[game.id].items():
+                state = game.get_state_for_player(pid)
+                await ws.send_json({"event": "game_state", "data": state})
 
-            join_room(game_id)
-            # 3. SCOPE: Player joins a private room
-            join_room(f"{game_id}_{user_id}")
 
-            emit('room_update', {"player_count": len(
-                game.players)}, to=game_id)
+manager = ConnectionManager()
 
-            # 4. DIRECT EMIT: Send the current state back to the reconnected player
-            emit('game_state', game.get_state_for_player(
-                user_id), to=f"{game_id}_{user_id}")
-        else:
-            emit('error', {'message': 'Game not found.'})
 
-    @socketio.on('start_game_request')
-    def on_start(data):
-        game_id = data.get('gameId')
-        user_id = data.get('userId')
-        if game_id in active_games:
-            game = active_games[game_id]
-            if game.host_id == user_id:
-                if game.start_game():
-                    emit('game_started', {"day": 1}, to=game_id)
+@ws_router.websocket("/ws/{game_id}/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, game_id: str, user_id: str):
 
-    @socketio.on('request_update')
-    def on_request_update(data):
-        game_id = data.get('gameId')
-        user_id = data.get('userId')
-        if game_id in active_games:
-            game = active_games[game_id]
-            emit('game_state', game.get_state_for_player(user_id))
+    # 1. PURGE: Remove the player from any other active games
+    for g_id, g in list(active_games.items()):
+        if g_id != game_id and user_id in g.players:
+            del g.players[user_id]
+            if len(g.players) == 0:
+                del active_games[g_id]
 
-    @socketio.on('send_chat')
-    def on_send_chat(data):
-        game_id = data.get('gameId')
-        user_id = data.get('userId') or data.get('from_id')
+    if game_id not in active_games:
+        await websocket.accept()
+        await websocket.send_json(
+            {"event": "error", "data": {"message": "Game not found."}})
+        await websocket.close()
+        return
 
-        if game_id in active_games:
-            game = active_games[game_id]
-            if game.handle_chat(user_id, data):
-                broadcast_state(game, socketio)
+    game = active_games[game_id]
 
-    @socketio.on('submit_action')
-    def on_submit_action(data):
-        game_id = data.get('gameId')
-        user_id = data.get('userId')
+    # 2. REJOIN SAFEGUARD: Only add them if they aren't already in the game
+    if user_id not in game.players:
+        if game.status != "WAITING":
+            await websocket.accept()
+            await websocket.send_json(
+                {"event": "error", "data":
+                 {"message": "Cannot join. Game in progress."}})
+            await websocket.close()
+            return
+        game.add_player(user_id)
 
-        if game_id in active_games:
-            game = active_games[game_id]
-            if game.handle_action(user_id, data):
-                broadcast_state(game, socketio)
-            else:
-                action_command = data.get('action_command') or data.get(
-                    'actionId') or data.get('actionCommand')
-                emit('error', {
-                    'message': 'Action rejected by game rules.',
-                    'action_command': action_command
-                }, to=f"{game_id}_{user_id}")
+    # 3. Add to Connection Manager
+    await manager.connect(websocket, game_id, user_id)
+
+    # Send room update and initial state
+    await manager.broadcast_to_game(
+        {"event": "room_update", "data":
+         {"player_count": len(game.players)}}, game_id)
+    await manager.send_personal_message(
+        {"event": "game_state", "data":
+         game.get_state_for_player(user_id)}, game_id, user_id)
+
+    try:
+        # Core Listening Loop
+        while True:
+            packet = await websocket.receive_json()
+            event = packet.get("event")
+            payload = packet.get("data", {})
+
+            if event == 'start_game_request':
+                if game.host_id == user_id and game.start_game():
+                    await manager.broadcast_to_game(
+                        {"event": "game_started", "data": {"day": 1}}, game_id)
+
+            elif event == 'request_update':
+                await manager.send_personal_message(
+                    {"event": "game_state", "data":
+                     game.get_state_for_player(user_id)}, game_id, user_id)
+
+            elif event == 'send_chat':
+                if game.handle_chat(user_id, payload):
+                    await manager.broadcast_game_state(game)
+
+            elif event == 'submit_action':
+                if game.handle_action(user_id, payload):
+                    await manager.broadcast_game_state(game)
+                else:
+                    action_cmd = payload.get(
+                        'action_command') or payload.get('actionId')
+                    await manager.send_personal_message({
+                        "event": "error",
+                        "data": {"message":
+                                 "Action rejected by game rules.",
+                                 "action_command": action_cmd}
+                    }, game_id, user_id)
+
+    except WebSocketDisconnect:
+        manager.disconnect(game_id, user_id)
