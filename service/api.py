@@ -1,72 +1,46 @@
 import uuid
-from flask import Blueprint, g, jsonify, make_response, request
+from fastapi import APIRouter, Response, Cookie, HTTPException
+from typing import Optional
 
 from db import db
 from game_manager import active_games, create_game
 
-
-api_bp = Blueprint('api', __name__)
-
-
-@api_bp.before_request
-def auto_dev_login():
-    if request.path.startswith('/api/') and request.endpoint != 'api.consent':
-        user_cookie = request.cookies.get('user_session')
-        if not user_cookie or not db.user_exists(user_cookie):
-            print("DEV MODE: Missing/Invalid cookie. Generating user session")
-            new_uuid = str(uuid.uuid4())
-            db.create_user(new_uuid, True)
-            g.dev_user_uuid = new_uuid
+api_router = APIRouter()
 
 
-@api_bp.after_request
-def attach_dev_cookie(response):
-    """Attach the newly generated dev cookie to the outgoing response."""
-    dev_uuid = getattr(g, 'dev_user_uuid', None)
-    if dev_uuid:
-        response.set_cookie('user_session', dev_uuid,
-                            max_age=60*60*24, secure=False, samesite='Lax')
-    return response
+@api_router.get('/api/verifySession')
+async def verify_session(user_session: Optional[str] = Cookie(None)):
+    if user_session and db.user_exists(user_session):
+        return {"userId": user_session, "message": "Session valid"}
+    raise HTTPException(status_code=401, detail="No valid session")
 
 
-@api_bp.route('/api/verifySession', methods=['GET'])
-def verify_session():
-    # Grab the cookie from the dev context or the actual request cookies
-    user_cookie = getattr(g, 'dev_user_uuid',
-                          None) or request.cookies.get('user_session')
-
-    if user_cookie and db.user_exists(user_cookie):
-        # Session is valid! Frontend should skip the consent screen.
-        return jsonify({"userId": user_cookie, "message": "Session valid"}), 200
-
-    # No valid session found. Frontend should show the consent screen.
-    return jsonify({"error": "No valid session"}), 401
-
-
-@api_bp.route('/api/consent', methods=['POST'])
-def consent():
+@api_router.post('/api/consent')
+async def consent(response: Response):
     user_uuid = str(uuid.uuid4())
     db.create_user(user_uuid, True)
 
-    resp = make_response(
-        jsonify({"message": "Consent logged", "userId": user_uuid}))
-    resp.set_cookie('user_session', user_uuid, max_age=60 *
-                    60*24, secure=False, samesite='Lax')
-    return resp
+    response.set_cookie(
+        key='user_session',
+        value=user_uuid,
+        max_age=60*60*24,
+        secure=False,
+        samesite='lax'
+    )
+    return {"message": "Consent logged", "userId": user_uuid}
 
 
-@api_bp.route('/api/activeGames', methods=['GET'])
-def get_active_games():
-    user_cookie = getattr(g, 'dev_user_uuid',
-                          None) or request.cookies.get('user_session')
-    if not user_cookie or not db.user_exists(user_cookie):
-        return jsonify({"error": "Invalid or expired session"}), 403
+@api_router.get('/api/activeGames')
+async def get_active_games(user_session: Optional[str] = Cookie(None)):
+    if not user_session or not db.user_exists(user_session):
+        raise HTTPException(
+            status_code=403, detail="Invalid or expired session")
 
     games_list = []
     rejoinable_games = []
 
     for game in active_games.values():
-        is_user_in_game = user_cookie in game.players
+        is_user_in_game = user_session in game.players
         if is_user_in_game and game.status in ["WAITING", "RUNNING"]:
             rejoinable_games.append({
                 "id": game.id,
@@ -82,32 +56,27 @@ def get_active_games():
                 "isRejoinable": False
             })
 
-    return jsonify({"games": rejoinable_games + games_list})
+    return {"games": rejoinable_games + games_list}
 
 
-@api_bp.route('/api/research/games', methods=['GET'])
-def get_research_games():
+@api_router.get('/api/research/games')
+async def get_research_games():
     game_history = db.get_all_game_history()
-    return jsonify(game_history)
+    return game_history
 
 
-@api_bp.route('/api/newGame', methods=['POST'])
-def new_game():
-    user_cookie = getattr(g, 'dev_user_uuid',
-                          None) or request.cookies.get('user_session')
-    if not user_cookie or not db.user_exists(user_cookie):
-        return jsonify({"error": "Invalid/No Session"}), 403
+@api_router.post('/api/newGame')
+async def new_game(user_session: Optional[str] = Cookie(None)):
+    if not user_session or not db.user_exists(user_session):
+        raise HTTPException(status_code=403, detail="Invalid/No Session")
 
-    # Delegate game creation strictly to the game manager
-    game_id = create_game(user_cookie)
-
-    return jsonify({"gameId": game_id})
+    game_id = create_game(user_session)
+    return {"gameId": game_id}
 
 
-@api_bp.route('/api/joinGame', methods=['POST'])
-def join_game():
-    data = request.json
-    game_id = data.get('gameId')
+@api_router.post('/api/joinGame')
+async def join_game(payload: dict):
+    game_id = payload.get('gameId')
     if game_id in active_games:
-        return jsonify({"gameId": game_id})
-    return jsonify({"error": "Game not found"}), 404
+        return {"gameId": game_id}
+    raise HTTPException(status_code=404, detail="Game not found")
