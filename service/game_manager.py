@@ -22,7 +22,7 @@ async def game_loop(connection_manager):
         for game in list(active_games.values()):
             if game.status == "RUNNING" and game.check_timer():
                 print("Next phase")
-                await connection_manager.broadcast_game_state(game)
+                await connection_manager.broadcast_game_state(game.id, game)
 
             elif game.status == "ENDED":
                 map_dict = build_map_hist(game)
