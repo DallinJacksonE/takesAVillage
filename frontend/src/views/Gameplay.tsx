@@ -21,44 +21,16 @@ import { GameStateProvider } from "../components/hooks/useGameState";
 
 const Gameplay: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
-  const [presenter, setPresenter] = useState<GameplayPresenter | null>(null);
+  const presenterRef =
+    React.useRef<GameplayPresenter | null>(null);
   const [gameState, setGameState] = useState<GameStateDTO | null>(null);
   const [playerCount, setPlayerCount] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [userId, setUserId] = useState("");
 
   useEffect(() => {
-    // if (gameId === "test-render") {
-    //   setGameState(MOCK_STATE);
-    //   setPlayerCount(MOCK_STATE.player_list.length);
-    //   setTimeLeft(MOCK_STATE.time_remaining);
-    //   setUserId(MOCK_ME.id);
-    //
-    //   // Update mock to reflect new specific presenter methods
-    //   const dummyPresenter = {
-    //     handleStartGame: () => console.log("Mock: Start Game"),
-    //     sendChat: (content: string, toId: string) => console.log("Mock Chat:", content, toId),
-    //     buildDevelopment: (id: string) => console.log("Mock Build:", id),
-    //     maintainDevelopment: (id: string) => console.log("Mock Maintain:", id),
-    //     upgradeDevelopment: (id: string) => console.log("Mock Upgrade:", id),
-    //     contestDevelopment: (id: string) => console.log("Mock Contest:", id),
-    //     draftTrade: (target: string, offer: any, req: any) => console.log("Mock Draft Trade:", target),
-    //     counterTrade: (id: string, offer: any, req: any) => console.log("Mock Counter Trade:", id),
-    //     finalizeTrade: (id: string, items: any) => console.log("Mock Finalize Trade:", id),
-    //     draftEmployment: (target: string, dev: string, wage: number) => console.log("Mock Job App to:", target),
-    //     startFire: () => console.log("Mock Start Fire"),
-    //     draftCampfire: (target: string, isReq: boolean) => console.log("Mock Campfire:", target),
-    //     acceptContract: (id: string) => console.log("Mock Accept:", id),
-    //     denyContract: (id: string) => console.log("Mock Deny:", id),
-    //     cancelContract: (id: string) => console.log("Mock Cancel:", id),
-    //     commitWork: (payload: any) => console.log("Mock Commit Work:", payload),
-    //     finishPhase: () => console.log("Mock Finish Phase"),
-    //     destroy: () => { },
-    //   } as unknown as GameplayPresenter;
-    //
-    //   setPresenter(dummyPresenter);
-    //   return;
-    // }
+
+    if (!gameId) return;
 
     const view: GameplayView = {
       setGameState,
@@ -68,11 +40,21 @@ const Gameplay: React.FC = () => {
       showAlert: (msg: string) => alert(msg),
     };
 
-    const newPresenter = new GameplayPresenter(view, gameId || "");
-    setPresenter(newPresenter);
+    const presenter =
+      new GameplayPresenter(view, gameId);
 
-    return () => newPresenter.destroy();
+    presenterRef.current = presenter;
+
+    return () => {
+
+      presenter.destroy();
+
+      presenterRef.current = null;
+    };
+
   }, [gameId]);
+
+  const presenter = presenterRef.current;
 
   if (!gameState || !presenter) return <div>Loading...</div>;
 

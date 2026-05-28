@@ -223,8 +223,8 @@ class Game:
     # ==========================================
 
     def handle_chat(self, user_id, data):
+
         content = data.get('content')
-        # Default to global chat if no target
         to_id = data.get('to_id', 'GLOBAL')
 
         chat_msg = ChatMessage(
@@ -234,21 +234,27 @@ class Game:
             content=content,
             timestamp=time.time()
         )
+
         self.chat_messages.append(chat_msg)
 
-        # Log for research timeline
         sender = self.players.get(user_id)
-        if sender:
-            sender.add_timeline_event("SENT_CHAT", chat_msg.__dict__)
 
-        # Log for specific recipient if it was a DM
+        if sender:
+            sender.add_timeline_event(
+                "SENT_CHAT",
+                chat_msg.__dict__
+            )
+
         if to_id != 'GLOBAL':
             recipient = self.players.get(to_id)
+
             if recipient and recipient != sender:
                 recipient.add_timeline_event(
-                    "RECEIVED_CHAT", chat_msg.__dict__)
+                    "RECEIVED_CHAT",
+                    chat_msg.__dict__
+                )
 
-        return True
+        return chat_msg
 
     def handle_action(self, user_id, data):
         # Any logical checks for player action handling should go in
@@ -278,3 +284,22 @@ class Game:
 
     def get_state_for_player(self, session_id):
         return build_player_state(self, session_id)
+    
+    def get_global_chat_history(self):
+        return [
+            msg.to_dict()
+            for msg in self.chat_messages
+            if msg.to_id == "GLOBAL"
+        ]
+
+
+    def get_private_chat_history(self, player_id):
+        return [
+            msg.to_dict()
+            for msg in self.chat_messages
+            if (
+                msg.to_id == player_id
+                or msg.from_id == player_id
+                or msg.to_id == "GLOBAL"
+            )
+        ]

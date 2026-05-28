@@ -39,6 +39,7 @@ export class GameplayPresenter extends Presenter<GameplayView> {
 
     // Instantiate a fresh service per game session
     this.service = new GameplayService();
+    this.service.connect();
 
     this.init();
   }

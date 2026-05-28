@@ -64,8 +64,46 @@ async def process_game_event(
         )
 
     elif event == 'send_chat':
-        if game.handle_chat(user_id, payload):
-            await manager.broadcast_game_state(game_id, game)
+
+        new_message = game.handle_chat(user_id, payload)
+
+        if new_message:
+
+            message_dict = new_message.to_dict()
+
+            # GLOBAL CHAT
+            if new_message.to_id == "GLOBAL":
+
+                await manager.broadcast_to_game(
+                    {
+                        "event": "new_chat_message",
+                        "data": message_dict
+                    },
+                    game_id
+                )
+
+            # PRIVATE CHAT
+            else:
+
+                # sender
+                await manager.send_personal_message(
+                    {
+                        "event": "new_chat_message",
+                        "data": message_dict
+                    },
+                    game_id,
+                    new_message.from_id
+                )
+
+                # recipient
+                await manager.send_personal_message(
+                    {
+                        "event": "new_chat_message",
+                        "data": message_dict
+                    },
+                    game_id,
+                    new_message.to_id
+                )
 
     elif event == 'submit_action':
         if game.handle_action(user_id, payload):
@@ -92,31 +130,104 @@ async def websocket_endpoint(websocket: WebSocket):
 
     try:
         while True:
-            # Using receive_json() matches the stringified payload
+
             packet = await websocket.receive_json()
+
             event = packet.get("event")
             payload = packet.get("data", {})
 
             if event == "join_room":
+
                 user_id = payload.get("userId")
                 game_id = payload.get("gameId")
 
-                await manager.connect(websocket, game_id, user_id)
+                game = active_games.get(game_id)
+                game.add_player(user_id)
+
+                if not game:
+
+                    await websocket.send_json({
+                        "event": "error",
+                        "data": {
+                            "message": "Game not found."
+                        }
+                    })
+
+                    continue
+
+                await manager.connect(
+                    websocket,
+                    game_id,
+                    user_id
+                )
+
+                # -----------------------------------
+                # INITIAL CHAT HISTORY
+                # -----------------------------------
+
+                await manager.send_personal_message(
+                    {
+                        "event": "chat_history",
+                        "data": game.get_private_chat_history(user_id)
+                    },
+                    game_id,
+                    user_id
+                )
+
+                # -----------------------------------
+                # INITIAL GAME STATE
+                # -----------------------------------
+
+                await manager.send_personal_message(
+                    {
+                        "event": "game_state",
+                        "data": game.get_state_for_player(user_id)
+                    },
+                    game_id,
+                    user_id
+                )
+
+                # -----------------------------------
+                # ROOM COUNT UPDATE
+                # -----------------------------------
+
+                await manager.broadcast_to_game(
+                    {
+                        "event": "room_update",
+                        "data": {
+                            "player_count": len(game.players)
+                        }
+                    },
+                    game_id
+                )
+
                 print(f"✅ Player {user_id} joined game {game_id}")
 
-            # Process gameplay actions if the user is in a room
+            # ---------------------------------------
+            # NORMAL GAME EVENTS
+            # ---------------------------------------
+
             elif game_id and user_id:
+
                 game = active_games.get(game_id)
+
                 if not game:
                     continue
 
-                # Pass the event off to our helper function
                 await process_game_event(
-                    event, payload, game_id, user_id, game
+                    event,
+                    payload,
+                    game_id,
+                    user_id,
+                    game
                 )
 
     except WebSocketDisconnect:
-        # Safely disconnect ONLY if the user_id and game_id were assigned
+
         if game_id and user_id:
+
             manager.disconnect(game_id, user_id)
-            print(f"❌ Player {user_id} disconnected from {game_id}")
+
+            print(
+                f"❌ Player {user_id} disconnected from {game_id}"
+            )
