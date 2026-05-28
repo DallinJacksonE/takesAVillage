@@ -145,6 +145,27 @@ class InMemoryDB(DatabaseProvider):
             self.visualizations[game_id] = {}
         self.visualizations[game_id][plot_name] = buf.read()
 
+    def store_player_snapshot(
+        self,
+        game_id,
+        day_num,
+        phase,
+        player
+    ):
+        pass
+
+
+    def store_work_snapshot(self, snapshot):
+        pass
+
+
+    def store_trade_snapshot(self, snapshot):
+        pass
+
+
+    def store_night_snapshot(self, snapshot):
+        pass
+
 
 # --- 3. The MySQL Provider (Prod) ---
 
