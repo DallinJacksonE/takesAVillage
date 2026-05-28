@@ -35,8 +35,7 @@ app.use('/api', createProxyMiddleware({
   }
 }));
 
-// Proxy Socket.IO with forced visibility
-app.use('/socket.io', createProxyMiddleware({
+app.use('/ws', createProxyMiddleware({
   target: 'http://backend:5000',
   ws: true,
   changeOrigin: true,
@@ -44,10 +43,8 @@ app.use('/socket.io', createProxyMiddleware({
   logger: console
 }));
 
-// Serve Vite static files
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Catch-all route to serve index.html for React Router
 app.get(/(.*)/, (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
