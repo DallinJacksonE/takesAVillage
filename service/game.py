@@ -110,7 +110,7 @@ class Game:
             self.next_phase()
 
     def next_phase(self):
-        
+
         # GAME SNAPSHOTS
         game_snapshot = build_game_snapshot(self)
 
@@ -145,7 +145,7 @@ class Game:
 
                 db.store_trade_snapshot(snapshot)
                 player.trade_history = []
-                
+
             elif self.phase == "NIGHT":
 
                 snapshot = build_night_snapshot(
@@ -163,7 +163,7 @@ class Game:
             self.start_phase('NIGHT')
 
         elif self.phase == 'NIGHT':
-            
+
             self.resolve_night_phase()
             self.day += 1
             self.start_phase('WORK')
