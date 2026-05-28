@@ -144,7 +144,8 @@ class Game:
                 )
 
                 db.store_trade_snapshot(snapshot)
-
+                player.trade_history = []
+                
             elif self.phase == "NIGHT":
 
                 snapshot = build_night_snapshot(

@@ -28,7 +28,6 @@ def build_player_state(game, session_id):
         "player_list": player_list,
         "map": map_dto,
         "developments": development_list,
-        "chat_messages": [msg.to_dict() for msg in game.chat_messages],
         "development_costs": game.rules.DEVELOPMENT_COSTS,
         "max_fire_seats": game.rules.MAX_FIRE_SEATS,
         "campfire_cost": game.rules.CAMPFIRE_COST,

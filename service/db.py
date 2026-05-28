@@ -55,7 +55,13 @@ class DatabaseProvider(ABC):
         pass
 
     @abstractmethod
-    def store_game_result(self, game_id: str, game_data_json: str):
+    def store_game_result(
+        self,
+        game_id: str,
+        day_num: int,
+        phase: str,
+        snapshot_json: str
+    ):
         pass
 
     @abstractmethod
@@ -64,6 +70,28 @@ class DatabaseProvider(ABC):
 
     @abstractmethod
     def store_visualization(self, game_id: str, plot_name: str, figure):
+        pass
+
+    @abstractmethod
+    def store_player_snapshot(
+        self,
+        game_id,
+        day_num,
+        phase,
+        player
+    ):
+        pass
+
+    @abstractmethod
+    def store_work_snapshot(self, snapshot):
+        pass
+
+    @abstractmethod
+    def store_trade_snapshot(self, snapshot):
+        pass
+
+    @abstractmethod
+    def store_night_snapshot(self, snapshot):
         pass
 
 
@@ -88,12 +116,19 @@ class InMemoryDB(DatabaseProvider):
     def initialize_database(self):
         print("✅ InMemoryDB ready. (Note: Data wipes on container restart)")
 
-    def store_game_result(self, map_hist, player_hist):
-        # Convert JSON string to dict for storage to mimic how MySQL handles JSON columns
+    def store_game_result(
+        self,
+        game_id: str,
+        day_num: int,
+        phase: str,
+        snapshot_json: str
+    ):
         self.history.append({
-            "map_data": map_hist,
-            "player_data": player_hist,
-            "finished_at": datetime.now()
+            "game_id": game_id,
+            "day_num": day_num,
+            "phase": phase,
+            "data": json.loads(snapshot_json),
+            "created_at": datetime.now()
         })
         # print(self.history)
 
