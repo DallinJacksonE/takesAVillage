@@ -1,10 +1,7 @@
-//Where the websocket connection with the backend should be defined with base functionality for the presenter to use to build gameplay functionality
-//
-import { io, Socket } from "socket.io-client";
 import { GameStateDTO, GameActionPayload } from "../../../dtos";
 
 export class GameplayService {
-  private socket: Socket;
+  private socket: WebSocket;
 
   // Callback references
   private _onGameState?: (state: GameStateDTO) => void;
@@ -13,11 +10,12 @@ export class GameplayService {
   private _onError?: (message: string) => void;
 
   constructor() {
-    // Instantiate a new socket connection per game session
-    this.socket = io({
-      path: "/socket.io",
-      transports: ["websocket", "polling"],
-    });
+    // Dynamically grab the frontend's current protocol and host (e.g., localhost:5173)
+    // This routes the WS handshake perfectly through the Vite proxy with cookies attached
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const host = window.location.host;
+
+    this.socket = new WebSocket(`${protocol}//${host}/ws`);
 
     this.setupListeners();
   }
@@ -26,21 +24,36 @@ export class GameplayService {
    * Binds the incoming socket events to our internal callback references.
    */
   private setupListeners() {
-    this.socket.on("room_update", (data: { player_count: number }) => {
-      if (this._onPlayerCount) this._onPlayerCount(data.player_count);
-    });
+    this.socket.onopen = () => {
+      console.log("🔌 Native WebSocket Connected!");
+    };
 
-    this.socket.on("game_state", (data: GameStateDTO) => {
-      if (this._onGameState) this._onGameState(data);
-    });
+    this.socket.onmessage = (event) => {
+      // Parse the raw string from FastAPI back into a JSON object
+      const payload = JSON.parse(event.data);
 
-    this.socket.on("game_started", () => {
-      if (this._onGameStarted) this._onGameStarted();
-    });
+      // Route the data based on the 'event' key we established in the backend
+      switch (payload.event) {
+        case "room_update":
+          if (this._onPlayerCount) this._onPlayerCount(payload.data.player_count);
+          break;
+        case "game_state":
+          if (this._onGameState) this._onGameState(payload.data);
+          break;
+        case "game_started":
+          if (this._onGameStarted) this._onGameStarted();
+          break;
+        case "error":
+          if (this._onError) this._onError(payload.data.message);
+          break;
+        default:
+          console.warn("Unknown WebSocket event received:", payload.event);
+      }
+    };
 
-    this.socket.on("error", (data: { message: string }) => {
-      if (this._onError) this._onError(data.message);
-    });
+    this.socket.onerror = (error) => {
+      console.error("WebSocket Error:", error);
+    };
   }
 
   // --------------------------------------------------------
@@ -64,23 +77,45 @@ export class GameplayService {
   }
 
   // --------------------------------------------------------
-  // Outgoing Emits
+  // Outgoing Emits (Native JSON Wrapper)
   // --------------------------------------------------------
 
+  /**
+   * Emulates the old Socket.io emit behavior by packaging the event name
+   * and data into a single stringified JSON payload.
+   */
+  private emit(eventName: string, data: any) {
+    const payload = JSON.stringify({ event: eventName, data: data });
+
+    if (this.socket.readyState === WebSocket.OPEN) {
+      // Send immediately if the pipe is ready
+      this.socket.send(payload);
+    } else if (this.socket.readyState === WebSocket.CONNECTING) {
+      // If still handshaking, queue the message to fire the exact millisecond it opens
+      this.socket.addEventListener("open", () => {
+        this.socket.send(payload);
+      });
+    } else {
+      console.warn(`WebSocket is closed. Dropping event: ${eventName}`);
+    }
+  }
+
   public joinRoom(gameId: string, userId: string) {
-    this.socket.emit("join_room", { gameId, userId });
+    // Because emit is now globally protected from race conditions, 
+    // we can safely fire this directly!
+    this.emit("join_room", { gameId, userId });
   }
 
   public startGame(gameId: string, userId: string) {
-    this.socket.emit("start_game_request", { gameId, userId });
+    this.emit("start_game_request", { gameId, userId });
   }
 
   public requestUpdate(gameId: string, userId: string) {
-    this.socket.emit("request_update", { gameId, userId });
+    this.emit("request_update", { gameId, userId });
   }
 
   public sendChat(gameId: string, userId: string, content: string, toId: string) {
-    this.socket.emit("send_chat", {
+    this.emit("send_chat", {
       gameId,
       userId,
       content,
@@ -92,7 +127,7 @@ export class GameplayService {
    * The standardized envelope dispatcher.
    */
   public submitAction(payload: GameActionPayload) {
-    this.socket.emit("submit_action", payload);
+    this.emit("submit_action", payload);
   }
 
   // --------------------------------------------------------
@@ -100,10 +135,6 @@ export class GameplayService {
   // --------------------------------------------------------
 
   public destroy() {
-    this.socket.off("room_update");
-    this.socket.off("game_state");
-    this.socket.off("game_started");
-    this.socket.off("error");
-    this.socket.disconnect(); // Fully sever the connection
+    this.socket.close(); // Cleanly close the native connection
   }
 }

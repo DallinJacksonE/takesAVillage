@@ -13,7 +13,7 @@ export default defineConfig({
         secure: false,
       },
       // Proxy WebSocket requests (Socket.IO) to Flask
-      '/socket.io': {
+      '/ws': {
         target: 'http://localhost:5000/',
         changeOrigin: true,
         ws: true, // Important for WebSockets!

@@ -1,6 +1,7 @@
 import os
 import json
 import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -8,7 +9,14 @@ from api import api_router
 from sockets import ws_router, manager
 from game_manager import game_loop
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Start the game loop and pass it the websocket manager on startup
+    asyncio.create_task(game_loop(manager))
+    yield  # App runs while paused here
+
+app = FastAPI(lifespan=lifespan)
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(base_dir, 'config.json')
@@ -32,11 +40,3 @@ app.add_middleware(
 # Register HTTP and WebSocket routes
 app.include_router(api_router)
 app.include_router(ws_router)
-
-
-@app.on_event("startup")
-async def startup_event():
-    # Start the game loop and pass it the websocket manager
-    asyncio.create_task(game_loop(manager))
-
-# To run: uvicorn main:app --host 0.0.0.0 --port 5000 --reload
