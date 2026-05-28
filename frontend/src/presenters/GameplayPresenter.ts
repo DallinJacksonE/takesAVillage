@@ -12,7 +12,8 @@ import {
   DraftEmploymentPayload,
   DraftCampfirePayload,
   ContractActionPayload,
-  CommitWorkPayload
+  CommitWorkPayload,
+  ChatMessageDTO
 } from "../../../dtos";
 import { Presenter } from "./Presenter";
 import { View } from "./View";
@@ -24,6 +25,9 @@ export interface GameplayView extends View {
   setTimeLeft(timeLeft: number): void;
   setUserId(userId: string): void;
   showAlert(message: string): void;
+
+  setChatHistory(messages: ChatMessageDTO[]): void;
+  addChatMessage(message: ChatMessageDTO): void;
 }
 
 export class GameplayPresenter extends Presenter<GameplayView> {
@@ -60,6 +64,14 @@ export class GameplayPresenter extends Presenter<GameplayView> {
       this.timeLeft = state.time_remaining;
       this._view.setGameState(state);
       this._view.setTimeLeft(state.time_remaining);
+    });
+
+    this.service.setOnChatHistory((msgs) => {
+      this._view.setChatHistory(msgs);
+    });
+
+    this.service.setOnNewChatMessage((msg) => {
+      this._view.addChatMessage(msg);
     });
 
     this.service.setOnGameStarted(() => {

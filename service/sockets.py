@@ -142,7 +142,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 game_id = payload.get("gameId")
 
                 game = active_games.get(game_id)
-                game.add_player(user_id)
 
                 if not game:
 
@@ -154,6 +153,8 @@ async def websocket_endpoint(websocket: WebSocket):
                     })
 
                     continue
+
+                game.add_player(user_id)
 
                 await manager.connect(
                     websocket,

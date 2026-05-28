@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import VillageMap from "../components/VillageMap";
-import { GameStateDTO } from "../../../dtos";
+import { GameStateDTO, ChatMessageDTO } from "../../../dtos";
 import { PlayerProvider } from "../components/hooks/usePlayerName";
 import {
   GameplayPresenter,
@@ -27,6 +27,7 @@ const Gameplay: React.FC = () => {
   const [playerCount, setPlayerCount] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [userId, setUserId] = useState("");
+  const [messages, setMessages] = useState<ChatMessageDTO[]>([]);
 
   useEffect(() => {
 
@@ -38,6 +39,10 @@ const Gameplay: React.FC = () => {
       setTimeLeft,
       setUserId,
       showAlert: (msg: string) => alert(msg),
+
+      setChatHistory: setMessages,
+      addChatMessage: (msg: ChatMessageDTO) =>
+        setMessages(prev => [...prev, msg]),
     };
 
     const presenter =
@@ -247,7 +252,7 @@ const Gameplay: React.FC = () => {
               <div style={{ display: "flex", flexDirection: "column", gap: "20px", minWidth: 0 }}>
                 <PlayerRoster />
                 <TabbedCommunicator
-                  messages={gameState.chat_messages as any}
+                  messages={messages}
                   playerId={userId}
                   players={gameState.player_list}
                   onSend={(content: string, toId: string) => presenter.sendChat(content, toId)}

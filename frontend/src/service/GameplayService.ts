@@ -19,9 +19,7 @@ export class GameplayService {
   private _onGameStarted?: () => void;
   private _onError?: (message: string) => void;
 
-  constructor() {
-    this.setupListeners();
-  }
+  constructor() { }
 
   // --------------------------------------------------------
   // LISTENERS
@@ -34,8 +32,11 @@ export class GameplayService {
     };
 
     this.socket.onmessage = (event) => {
+      console.log("RAW MESSAGE:", event.data);
 
       const payload = JSON.parse(event.data);
+
+      console.log("PARSED:", payload);
 
       switch (payload.event) {
 
@@ -87,6 +88,7 @@ export class GameplayService {
     const host = window.location.host;
 
     this.socket = new WebSocket(`${protocol}//${host}/ws`);
+    this.setupListeners();
   }
   public setOnChatHistory(
     callback: (messages: ChatMessageDTO[]) => void
