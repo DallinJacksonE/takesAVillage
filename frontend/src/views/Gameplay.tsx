@@ -144,7 +144,7 @@ const Gameplay: React.FC = () => {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                alignItems: "center",
+                alignItems: "flex-start",
                 marginBottom: "20px",
                 gap: "8px"
               }}
@@ -152,6 +152,35 @@ const Gameplay: React.FC = () => {
               <h2 style={{ margin: 0, fontSize: '1.8rem' }}>
                 Village: {gameId}{" "}
                 <PlayerInfo playerId={gameState.me.id} />
+
+                <span
+                  style={{
+                    marginLeft: 8,
+                    padding: "2px 8px",
+                    borderRadius: 12,
+                    fontSize: "0.75rem",
+                    color: "white",
+                    minWidth: 140,
+                    display: "inline-flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    background:
+                      gameState.phase === "WORK"
+                        ? gameState.me.finished_phase
+                          ? "#2e7d32"
+                          : "#6c757d"
+                        : "#444",
+                    opacity: gameState.phase === "WORK" ? 1 : 0,
+                    transition: "opacity 0.2s ease, background 0.2s ease",
+                    pointerEvents: "none"
+                  }}
+                >
+                  {gameState.phase === "WORK"
+                    ? gameState.me.finished_phase
+                      ? "Action Locked In ✓"
+                      : "! Action Available !"
+                    : ""}
+                </span>
               </h2>
 
               <div style={{ fontSize: "1.3rem" }}>
