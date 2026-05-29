@@ -7,6 +7,7 @@ import {
   GameplayPresenter,
   GameplayView,
 } from "../presenters/GameplayPresenter";
+import InfoTooltip from "../components/InfoTooltip"
 import PlayerStatusCard from "../components/PlayerStatusCard";
 import DevelopmentsCard from "../components/DevelopmentsCard";
 import AvailableWorkCard from "../components/AvailableWorkCard";
@@ -28,6 +29,18 @@ const Gameplay: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [userId, setUserId] = useState("");
   const [messages, setMessages] = useState<ChatMessageDTO[]>([]);
+  const getPhaseTooltip = (phase: string) => {
+    switch (phase) {
+      case "WORK":
+        return "Work phase: build developments, work them, hire others, and prepare to feed yourself and stay warm. Working for others gives them the resources and they promise to give back the desired wage during the trade phase";
+      case "TRADE":
+        return "Trade phase: negotiate deals, exchange resources, and finalize contracts. Will you be honest to build your reputation or lie for profit?";
+      case "NIGHT":
+        return "Night phase: Get fire by either starting your own or sitting at someone else's. Fire seats can be traded too during the trade phase! Eat and stay warm to minimize sickness chance.";
+      default:
+        return "";
+    }
+  };
 
   useEffect(() => {
 
@@ -127,11 +140,40 @@ const Gameplay: React.FC = () => {
         <PlayerColorProvider gameState={gameState}>
           <PlayerProvider players={gameState.player_list}>
             {/* --- HEADER --- */}
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
-              <h2>Village: {gameId} <PlayerInfo playerId={gameState.me.id} /></h2>
-              <div>
-                <strong>Day {gameState.day}</strong> | Phase: {gameState.phase} | Time:{" "}
-                {timeLeft}s
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                marginBottom: "20px",
+                gap: "8px"
+              }}
+            >
+              <h2 style={{ margin: 0, fontSize: '1.8rem' }}>
+                Village: {gameId}{" "}
+                <PlayerInfo playerId={gameState.me.id} />
+              </h2>
+
+              <div style={{ fontSize: "1.3rem" }}>
+                <strong>Day {gameState.day}</strong>
+                {" | "}
+                <InfoTooltip infoText={getPhaseTooltip(gameState.phase)}>
+                  <span style={{ textDecoration: "underline", fontWeight: 600, cursor: "help", color: "white" }}>
+                    Phase: {gameState.phase}
+                  </span>
+                </InfoTooltip>
+                {" | "}
+                Time:{" "}
+
+                <span
+                  style={{
+                    color: timeLeft <= 20 ? "#8d1216" : "inherit",
+                    fontWeight: timeLeft <= 20 ? "bold" : "normal",
+                    transition: "color 0.3s ease"
+                  }}
+                >
+                  {timeLeft}s
+                </span>
               </div>
             </div>
 

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useEffect, useRef } from "react";
 import { MapTileDTO, DevelopmentCostsDict } from "../../../dtos/index";
 import { usePlayerName } from "./hooks/usePlayerName";
 import PlayerInfo from "./PlayerInfo";
@@ -24,6 +25,24 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [scale, setScale] = useState(1);
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const stopScroll = (e: WheelEvent) => {
+      e.preventDefault();
+    };
+
+    el.addEventListener("wheel", stopScroll, { passive: false });
+
+    return () => {
+      el.removeEventListener("wheel", stopScroll);
+    };
+  }, []);
 
   // Correct Pointy-Topped Hex Math
   const HEX_SIZE = 38;
@@ -96,8 +115,19 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
   };
   const handleMouseUp = () => setIsDragging(false);
 
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    setScale((prev) => {
+      const next = prev - e.deltaY * 0.001;
+      return Math.min(Math.max(next, 0.5), 2.5);
+    });
+  };
+
   return (
     <div
+      ref={containerRef}
       className="card card-map_background"
       style={{
         width: "100%",
@@ -113,6 +143,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onWheel={handleWheel}
       onClick={() => setSelectedTile(null)}
     >
       <div
@@ -120,7 +151,11 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
           position: "absolute",
           top: "50%",
           left: "50%",
-          transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
+          transform: `
+            translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))
+            scale(${scale})
+          `,
+          transformOrigin: "center center",
         }}
       >
         {Object.values(mapData).map((tile) => {

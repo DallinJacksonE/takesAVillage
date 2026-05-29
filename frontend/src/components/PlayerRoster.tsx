@@ -14,7 +14,7 @@ const PlayerRoster = () => {
     <div className="card">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "left", gap: "8px", marginBottom: "1em" }}>
         <h3 style={{ margin: 0 }}>Village Roster</h3>
-        <span style={{ color: "var(--light_grey)" }}>
+        <span style={{ color: '"var(--light_grey)"' }}>
           <InfoTooltip displayText={"ⓘ"} infoText={villageRosterInfoText} />
         </span>
       </div>

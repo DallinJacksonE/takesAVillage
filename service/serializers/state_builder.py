@@ -31,7 +31,10 @@ def build_player_state(game, session_id):
         "development_costs": game.rules.DEVELOPMENT_COSTS,
         "max_fire_seats": game.rules.MAX_FIRE_SEATS,
         "campfire_cost": game.rules.CAMPFIRE_COST,
-        "session_id": session_id
+        "session_id": session_id,
+        "cold_sickness_rate": float(game.rules.COLD_SICKNESS_INCREASE),
+        "hunger_sickness_rate": float(game.rules.HUNGER_SICKNESS_INCREASE),
+        "recovery_rate": float(game.rules.RECOVERY_RATE),
     }
     # print(f"-------State_Builder-------\n"
     #      f"player: {state_dto['me']}")

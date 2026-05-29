@@ -10,10 +10,12 @@ const PlayerStatusCard: React.FC = () => {
   const woodInfoText = "Wood is used for lighting fires to keep warm and building/maintaining/upgrading developments"
   const foodInfoText = "1 food is eaten every day and used for building/maintaining/upgrading developments"
   const ironInfoText = "Iron is used for building/maintaining/upgrading developments, very valuable to development owners!"
-  const healthInfoText = "Chance you get sick during the night, goes up if you don't eat or stay warm. Being sick means you can't work."
+  const sicknesschanceInfoText =
+    `Chance you get sick during the night (Hunger: +${((gameState?.hunger_sickness_rate ?? 0) * 100).toFixed(0)}%, Cold: +${((gameState?.cold_sickness_rate ?? 0) * 100).toFixed(0)}%). Your chance drops ${((gameState?.recovery_rate ?? 0) * 100).toFixed(0)}% upon both eating and being warm at night. Being sick/recovering means you can't work.`;
   const healthStateTextHealthy = "You are good! Keep eating and staying warm to have a low sickness chance."
   const healthStateTextRecovering = "You are recovering! Keep eating and staying warm to get healthy tomorrow."
-  const healthStateTextSick = "You are sick! If you don't eat and stay warm and get sick again, you will die."
+  const healthStateTextSick = "You are sick! If you don't eat and stay warm and get sick again, you will die. Eating and staying warm gurantees recovery with time"
+  const healthInfoText = "You can't work or contest developments when sick or recovering!"
 
   const getHealthTooltipText = (health: string) => {
     switch (health) {
@@ -106,8 +108,8 @@ const PlayerStatusCard: React.FC = () => {
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <p style={{ margin: 0 }}>
               <InfoTooltip
-                displayText={`Sickness: ${((me.sickness_chance || 0) * 100).toFixed(0)}%`}
-                infoText={healthInfoText}
+                displayText={`Sickness Chance: ${((me.sickness_chance || 0) * 100).toFixed(0)}%`}
+                infoText={sicknesschanceInfoText}
               />
 
             </p>

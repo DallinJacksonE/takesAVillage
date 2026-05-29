@@ -246,6 +246,9 @@ export interface GameStateDTO {
   max_fire_seats: number;
   campfire_cost: ResourceBundle;
   session_id?: string;
+  cold_sickness_rate: number;
+  recovery_rate: number;
+  hunger_sickness_rate: number;
 }
 
 // --- Network & Lobby DTOs ---
