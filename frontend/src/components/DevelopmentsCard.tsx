@@ -103,7 +103,7 @@ const DevelopmentsCard: React.FC<Props> = ({
           </span>
         </div>
         {hydratedMe.developments.length === 0 ? (
-          <p style={{ color: "#888", fontStyle: "italic", fontSize: "0.85rem" }}>You own no land, click a hex on the map to build!</p>
+          <p style={{ fontSize: "0.85rem", color: "#666", marginTop: "5px", padding: "8px", background: "#f1f8e9", borderRadius: "4px" }}>You own no land, click a hex on the map to build!</p>
         ) : (
           hydratedMe.developments.map((dev) => {
             const pendingApplications = employmentActions.filter(
