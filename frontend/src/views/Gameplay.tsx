@@ -262,18 +262,37 @@ const Gameplay: React.FC = () => {
                 )}
 
                 {/* LEFT: Small End Phase Sidebar */}
-                {/* LEFT: Small End Phase Sidebar */}
                 <div
                   style={{
-                    width: "100%",
                     display: "flex",
-                    flexDirection: "column",
                     gap: "12px",
                     position: "sticky",
                     top: "20px",
-                    boxSizing: "border-box" /* Added to contain width */
+                    width: "100%",
+                    alignItems: "flex-start"
                   }}
                 >
+                  <div
+                    className="card"
+                    style={{
+                      backgroundColor: "var(--medium_honey)",
+                      flex: 1,
+                      minWidth: 0,
+                      boxSizing: "border-box",
+                      overflow: "hidden"
+                    }}
+                  >
+                    <h3 style={{ marginTop: 0 }}>Village Map</h3>
+
+                    <VillageMap
+                      mapData={gameState.map}
+                      playerId={userId}
+                      development_costs={gameState.development_costs}
+                      onBuild={(tileId) =>
+                        presenter.buildDevelopment(tileId)
+                      }
+                    />
+                  </div>
                   {!gameState.me.finished_phase ? (
                     <div
                       className="card card-finish_phase"
@@ -281,8 +300,8 @@ const Gameplay: React.FC = () => {
                         color: "white",
                         textAlign: "center",
                         padding: "12px",
-                        width: "100%",
-                        boxSizing: "border-box" /* Added to contain padding */
+                        flex: "0 0 220px",
+                        boxSizing: "border-box"
                       }}
                     >
                       <button
@@ -291,7 +310,7 @@ const Gameplay: React.FC = () => {
                           width: "100%",
                           fontSize: "0.9rem",
                           padding: "10px",
-                          boxSizing: "border-box" /* Added to contain padding */
+                          boxSizing: "border-box"
                         }}
                         onClick={() => presenter.finishPhase()}
                       >
@@ -307,7 +326,7 @@ const Gameplay: React.FC = () => {
                         textAlign: "center",
                         fontSize: "0.9rem",
                         padding: "12px",
-                        width: "100%",
+                        flex: "0 0 220px",
                         boxSizing: "border-box"
                       }}
                     >
@@ -328,28 +347,6 @@ const Gameplay: React.FC = () => {
                   players={gameState.player_list}
                   onSend={(content: string, toId: string) => presenter.sendChat(content, toId)}
                 />
-                {/* RIGHT: Large Map Area */}
-                <div
-                  className="card"
-                  style={{
-                    backgroundColor: "var(--medium_honey)",
-                    width: "100%",
-                    minWidth: 0,
-                    boxSizing: "border-box",
-                    overflow: "hidden"
-                  }}
-                >
-                  <h3 style={{ marginTop: 0 }}>Village Map</h3>
-
-                  <VillageMap
-                    mapData={gameState.map}
-                    playerId={userId}
-                    development_costs={gameState.development_costs}
-                    onBuild={(tileId) =>
-                      presenter.buildDevelopment(tileId)
-                    }
-                  />
-                </div>
               </div>
             </div>
 
