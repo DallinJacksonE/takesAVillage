@@ -86,7 +86,7 @@ const DevelopmentsCard: React.FC<Props> = ({
       p.developments.map((dev) => ({ ...dev, owner_id: p.id }))
     );
 
-  const propertiesInfoText = "These are your developments, you can choose to spend your work phase at one of them or spend it upgrading or maintaining it."
+  const propertiesInfoText = "These are your developments, you can choose to spend your work phase at one of them or spend it upgrading or maintaining it. To build a development, click a hex on the map!"
   const maintenanceInfoText = "Level will decrease if maintenance is at 0, level is amount of resources generated per employed person."
   const upgradeInfoText = "Increase the level and resource output by 1."
   const villageDevelopmentsInfoText = "Other village developments, send an application to work there and request a wage, or contest ownsership to takes the development for yourself."
@@ -103,7 +103,7 @@ const DevelopmentsCard: React.FC<Props> = ({
           </span>
         </div>
         {hydratedMe.developments.length === 0 ? (
-          <p style={{ color: "#888", fontStyle: "italic", fontSize: "0.85rem" }}>You own no land.</p>
+          <p style={{ color: "#888", fontStyle: "italic", fontSize: "0.85rem" }}>You own no land, click a hex on the map to build!</p>
         ) : (
           hydratedMe.developments.map((dev) => {
             const pendingApplications = employmentActions.filter(
@@ -186,13 +186,12 @@ const DevelopmentsCard: React.FC<Props> = ({
                               disabled={!dev.can_upgrade}
                             >
                               {dev.can_upgrade
-                                ? `Upgrade: ${
-                                    dev.upgrade_cost
-                                      ? Object.entries(dev.upgrade_cost)
-                                          .map(([resource, amount]) => `${amount} ${resource}`)
-                                          .join(", ")
-                                      : "Unknown Cost"
-                                  }`
+                                ? `Upgrade: ${dev.upgrade_cost
+                                  ? Object.entries(dev.upgrade_cost)
+                                    .map(([resource, amount]) => `${amount} ${resource}`)
+                                    .join(", ")
+                                  : "Unknown Cost"
+                                }`
                                 : "Max Level"}
                             </button>
                           </InfoTooltip>
@@ -261,7 +260,7 @@ const DevelopmentsCard: React.FC<Props> = ({
           </span>
         </div>
         {villageDevelopments.length === 0 ? (
-          <p style={{ color: "#888", fontStyle: "italic", fontSize: "0.85rem" }}>No other properties exist.</p>
+          <p style={{ color: "#888", fontStyle: "italic", fontSize: "0.85rem" }}>Nobody else has developed land yet.</p>
         ) : (
           villageDevelopments.map((dev) => {
             const isExpanded = expandedIds.has(dev.id);
