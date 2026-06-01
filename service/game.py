@@ -22,7 +22,7 @@ class Game:
     # ==========================================
     # INITIALIZATION & SETUP
     # ==========================================
-    def __init__(self, game_id, host_id, ruleset_name="default"):
+    def __init__(self, game_id, host_id, ruleset_name="default", training=False):
         self.id = game_id
         self.host_id = host_id
         self.status = 'WAITING'
@@ -63,6 +63,8 @@ class Game:
         # Histoty functions
         self.add_player_hist = add_player_hist
         self.add_map_hist = add_map_hist
+
+        self.training = training
 
     def add_player(self, session_id):
         if session_id not in self.players:
@@ -112,48 +114,49 @@ class Game:
     def next_phase(self):
 
         # GAME SNAPSHOTS
-        game_snapshot = build_game_snapshot(self)
+        if not self.training:
+            game_snapshot = build_game_snapshot(self)
 
-        db.store_game_result(
-            self.id,
-            self.day,
-            self.phase,
-            json.dumps(game_snapshot)
-        )
+            db.store_game_result(
+                self.id,
+                self.day,
+                self.phase,
+                json.dumps(game_snapshot)
+            )
 
         # -------------------------
         # PLAYER SNAPSHOTS
         # -------------------------
 
-        for player in self.players.values():
+            for player in self.players.values():
 
-            if self.phase == "WORK":
+                if self.phase == "WORK":
 
-                snapshot = build_work_snapshot(
-                    player,
-                    self
-                )
+                    snapshot = build_work_snapshot(
+                        player,
+                        self
+                    )
 
-                db.store_work_snapshot(snapshot)
+                    db.store_work_snapshot(snapshot)
 
-            elif self.phase == "TRADE":
+                elif self.phase == "TRADE":
 
-                snapshot = build_trade_snapshot(
-                    player,
-                    self
-                )
+                    snapshot = build_trade_snapshot(
+                        player,
+                        self
+                    )
 
-                db.store_trade_snapshot(snapshot)
-                player.trade_history = []
+                    db.store_trade_snapshot(snapshot)
+                    player.trade_history = []
 
-            elif self.phase == "NIGHT":
+                elif self.phase == "NIGHT":
 
-                snapshot = build_night_snapshot(
-                    player,
-                    self
-                )
+                    snapshot = build_night_snapshot(
+                        player,
+                        self
+                    )
 
-                db.store_night_snapshot(snapshot)
+                    db.store_night_snapshot(snapshot)
         if self.phase == 'WORK':
             self.resolve_work_phase()
             self.start_phase('TRADE')
@@ -303,3 +306,56 @@ class Game:
                 or msg.to_id == "GLOBAL"
             )
         ]
+    
+    def get_available_build_actions(self, player):
+
+        actions = []
+
+        for tile in self.map_data.values():
+
+            if tile.development:
+                continue
+
+            build_cost = self.development_costs.get(
+                tile.type,
+                {}
+            ).get("build", {})
+
+            affordable = all(
+                player.resources.get(resource, 0) >= amount
+                for resource, amount in build_cost.items()
+            )
+
+            if not affordable:
+                continue
+
+            actions.append({
+                "action_type": "BUILD",
+                "tile_id": tile.id,
+                "tile_type": tile.type,
+            })
+
+        return actions
+
+    def get_available_actions(self, player):
+
+        actions = []
+
+        if self.phase == "WORK":
+
+            actions.extend(
+                self.get_available_build_actions(player)
+            )
+
+            actions.extend(
+                player.available_work
+            )
+
+        elif self.phase == "TRADE":
+            pass
+
+        elif self.phase == "NIGHT":
+            pass
+
+        return actions
+
