@@ -9,15 +9,17 @@ def calculate_fitness(player, game):
     fitness = 0
 
     # survival
-    fitness += game.day * 500
+    fitness += game.day * 200
 
     # resources
     fitness += sum(
         player.resources.values()
-    )
+    ) * 25
 
-    # developments
-    fitness += len(player.developments) * 100
+    fitness += 100 *sum(
+        game.developments[dev_id].level
+        for dev_id in player.developments
+    )
 
     if player.health == "dead":
         fitness -= 2000

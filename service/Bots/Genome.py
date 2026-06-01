@@ -15,6 +15,11 @@ class Genome:
     build_farm_weight: float
     build_woods_weight: float
     build_mine_weight: float
+    upgrade_weight: float
+    maintain_weight: float
+    contest_weight: float
+    survival_weight: float
+    growth_weight: float
 
     @staticmethod
     def random():
@@ -26,7 +31,12 @@ class Genome:
             health_weight=random.uniform(-1, 1),
             build_farm_weight=random.uniform(-1, 1),
             build_woods_weight=random.uniform(-1, 1),
-            build_mine_weight=random.uniform(-1, 1)
+            build_mine_weight=random.uniform(-1, 1),
+            upgrade_weight=random.uniform(-1, 1),
+            maintain_weight=random.uniform(-1, 1),
+            contest_weight=random.uniform(-1, 1),
+            survival_weight=random.uniform(-1, 1),
+            growth_weight=random.uniform(-1, 1)
             )
 
     @staticmethod

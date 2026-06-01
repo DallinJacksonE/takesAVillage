@@ -38,9 +38,6 @@ class GeneticBot:
 
                 score += self.genome.build_farm_weight
 
-                if food < 2:
-                    score += 5
-
             elif tile_type == "Woods":
 
                 score += self.genome.build_woods_weight
@@ -55,30 +52,40 @@ class GeneticBot:
         # WORK ACTIONS
         # ------------------
 
-        wage = action["wage"]
+        elif action["action_type"] == "WORK":
+            wage = action["wage"]
 
-        if action["wage_type"] == "food":
+            if action["wage_type"] == "food":
 
-            score += (
-                wage
-                * self.genome.food_weight
-            )
+                score += (
+                    wage
+                    * self.genome.food_weight
+                )
 
-            if food == 0:
-                score += 10
+                if food == 0:
+                    score += 5
 
-        elif action["wage_type"] == "wood":
+                elif food == 1:
+                    score += 2
 
-            score += (
-                wage
-                * self.genome.wood_weight
-            )
+            elif action["wage_type"] == "wood":
 
-        elif action["wage_type"] == "iron":
+                score += (
+                    wage
+                    * self.genome.wood_weight
+                )
 
-            score += (
-                wage
-                * self.genome.iron_weight
-            )
+                if wood == 0:
+                    score += 3
+
+                elif wood == 1:
+                    score += 1
+
+            elif action["wage_type"] == "iron":
+
+                score += (
+                    wage
+                    * self.genome.iron_weight
+                )
 
         return score

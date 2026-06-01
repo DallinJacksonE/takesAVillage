@@ -336,6 +336,15 @@ class Game:
             })
 
         return actions
+    
+    def get_available_upgrade_actions(self, player):
+        pass
+
+    def get_available_maintenance_actions(self, player):
+        pass
+
+    def get_available_contest_actions(self, player):
+        pass
 
     def get_available_actions(self, player):
 
@@ -345,6 +354,18 @@ class Game:
 
             actions.extend(
                 self.get_available_build_actions(player)
+            )
+
+            actions.extend(
+                self.get_available_upgrade_actions(player)
+            )
+
+            actions.exend(
+                self.get_available_maintenance_actions(player)
+            )
+
+            actions.extend(
+                self.get_available_contest_actions(player)
             )
 
             actions.extend(
