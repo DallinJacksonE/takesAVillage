@@ -19,6 +19,11 @@ DEVELOPMENT_COSTS = {
     }
 }
 
+RESOURCE_COSTS = {
+    "Woods": "food",
+    "Farm": "wood"
+}
+
 
 MAX_DEVELOPMENT_LEVEL = 3
 MAINTENANCE_DAYS = 7
