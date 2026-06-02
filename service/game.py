@@ -113,7 +113,7 @@ class Game:
     def next_phase(self):
 
         # GAME SNAPSHOTS
-        if not self.training:
+        if not self.training and self.phase == "NIGHT":
             game_snapshot = build_game_snapshot(self)
 
             db.store_game_snapshot(
@@ -122,6 +122,8 @@ class Game:
                 self.phase,
                 json.dumps(game_snapshot)
             )
+            
+        if not self.training:
 
         # -------------------------
         # PLAYER SNAPSHOTS

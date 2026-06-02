@@ -29,39 +29,29 @@ def _safe_serialize(obj):
 
 
 def build_game_snapshot(game):
-
     return {
-        "snapshot_id": str(uuid.uuid4()),
-
-        "timestamp": time.time(),
-
         "game_id": game.id,
-
         "day": game.day,
 
-        "phase": game.phase,
-
-        "status": game.status,
-
         "players": {
-            session_id: _safe_serialize(player)
-            for session_id, player
-            in game.players.items()
+            pid: {
+                "health": p.health,
+                "resources": p.resources,
+                "sick": p.sickness_chance,
+                "devs": p.developments
+            }
+            for pid, p in game.players.items()
         },
 
-        "map": {
-            tile_id: _safe_serialize(tile)
-            for tile_id, tile
-            in game.map_data.items()
-        },
-
-        "developments": _safe_serialize(
-            game.developments
-        ),
-
-        "chat_messages": _safe_serialize(
-            game.chat_messages
-        )
+        "developments": {
+            dev_id: {
+                "level": dev.level,
+                "owner": dev.owner,
+                "maintenance": dev.maintenance_days,
+                "contested": dev.is_contested
+            }
+            for dev_id, dev in game.developments.items()
+        }
     }
 
 def build_player_snapshot(player, day):
@@ -82,10 +72,6 @@ def build_player_snapshot(player, day):
         # METADATA
         # ==========================================
         "day": int(day),
-
-        "snapshot_id": str(uuid.uuid4()),
-
-        "timestamp": time.time(),
 
         # ==========================================
         # PLAYER IDENTITY
