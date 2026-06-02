@@ -41,11 +41,17 @@ export class GameplayPresenter extends Presenter<GameplayView> {
     super(view);
     this.gameId = gameId;
 
-    // Instantiate a fresh service per game session
     this.service = new GameplayService();
-    this.service.connect();
 
+    // 1. Initialize all React state listeners FIRST
     this.init();
+
+    // 2. Connect, and ONLY join the room when the socket confirms it is open
+    this.service.connect(() => {
+      if (this.userId) {
+        this.service.joinRoom(this.gameId, this.userId);
+      }
+    });
   }
 
   private init() {
@@ -82,8 +88,6 @@ export class GameplayPresenter extends Presenter<GameplayView> {
       this._view.showAlert(message);
     });
 
-    // Connect to the room
-    this.service.joinRoom(this.gameId, this.userId);
 
     // Manage the local countdown timer
     const timer = setInterval(() => {
