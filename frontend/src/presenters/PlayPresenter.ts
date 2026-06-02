@@ -8,6 +8,9 @@ export interface PlayView extends View {
   setHasConsented(hasConsented: boolean): void;
   navigateToGame(gameId: string): void;
   showAlert(message: string): void;
+  // New UI controls for the modal
+  showNewGameModal(options: Record<string, Record<string, any>>): void;
+  hideNewGameModal(): void;
 }
 
 export class PlayPresenter extends Presenter<PlayView> {
@@ -49,10 +52,24 @@ export class PlayPresenter extends Presenter<PlayView> {
     this._view.setJoinableGames(activeGamesDTO.games);
   }
 
-  public async startNewGame() {
-    const newGame = await this.userService.newGame();
+  // Updated to trigger the modal sequence
+  public async getNewGameOptions() {
+    const response = await this.userService.newGameOptions();
+    if (response && response.options) {
+      this._view.showNewGameModal(response.options);
+    } else {
+      this._view.showAlert("Failed to load game rulesets from the server.");
+    }
+  }
+
+  // Updated to take the modal's configuration parameters
+  public async startNewGame(ruleset: string, botCount: number) {
+    const newGame = await this.userService.newGame(ruleset, botCount);
     if (newGame) {
+      this._view.hideNewGameModal();
       this._view.navigateToGame(newGame.gameId);
+    } else {
+      this._view.showAlert("Failed to start the game.");
     }
   }
 

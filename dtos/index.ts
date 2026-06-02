@@ -274,6 +274,10 @@ export interface NewGameDTO {
   gameId: string;
 }
 
+export interface NewGameOptionsDTO {
+  options: Record<string, Record<string, any>>;
+}
+
 export interface JoinGameDTO {
   gameId: string;
 }

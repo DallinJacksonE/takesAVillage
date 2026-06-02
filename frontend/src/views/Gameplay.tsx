@@ -293,46 +293,6 @@ const Gameplay: React.FC = () => {
                       }
                     />
                   </div>
-                  {!gameState.me.finished_phase ? (
-                    <div
-                      className="card card-finish_phase"
-                      style={{
-                        color: "white",
-                        textAlign: "center",
-                        padding: "12px",
-                        flex: "0 0 220px",
-                        boxSizing: "border-box"
-                      }}
-                    >
-                      <button
-                        className="btn"
-                        style={{
-                          width: "100%",
-                          fontSize: "0.9rem",
-                          padding: "10px",
-                          boxSizing: "border-box"
-                        }}
-                        onClick={() => presenter.finishPhase()}
-                      >
-                        {gameState.phase === "NIGHT"
-                          ? "End Day"
-                          : "End Phase"}
-                      </button>
-                    </div>
-                  ) : (
-                    <div
-                      className="card card-waiting"
-                      style={{
-                        textAlign: "center",
-                        fontSize: "0.9rem",
-                        padding: "12px",
-                        flex: "0 0 220px",
-                        boxSizing: "border-box"
-                      }}
-                    >
-                      Waiting For Others
-                    </div>
-                  )}
                 </div>
 
               </div>
@@ -347,6 +307,47 @@ const Gameplay: React.FC = () => {
                   players={gameState.player_list}
                   onSend={(content: string, toId: string) => presenter.sendChat(content, toId)}
                 />
+
+                {!gameState.me.finished_phase ? (
+                  <div
+                    className="card card-finish_phase"
+                    style={{
+                      color: "white",
+                      textAlign: "center",
+                      padding: "12px",
+                      boxSizing: "border-box"
+                    }}
+                  >
+                    <button
+                      className="btn"
+                      style={{
+                        width: "100%",
+                        fontSize: "0.9rem",
+                        padding: "10px",
+                        boxSizing: "border-box"
+                      }}
+                      onClick={() => presenter.finishPhase()}
+                    >
+                      {gameState.phase === "NIGHT"
+                        ? "End Day"
+                        : "End Phase"}
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className="card card-waiting"
+                    style={{
+                      textAlign: "center",
+                      fontSize: "0.9rem",
+                      padding: "12px",
+                      flex: "0 0 220px",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    Waiting For Others
+                  </div>
+                )}
+
               </div>
             </div>
 

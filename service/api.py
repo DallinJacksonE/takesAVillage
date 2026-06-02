@@ -1,11 +1,41 @@
 import uuid
 from fastapi import APIRouter, Response, Cookie, HTTPException
 from typing import Optional
-
+import ast
+from pathlib import Path
 from db import db
 from game_manager import active_games, create_game
 
 api_router = APIRouter()
+CONSTANTS_DIR = Path(__file__).parent / "constants"
+
+
+def parse_ruleset_file(filepath: Path) -> dict:
+    """Safely parses a Python file and extracts KEY = VALUE assignments."""
+    rules = {}
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            # Parse the file into an Abstract Syntax Tree
+            tree = ast.parse(f.read(), filename=filepath.name)
+
+        for node in tree.body:
+            # Look for assignment operations (e.g., KEY = VALUE)
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    # Ensure the target is a variable name
+                    if isinstance(target, ast.Name):
+                        try:
+                            # Safely evaluate the right side of the equals sign
+                            # This handles strings, numbers, booleans, lists, and dicts
+                            rules[target.id] = ast.literal_eval(node.value)
+                        except ValueError:
+                            # Skip complex expressions (like function calls or math operations)
+                            # since ast.literal_eval only evaluates python literals
+                            continue
+    except Exception as e:
+        print(f"Error parsing {filepath.name}: {e}")
+
+    return rules
 
 
 @api_router.get('/api/verifySession')
@@ -72,6 +102,28 @@ async def new_game(user_session: Optional[str] = Cookie(None)):
 
     game_id = create_game(user_session)
     return {"gameId": game_id}
+
+
+@api_router.get('/api/newGame')
+async def new_game_options(user_session: Optional[str] = Cookie(None)):
+    if not user_session or not db.user_exists(user_session):
+        raise HTTPException(status_code=403, detail="Invalid/No Session")
+
+    options = {}
+
+    # Ensure the directory exists to prevent crashes
+    if CONSTANTS_DIR.exists() and CONSTANTS_DIR.is_dir():
+        # Iterate through all .py files in the directory
+        for filepath in CONSTANTS_DIR.glob("*.py"):
+            # Skip the __init__.py file
+            if filepath.name == "__init__.py":
+                continue
+
+            # Use the filename (without .py) as the dictionary key
+            rule_type = filepath.stem
+            options[rule_type] = parse_ruleset_file(filepath)
+
+    return {"options": options}
 
 
 @api_router.post('/api/joinGame')
