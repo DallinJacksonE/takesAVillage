@@ -18,17 +18,17 @@ export class GameplayService {
   private _onPlayerCount?: (count: number) => void;
   private _onGameStarted?: () => void;
   private _onError?: (message: string) => void;
-  private isDestroyed = false;
   constructor() { }
 
   // --------------------------------------------------------
   // LISTENERS
   // --------------------------------------------------------
 
-  private setupListeners() {
+  private setupListeners(onConnected: () => void) {
 
     this.socket.onopen = () => {
       console.log("🔌 WebSocket Connected");
+      onConnected();
     };
 
     this.socket.onmessage = (event) => {
@@ -81,14 +81,12 @@ export class GameplayService {
   // --------------------------------------------------------
   // CALLBACK SETTERS
   // --------------------------------------------------------
-  public connect() {
-    const protocol =
-      window.location.protocol === "https:" ? "wss:" : "ws:";
-
+  public connect(onConnected: () => void) {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.host;
 
     this.socket = new WebSocket(`${protocol}//${host}/ws`);
-    this.setupListeners();
+    this.setupListeners(onConnected);
   }
   public setOnChatHistory(
     callback: (messages: ChatMessageDTO[]) => void
@@ -138,19 +136,8 @@ export class GameplayService {
 
     if (this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(payload);
-    } else if (this.socket.readyState === WebSocket.CONNECTING) {
-      this.socket.addEventListener(
-        "open",
-        () => {
-          // Prevent ghost emissions if the service was destroyed while waiting
-          if (!this.isDestroyed) {
-            this.socket.send(payload);
-          }
-        },
-        { once: true }
-      );
     } else {
-      console.warn(`WebSocket closed. Dropping ${eventName}`);
+      console.warn(`WebSocket not open (State: ${this.socket.readyState}). Dropping ${eventName}`);
     }
   }
 
@@ -221,7 +208,6 @@ export class GameplayService {
   // --------------------------------------------------------
 
   public destroy() {
-    this.isDestroyed = true;
     this.socket.close();
   }
 }
