@@ -214,9 +214,11 @@ class Game:
                 player.finished_phase = True
             else:
                 player.finished_phase = False
-
-            player.committed_action = None
-
+            if phase_name == "TRADE":
+                player.last_committed_action = player.committed_action
+                player.committed_action = None
+            else:
+                player.committed_action = None
     def get_time_remaining(self):
         return max(0, int(self.phase_end_time - time.time()))
 

@@ -76,6 +76,12 @@ class BuildDevelopmentCommand(Command):
                                   "action": "BUILD_DEV",
                                   "dev_id": dev_id,
                                   "type": dev_type})
+        
+        player.committed_action = {
+            "Action": "Build",
+            "Type": dev_type,
+            "Tile_Id": tile_id
+        }
         return True
 
 

@@ -34,7 +34,7 @@ def add_player_hist(game, session_id):
         'finished_phase': player.finished_phase,
 
         'committed_action': _normalize_committed_action(
-            player.committed_action
+            player.last_committed_action
         ),
 
         'actions': _safe_serialize(

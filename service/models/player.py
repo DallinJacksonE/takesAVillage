@@ -23,6 +23,7 @@ class Player:
         self.available_work = []
         self.finished_phase = False
         self.committed_action = None
+        self.last_committed_action = None
 
     def add_timeline_event(self, event_type, data):
         """
