@@ -29,8 +29,8 @@ MAX_DEVELOPMENT_LEVEL = 3
 MAINTENANCE_DAYS = 7
 
 STARTING_INVENTORY = {
-    "wood": 3,
-    "food": 2,
+    "wood": 4,
+    "food": 3,
     "iron": 1,
 }
 
@@ -38,7 +38,7 @@ CAMPFIRE_COST = {"wood": 1}
 MAX_FIRE_SEATS = 3
 
 # seconds
-PHASE_LENGTH = 120
+PHASE_LENGTH = 60
 
 GAME_LENGTH = 15
 

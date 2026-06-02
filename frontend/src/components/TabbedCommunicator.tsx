@@ -67,7 +67,14 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
   };
 
   // Ensure we don't try to render tabs for ourselves
-  const otherPlayers = players.filter(p => p.id !== playerId);
+  const otherPlayers = players
+    .filter(p => p.id !== playerId)
+    .sort((a, b) => {
+      const unreadA = getUnreadCount(a.id, playerId);
+      const unreadB = getUnreadCount(b.id, playerId);
+
+      return unreadB - unreadA;
+    });
 
   // Filter messages for the currently active tab
   const displayMessages = messages.filter(msg => {
