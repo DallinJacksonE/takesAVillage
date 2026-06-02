@@ -176,9 +176,11 @@ const Gameplay: React.FC = () => {
                   }}
                 >
                   {gameState.phase === "WORK"
-                    ? gameState.me.finished_phase
-                      ? "Action Locked In ✓"
-                      : "! Action Available !"
+                    ? gameState.me.health === "healthy"
+                      ? gameState.me.finished_phase
+                        ? "Action Locked In ✓"
+                        : "! Action Available !"
+                      : "No Action Available"
                     : ""}
                 </span>
               </h2>

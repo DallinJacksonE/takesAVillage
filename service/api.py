@@ -96,11 +96,16 @@ async def get_research_games():
 
 
 @api_router.post('/api/newGame')
-async def new_game(user_session: Optional[str] = Cookie(None)):
+async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
     if not user_session or not db.user_exists(user_session):
         raise HTTPException(status_code=403, detail="Invalid/No Session")
 
-    game_id = create_game(user_session)
+    # Extract the payload values sent by the frontend, providing safe defaults
+    ruleset = payload.get('ruleset', 'default')
+    bot_count = payload.get('botCount', 0)
+
+    # Pass the new parameters to the game manager
+    game_id = create_game(user_session, ruleset, bot_count)
     return {"gameId": game_id}
 
 
