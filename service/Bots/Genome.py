@@ -1,5 +1,5 @@
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 # =========================
 # Genome
@@ -50,33 +50,87 @@ class Genome:
             build_farm_weight=genome.build_farm_weight + random.gauss(0, mutation_strength),
             build_woods_weight=genome.build_woods_weight + random.gauss(0, mutation_strength),
             build_mine_weight=genome.build_mine_weight + random.gauss(0, mutation_strength),
+            upgrade_weight=genome.upgrade_weight + random.gauss(0, mutation_strength),
+            maintain_weight=genome.maintain_weight + random.gauss(0, mutation_strength),
+            contest_weight=genome.contest_weight + random.gauss(0, mutation_strength),
+            survival_weight=genome.survival_weight + random.gauss(0, mutation_strength),
+            growth_weight=genome.growth_weight + random.gauss(0, mutation_strength),
         )
+
+    import random
+from dataclasses import dataclass
+
+# =========================
+# Genome
+# =========================
+
+@dataclass
+class Genome:
+    food_weight: float
+    wood_weight: float
+    iron_weight: float
+    reputation_weight: float
+    health_weight: float
+    build_farm_weight: float
+    build_woods_weight: float
+    build_mine_weight: float
+    upgrade_weight: float
+    maintain_weight: float
+    contest_weight: float
+    survival_weight: float
+    growth_weight: float
+
+    @staticmethod
+    def random():
+        return Genome(
+            food_weight=random.uniform(-1, 1),
+            wood_weight=random.uniform(-1, 1),
+            iron_weight=random.uniform(-1, 1),
+            reputation_weight=random.uniform(-1, 1),
+            health_weight=random.uniform(-1, 1),
+            build_farm_weight=random.uniform(-1, 1),
+            build_woods_weight=random.uniform(-1, 1),
+            build_mine_weight=random.uniform(-1, 1),
+            upgrade_weight=random.uniform(-1, 1),
+            maintain_weight=random.uniform(-1, 1),
+            contest_weight=random.uniform(-1, 1),
+            survival_weight=random.uniform(-1, 1),
+            growth_weight=random.uniform(-1, 1)
+            )
+
+    @staticmethod
+    def mutate(
+        genome,
+        mutation_strength=0.3,
+        mutation_rate=0.2
+    ):
+
+        mutated = {}
+
+        for field in fields(Genome):
+
+            value = getattr(genome, field.name)
+
+            if random.random() < mutation_rate:
+                value += random.gauss(
+                    0,
+                    mutation_strength
+                )
+
+            mutated[field.name] = value
+
+        return Genome(**mutated)
 
     @staticmethod
     def crossover(parent_a, parent_b):
-        return Genome(
-            food_weight=random.choice(
-                [parent_a.food_weight, parent_b.food_weight]
-            ),
-            wood_weight=random.choice(
-                [parent_a.wood_weight, parent_b.wood_weight]
-            ),
-            iron_weight=random.choice(
-                [parent_a.iron_weight, parent_b.iron_weight]
-            ),
-            reputation_weight=random.choice(
-                [parent_a.reputation_weight, parent_b.reputation_weight]
-            ),
-            health_weight=random.choice(
-                [parent_a.health_weight, parent_b.health_weight]
-            ),
-            build_farm_weight=random.choice(
-                [parent_a.build_farm_weight, parent_b.build_farm_weight]
-            ),
-            build_woods_weight=random.choice(
-                [parent_a.build_woods_weight, parent_b.build_woods_weight]
-            ),
-            build_mine_weight=random.choice(
-                [parent_a.build_mine_weight, parent_b.build_mine_weight]
-            ),
-        )
+
+        child = {}
+
+        for field in fields(Genome):
+            child[field.name] = random.choice([
+                getattr(parent_a, field.name),
+                getattr(parent_b, field.name)
+            ])
+
+        return Genome(**child)
+
