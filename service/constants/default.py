@@ -1,6 +1,6 @@
 DEVELOPMENT_COSTS = {
     # CURRENTLY USES ONLY THE BUILD INFORMATION SINCE UPGRADE
-    # AND MAINTENANCE COSTS ARE COMPUTED DYNAMICALLY IN developments.py 
+    # AND MAINTENANCE COSTS ARE COMPUTED DYNAMICALLY IN developments.py
     # USING get_maintenance_cost AND get_upgrade_cost
     "Farm": {
         "build": {"wood": 2},
@@ -17,11 +17,6 @@ DEVELOPMENT_COSTS = {
         "maintain": {"wood": 3, "food": 3},
         "upgrade": {"wood": 2, "food": 2, "iron": 5}
     }
-}
-
-RESOURCE_COSTS = {
-    "Farm": "wood",
-    "Woods": "food"
 }
 
 

@@ -9,10 +9,11 @@ from serializers.game_info_builder import build_map_hist, build_player_hist
 active_games = {}
 
 
-def create_game(user_cookie: str) -> str:
+def create_game(user_cookie: str, ruleset: str, bots=0) -> str:
     """Creates a new game instance and adds it to the active pool."""
     game_id = "g_" + str(uuid.uuid4())[:4]
-    active_games[game_id] = Game(game_id, user_cookie)
+    active_games[game_id] = Game(
+        game_id, user_cookie, ruleset_name=ruleset, bots=bots)
     return game_id
 
 

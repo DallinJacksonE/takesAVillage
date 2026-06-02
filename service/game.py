@@ -22,7 +22,7 @@ class Game:
     # ==========================================
     # INITIALIZATION & SETUP
     # ==========================================
-    def __init__(self, game_id, host_id, ruleset_name="default", training=False):
+    def __init__(self, game_id, host_id, ruleset_name="default", bots=0, training=False):
         self.id = game_id
         self.host_id = host_id
         self.status = 'WAITING'
@@ -43,7 +43,6 @@ class Game:
         self.mountains_ratio = self.rules.MOUNTAINS_RATIO
         self.woods_ratio = self.rules.WOODS_RATIO
         self.farms_ratio = self.rules.FARMS_RATIO
-        self.resource_costs = self.rules.RESOURCE_COSTS
 
         self.players = {}
         self.developments = {}
@@ -287,14 +286,13 @@ class Game:
 
     def get_state_for_player(self, session_id):
         return build_player_state(self, session_id)
-    
+
     def get_global_chat_history(self):
         return [
             msg.to_dict()
             for msg in self.chat_messages
             if msg.to_id == "GLOBAL"
         ]
-
 
     def get_private_chat_history(self, player_id):
         return [
@@ -306,7 +304,7 @@ class Game:
                 or msg.to_id == "GLOBAL"
             )
         ]
-    
+
     def get_available_build_actions(self, player):
 
         actions = []
@@ -336,7 +334,7 @@ class Game:
             })
 
         return actions
-    
+
     def get_available_upgrade_actions(self, player):
         pass
 
@@ -379,4 +377,3 @@ class Game:
             pass
 
         return actions
-
