@@ -55,6 +55,16 @@ class DatabaseProvider(ABC):
         pass
 
     @abstractmethod
+    def store_game_snapshot(
+        self,
+        game_id: str,
+        day_num: int,
+        phase: str,
+        snapshot_json: str
+    ):
+        pass
+
+    @abstractmethod
     def store_game_result(
         self,
         game_id: str,
@@ -66,6 +76,10 @@ class DatabaseProvider(ABC):
 
     @abstractmethod
     def get_all_game_history(self) -> list:
+        pass
+
+    @abstractmethod
+    def get_all_games(self) -> list:
         pass
 
     @abstractmethod
@@ -116,7 +130,10 @@ class InMemoryDB(DatabaseProvider):
     def initialize_database(self):
         print("✅ InMemoryDB ready. (Note: Data wipes on container restart)")
 
-    def store_game_result(
+    def store_game_result(self, game_id, day_num, phase, snapshot_json):
+        return super().store_game_result(game_id, day_num, phase, snapshot_json)
+
+    def store_game_snapshot(
         self,
         game_id: str,
         day_num: int,
@@ -131,6 +148,9 @@ class InMemoryDB(DatabaseProvider):
             "created_at": datetime.now()
         })
         # print(self.history)
+
+    def get_all_games(self):
+        pass
 
     def get_all_game_history(self) -> list:
         # Return sorted by finished_at descending to mimic SQL ORDER BY DESC
@@ -358,9 +378,62 @@ class MySQLDB(DatabaseProvider):
                 INDEX(`player_id`),
                 INDEX(`day_num`)
             );
+
+            CREATE TABLE IF NOT EXISTS `games` (
+                `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+                `game_id` VARCHAR(64) NOT NULL UNIQUE,
+
+                `day_num` INT NOT NULL,
+                `phase` VARCHAR(32) NOT NULL,
+
+                `data` JSON NOT NULL,
+
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+        """
+    
+    def store_game_result(self, game_id, day_num, phase, snapshot_json):
+        conn = self.get_connection()
+
+        if not conn:
+            return
+
+        cursor = conn.cursor()
+
+        query = """
+            INSERT INTO games
+            (
+                game_id,
+                day_num,
+                phase,
+                data
+            )
+            VALUES (%s, %s, %s, %s)
         """
 
-    def store_game_result(
+        try:
+            cursor.execute(
+                query,
+                (
+                    game_id,
+                    day_num,
+                    phase,
+                    snapshot_json
+                )
+            )
+
+            conn.commit()
+
+        except mysql.connector.Error as err:
+            print(f"Error storing game result: {err}")
+
+        finally:
+            cursor.close()
+            conn.close()
+
+
+    def store_game_snapshot(
         self,
         game_id: str,
         day_num: int,
@@ -682,6 +755,36 @@ class MySQLDB(DatabaseProvider):
         finally:
             cursor.close()
             conn.close()
+
+    def get_all_games(self):
+        conn = self.get_connection()
+
+        if not conn:
+            return []
+
+        cursor = conn.cursor(dictionary=True)
+
+        query = """
+            SELECT *
+            FROM games
+            ORDER BY created_at DESC
+        """
+
+        try:
+            cursor.execute(query)
+
+            results = cursor.fetchall()
+
+            for row in results:
+                if isinstance(row["data"], str):
+                    row["data"] = json.loads(row["data"])
+
+            return results
+
+        finally:
+            cursor.close()
+            conn.close()
+
 
     def get_all_game_history(self) -> list:
         conn = self.get_connection()

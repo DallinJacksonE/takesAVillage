@@ -61,7 +61,7 @@ async def get_active_games(user_session: Optional[str] = Cookie(None)):
 
 @api_router.get('/api/research/games')
 async def get_research_games():
-    game_history = db.get_all_game_history()
+    game_history = db.get_all_games()
     return game_history
 
 

@@ -1,8 +1,8 @@
 import random
-from Genome import Genome
-from GeneticBot import GeneticBot
-from actions.action_dispatcher import ActionDispatcher
-from game import Game
+from Bots.Genome import Genome
+from Bots.GeneticBot import GeneticBot
+from service.actions.action_dispatcher import ActionDispatcher
+from service.game import Game
 
 def calculate_fitness(player, game):
 

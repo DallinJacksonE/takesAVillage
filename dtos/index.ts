@@ -264,10 +264,40 @@ export interface ActiveGamesDTO {
   games: JoinableGameDTO[];
 }
 
+export interface ResearchPlayerSnapshot {
+  health: string;
+  actions: any[];
+  resources: ResourceBundle;
+  fire_status: string;
+  developments: string[];
+  finished_phase: boolean;
+  sickness_chance: number;
+  committed_action: any;
+}
+
 export interface ResearchGameDTO {
   game_id: string;
-  finished_at: string;
-  data: GameStateDTO;
+  day_num: number;
+  phase: string;
+  created_at: string;
+
+  data: {
+    map: Record<
+      string, // day
+      Record<
+        string, // tile id
+        MapTileDTO
+      >
+    >;
+
+    players: Record<
+      string, // day
+      Record<
+        string, // player id
+        ResearchPlayerSnapshot
+      >
+    >;
+  };
 }
 
 export interface NewGameDTO {

@@ -117,7 +117,7 @@ class Game:
         if not self.training:
             game_snapshot = build_game_snapshot(self)
 
-            db.store_game_result(
+            db.store_game_snapshot(
                 self.id,
                 self.day,
                 self.phase,

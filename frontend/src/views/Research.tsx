@@ -74,8 +74,8 @@ const Research: React.FC = () => {
 							{games.map((g) => (
 								<tr key={g.game_id} style={{ borderBottom: "1px solid #eee" }}>
 									<td style={{ padding: "10px 0" }}>{g.game_id}</td>
-									<td>{new Date(g.finished_at).toLocaleDateString()}</td>
-									<td>{g.data.day}</td>
+									<td>{new Date(g.created_at).toLocaleString()}</td>
+									<td>{g.day_num}</td>
 									<td>
 										<button
 											className='btn btn-secondary'

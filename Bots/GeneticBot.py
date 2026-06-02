@@ -1,4 +1,4 @@
-from Genome import Genome
+from Bots.Genome import Genome
 
 # service/Bots/genetic_bot.py
 
