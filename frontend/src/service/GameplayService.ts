@@ -6,7 +6,10 @@ import {
 
 export class GameplayService {
 
-  private socket!: WebSocket;
+  private socket: WebSocket | null = null;
+  private isIntentionalDisconnect = false;
+  private reconnectTimer: NodeJS.Timeout | null = null;
+  private onConnectedCallback?: () => void;
 
   // --------------------------------------------------------
   // Callback references
@@ -18,111 +21,90 @@ export class GameplayService {
   private _onPlayerCount?: (count: number) => void;
   private _onGameStarted?: () => void;
   private _onError?: (message: string) => void;
+
   constructor() { }
+
+  // --------------------------------------------------------
+  // CONNECTION LOGIC
+  // --------------------------------------------------------
+
+  public connect(onConnected: () => void) {
+    this.onConnectedCallback = onConnected;
+    this.isIntentionalDisconnect = false;
+    this.establishConnection();
+  }
+
+  private establishConnection() {
+    // Clean up any existing socket before making a new one
+    if (this.socket) {
+      this.socket.close();
+    }
+
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const host = window.location.host;
+
+    this.socket = new WebSocket(`${protocol}//${host}/ws`);
+    this.setupListeners();
+  }
 
   // --------------------------------------------------------
   // LISTENERS
   // --------------------------------------------------------
 
-  private setupListeners(onConnected: () => void) {
+  private setupListeners() {
+    if (!this.socket) return;
 
     this.socket.onopen = () => {
       console.log("🔌 WebSocket Connected");
-      onConnected();
+      // Fire the callback every time we (re)connect so we always join the room
+      this.onConnectedCallback?.();
     };
 
     this.socket.onmessage = (event) => {
-      console.log("RAW MESSAGE:", event.data);
-
       const payload = JSON.parse(event.data);
 
-      console.log("PARSED:", payload);
-
       switch (payload.event) {
-
         case "room_update":
           this._onPlayerCount?.(payload.data.player_count);
           break;
-
         case "game_state":
           this._onGameState?.(payload.data);
           break;
-
         case "game_started":
           this._onGameStarted?.();
           break;
-
         case "chat_history":
           this._onChatHistory?.(payload.data);
           break;
-
         case "new_chat_message":
           this._onNewChatMessage?.(payload.data);
           break;
-
         case "error":
           this._onError?.(payload.data.message);
           break;
-
         default:
           console.warn("Unknown WS event:", payload.event);
       }
     };
 
     this.socket.onerror = (error) => {
-      console.error(error);
+      console.error("WS Error:", error);
     };
 
     this.socket.onclose = () => {
       console.log("❌ WebSocket Closed");
+
+      // Automatic Reconnection Logic
+      if (!this.isIntentionalDisconnect) {
+        console.log("♻️ Attempting to reconnect in 2 seconds...");
+        this.reconnectTimer = setTimeout(() => {
+          this.establishConnection();
+        }, 2000);
+      }
     };
   }
 
-  // --------------------------------------------------------
-  // CALLBACK SETTERS
-  // --------------------------------------------------------
-  public connect(onConnected: () => void) {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = window.location.host;
-
-    this.socket = new WebSocket(`${protocol}//${host}/ws`);
-    this.setupListeners(onConnected);
-  }
-  public setOnChatHistory(
-    callback: (messages: ChatMessageDTO[]) => void
-  ) {
-    this._onChatHistory = callback;
-  }
-
-  public setOnNewChatMessage(
-    callback: (message: ChatMessageDTO) => void
-  ) {
-    this._onNewChatMessage = callback;
-  }
-
-  public setOnGameState(
-    callback: (state: GameStateDTO) => void
-  ) {
-    this._onGameState = callback;
-  }
-
-  public setOnPlayerCount(
-    callback: (count: number) => void
-  ) {
-    this._onPlayerCount = callback;
-  }
-
-  public setOnGameStarted(
-    callback: () => void
-  ) {
-    this._onGameStarted = callback;
-  }
-
-  public setOnError(
-    callback: (message: string) => void
-  ) {
-    this._onError = callback;
-  }
+  // ... KEEP ALL YOUR EXISTING setOn... CALLBACK SETTERS HERE ...
 
   // --------------------------------------------------------
   // EMIT WRAPPER
@@ -134,10 +116,10 @@ export class GameplayService {
       data: data
     });
 
-    if (this.socket.readyState === WebSocket.OPEN) {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(payload);
     } else {
-      console.warn(`WebSocket not open (State: ${this.socket.readyState}). Dropping ${eventName}`);
+      console.warn(`WebSocket not open. Dropping ${eventName}`);
     }
   }
 
@@ -208,6 +190,8 @@ export class GameplayService {
   // --------------------------------------------------------
 
   public destroy() {
-    this.socket.close();
+    this.isIntentionalDisconnect = true;
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    if (this.socket) this.socket.close();
   }
 }

@@ -231,3 +231,10 @@ async def websocket_endpoint(websocket: WebSocket):
         if game_id and user_id:
             manager.disconnect(websocket, game_id, user_id)
             print(f"❌ Player {user_id} disconnected from {game_id}")
+        else:
+            print("❌ Unregistered socket disconnected before joining a room.")
+
+    except Exception as e:
+        print(f"⚠️ Unhandled WS Exception: {e}")
+        if game_id and user_id:
+            manager.disconnect(websocket, game_id, user_id)
