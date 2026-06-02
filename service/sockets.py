@@ -14,13 +14,17 @@ class ConnectionManager:
             self.active_connections[game_id] = {}
         self.active_connections[game_id][user_id] = websocket
 
-    def disconnect(self, game_id: str, user_id: str):
+    def disconnect(self, websocket: WebSocket, game_id: str, user_id: str):
         if (game_id in self.active_connections and
                 user_id in self.active_connections[game_id]):
-            del self.active_connections[game_id][user_id]
-            # Clean up empty games to prevent memory leaks
-            if not self.active_connections[game_id]:
-                del self.active_connections[game_id]
+
+            # ONLY delete if the current active socket is the one disconnecting
+            if self.active_connections[game_id][user_id] == websocket:
+                del self.active_connections[game_id][user_id]
+
+                # Clean up empty games to prevent memory leaks
+                if not self.active_connections[game_id]:
+                    del self.active_connections[game_id]
 
     async def send_personal_message(
         self, message: dict, game_id: str, user_id: str
@@ -224,11 +228,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 )
 
     except WebSocketDisconnect:
-
         if game_id and user_id:
-
-            manager.disconnect(game_id, user_id)
-
-            print(
-                f"❌ Player {user_id} disconnected from {game_id}"
-            )
+            manager.disconnect(websocket, game_id, user_id)
+            print(f"❌ Player {user_id} disconnected from {game_id}")

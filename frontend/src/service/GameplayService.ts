@@ -18,7 +18,7 @@ export class GameplayService {
   private _onPlayerCount?: (count: number) => void;
   private _onGameStarted?: () => void;
   private _onError?: (message: string) => void;
-
+  private isDestroyed = false;
   constructor() { }
 
   // --------------------------------------------------------
@@ -131,35 +131,26 @@ export class GameplayService {
   // --------------------------------------------------------
 
   private emit(eventName: string, data: any) {
-
     const payload = JSON.stringify({
       event: eventName,
       data: data
     });
 
-    if (
-      this.socket.readyState === WebSocket.OPEN
-    ) {
-
+    if (this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(payload);
-
-    } else if (
-      this.socket.readyState === WebSocket.CONNECTING
-    ) {
-
+    } else if (this.socket.readyState === WebSocket.CONNECTING) {
       this.socket.addEventListener(
         "open",
         () => {
-          this.socket.send(payload);
+          // Prevent ghost emissions if the service was destroyed while waiting
+          if (!this.isDestroyed) {
+            this.socket.send(payload);
+          }
         },
         { once: true }
       );
-
     } else {
-
-      console.warn(
-        `WebSocket closed. Dropping ${eventName}`
-      );
+      console.warn(`WebSocket closed. Dropping ${eventName}`);
     }
   }
 
@@ -230,7 +221,7 @@ export class GameplayService {
   // --------------------------------------------------------
 
   public destroy() {
-
+    this.isDestroyed = true;
     this.socket.close();
   }
 }
