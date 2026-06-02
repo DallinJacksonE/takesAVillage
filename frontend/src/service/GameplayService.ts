@@ -104,8 +104,41 @@ export class GameplayService {
     };
   }
 
-  // ... KEEP ALL YOUR EXISTING setOn... CALLBACK SETTERS HERE ...
+  public setOnChatHistory(
+    callback: (messages: ChatMessageDTO[]) => void
+  ) {
+    this._onChatHistory = callback;
+  }
 
+  public setOnNewChatMessage(
+    callback: (message: ChatMessageDTO) => void
+  ) {
+    this._onNewChatMessage = callback;
+  }
+
+  public setOnGameState(
+    callback: (state: GameStateDTO) => void
+  ) {
+    this._onGameState = callback;
+  }
+
+  public setOnPlayerCount(
+    callback: (count: number) => void
+  ) {
+    this._onPlayerCount = callback;
+  }
+
+  public setOnGameStarted(
+    callback: () => void
+  ) {
+    this._onGameStarted = callback;
+  }
+
+  public setOnError(
+    callback: (message: string) => void
+  ) {
+    this._onError = callback;
+  }
   // --------------------------------------------------------
   // EMIT WRAPPER
   // --------------------------------------------------------
