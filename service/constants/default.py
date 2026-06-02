@@ -50,8 +50,8 @@ COLD_SICKNESS_INCREASE = .1
 RECOVERY_RATE = .07  # Rate for sickness chance going down
 
 # Tiles per player, min of 1 logic handled in map factory
-FARMS_RATIO = 1/2
+FARMS_RATIO = .5
 
 WOODS_RATIO = .75
 
-MOUNTAINS_RATIO = 2/5
+MOUNTAINS_RATIO = .4
