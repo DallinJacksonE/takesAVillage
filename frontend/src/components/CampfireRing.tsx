@@ -32,11 +32,6 @@ const CampfireRing: React.FC<Props> = ({
   const outgoingOffers = fireActions.filter(a => a.initiator_id === me.id && !a.is_request && a.status === "PENDING");
   const outgoingRequests = fireActions.filter(a => a.initiator_id === me.id && a.is_request && a.status === "PENDING");
 
-  const myGuests = fireActions.filter(a =>
-    ((a.initiator_id === me.id && !a.is_request) || (a.target_id === me.id && a.is_request)) &&
-    a.status === "ACCEPTED"
-  );
-
   const acceptedFireActions = fireActions.filter(a => a.status === "ACCEPTED");
   const fireSessions = acceptedFireActions.reduce<Record<string, { hostId: string; guestIds: string[] }>>((sessions, action) => {
     const hostId = action.is_request ? action.target_id : action.initiator_id;
@@ -62,7 +57,8 @@ const CampfireRing: React.FC<Props> = ({
     ? [myFireSession.hostId, ...myFireSession.guestIds].filter((id, index, arr) => id && arr.indexOf(id) === index)
     : [];
 
-  const isAtCapacity = myGuests.length >= 2;
+  const isAtCapacity =
+    me.fire_guests.length >= state.max_fire_seats;
 
   return (
     <div className="card" style={{ minHeight: "297px", flex: 1, display: "flex", flexDirection: "column", gap: "20px" }}>

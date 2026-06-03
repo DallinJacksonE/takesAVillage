@@ -229,7 +229,7 @@ export interface PlayerDTO {
   health: "healthy" | "sick" | "recovering" | "dead";
   sickness_chance: number;
   fire_status: "COLD" | "HOST" | "GUEST";
-  fire_guests?: string[];
+  fire_guests: string[];
   resources: ResourceBundle;
   developments: string[];
   available_work: WorkActionDTO[];

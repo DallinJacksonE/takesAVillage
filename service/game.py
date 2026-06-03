@@ -67,6 +67,9 @@ class Game:
 
         self.training = training
 
+        for _ in range(bots):
+            self.add_player(session_id="bot_" + str(uuid.uuid4())[:4])
+
     def add_player(self, session_id):
         if session_id not in self.players:
             name = random.choice(self.names)

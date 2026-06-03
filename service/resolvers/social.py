@@ -14,6 +14,8 @@ class SocialResolvers:
 
         if not host_player or not guest_player:
             return False
+        if guest_player.fire_status == "GUEST":
+            return False
         if getattr(host_player, 'fire_status', 'COLD') != "HOST":
             return False
         if len(getattr(host_player, 'fire_guests',
