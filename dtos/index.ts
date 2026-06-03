@@ -23,9 +23,19 @@ export type DevelopmentCostsDict = Record<string, DevelopmentActions>;
 export interface ChatMessageDTO {
   id: string;
   from_id: string;
-  to_id: string; // "GLOBAL" or specific player ID
   content: string;
-  timestamp: number;
+
+  // existing
+  to_id?: string;
+
+  created_at: string;
+}
+
+export interface ChatDTO {
+  id: string;
+  name: string;
+  member_ids: string[];
+  creator_id: string;
 }
 
 // ------------------------------------
@@ -241,14 +251,17 @@ export interface GameStateDTO {
   map: MapTileDTO[];
   developments: DevelopmentDTO[];
   chat_messages: ChatMessageDTO[];
-  economy_config: Record<"Farm" | "Woods" | "Mine", DevelopmentCostConfig>;
+
+  chats: ChatDTO[];
+
   development_costs: DevelopmentCostsDict;
   max_fire_seats: number;
   campfire_cost: ResourceBundle;
   session_id?: string;
+
   cold_sickness_rate: number;
-  recovery_rate: number;
   hunger_sickness_rate: number;
+  recovery_rate: number;
 }
 
 // --- Network & Lobby DTOs ---

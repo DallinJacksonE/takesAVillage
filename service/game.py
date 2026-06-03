@@ -16,6 +16,7 @@ from actions.action_dispatcher import ActionDispatcher
 from db import db
 from serializers.snapshots import build_game_snapshot, build_work_snapshot, build_night_snapshot, build_trade_snapshot
 import json
+from models.chat import Chat
 
 
 class Game:
@@ -53,6 +54,7 @@ class Game:
         self.player_history = {}
         self.map_history = {}
         self.names = self.rules.AVAILABLE_NAMES.copy()
+        self.chats = []
 
         # Time and Phase state
         self.day = 1
@@ -229,7 +231,6 @@ class Game:
     # ==========================================
 
     def handle_chat(self, user_id, data):
-
         content = data.get('content')
         to_id = data.get('to_id', 'GLOBAL')
 
@@ -261,6 +262,27 @@ class Game:
                 )
 
         return chat_msg
+    
+    def create_chat(
+        self,
+        creator_id,
+        name,
+        member_ids
+    ):
+        all_members = list(
+            set(member_ids + [creator_id])
+        )
+
+        chat = Chat(
+            chat_id=str(uuid.uuid4()),
+            name=name,
+            creator_id=creator_id,
+            member_ids=all_members
+        )
+
+        self.chats.append(chat)
+
+        return chat
 
     def handle_action(self, user_id, data):
         # Any logical checks for player action handling should go in

@@ -182,6 +182,20 @@ export class GameplayService {
     });
   }
 
+  public createChat(
+    gameId: string,
+    userId: string,
+    name: string,
+    memberIds: string[]
+  ) {
+    this.emit("create_chat", {
+      gameId,
+      userId,
+      name,
+      memberIds
+    });
+  }
+
   public requestUpdate(
     gameId: string,
     userId: string
@@ -199,7 +213,7 @@ export class GameplayService {
     content: string,
     toId: string
   ) {
-
+    
     this.emit("send_chat", {
       gameId,
       userId,

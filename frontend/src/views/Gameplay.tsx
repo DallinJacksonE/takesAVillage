@@ -305,9 +305,13 @@ const Gameplay: React.FC = () => {
                 <PlayerRoster />
                 <TabbedCommunicator
                   messages={messages}
-                  playerId={userId}
+                  playerId={gameState.me.id}
                   players={gameState.player_list}
-                  onSend={(content: string, toId: string) => presenter.sendChat(content, toId)}
+                  chats={gameState.chats ?? []}
+                  onSend={presenter.sendChat}
+                  onCreateChat={(name, memberIds) => {
+                    presenter.createChat(name, memberIds);
+                  }}
                 />
 
                 {!gameState.me.finished_phase ? (

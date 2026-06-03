@@ -2,20 +2,50 @@ import React, { useState, useEffect, useRef } from "react";
 import { ChatMessageDTO, PlayerDTO } from "../../../dtos/index";
 import { usePlayerName } from "./hooks/usePlayerName";
 
+interface ChatDTO {
+  id: string;
+  name: string;
+  member_ids: string[];
+}
+
 interface Props {
   messages: ChatMessageDTO[];
   playerId: string;
   players: PlayerDTO[];
+  chats: ChatDTO[];
+
   onSend: (content: string, toId: string) => void;
+
+  onCreateChat: (
+    name: string,
+    memberIds: string[]
+  ) => void;
 }
 
-const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players, onSend }) => {
-  const [activeTab, setActiveTab] = useState<string>("global");
+const TabbedCommunicator: React.FC<Props> = ({
+  messages,
+  playerId,
+  players,
+  chats,
+  onSend,
+  onCreateChat
+}) => {
+  const [activeTab, setActiveTab] = useState<string>("global"); // "global", playerId, or groupId
   const [chatInput, setChatInput] = useState("");
   const [readMessages, setReadMessages] = useState<Set<string>>(new Set());
   const getPlayerName = usePlayerName();
+  const playerIds = new Set(players.map(p => p.id));
+
+  const isPlayerTab = (id: string) =>
+    playerIds.has(id);
+
+  const isGroupTab = (id: string) =>
+    chats.some(chat => chat.id === id);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [showCreateChat, setShowCreateChat] = useState(false);
+  const [newChatName, setNewChatName] = useState("");
+  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
 
   // Mark visible messages as read when the tab changes or new messages arrive
   useEffect(() => {
@@ -25,9 +55,23 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
 
       for (const msg of messages) {
         const isGlobal = msg.to_id === "GLOBAL";
-        const isPrivate = msg.from_id === activeTab || msg.to_id === activeTab;
 
-        if ((activeTab === "global" && isGlobal) || (activeTab !== "global" && isPrivate)) {
+        const isPrivate =
+          isPlayerTab(activeTab) &&
+          (
+            (msg.from_id === activeTab && msg.to_id === playerId) ||
+            (msg.from_id === playerId && msg.to_id === activeTab)
+          );
+
+        const isGroup =
+          isGroupTab(activeTab) &&
+          msg.chat_id === activeTab;
+
+        if (
+          (activeTab === "global" && isGlobal) ||
+          isPrivate ||
+          isGroup
+        ) {
           // Only flag as changed if it wasn't already in the Set
           if (!updated.has(msg.id)) {
             updated.add(msg.id);
@@ -60,6 +104,15 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
     ).length;
   };
 
+  const getGroupUnreadCount = (chatId: string) => {
+    return messages.filter(
+      m =>
+        m.chat_id === chatId &&
+        m.from_id !== playerId &&
+        !readMessages.has(m.id)
+    ).length;
+  };
+
   const handleSend = () => {
     if (!chatInput.trim()) return;
     onSend(chatInput, activeTab === "global" ? "GLOBAL" : activeTab);
@@ -81,8 +134,19 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
     if (activeTab === "global") {
       return msg.to_id === "GLOBAL";
     }
-    return (msg.from_id === activeTab && msg.to_id === playerId) ||
-      (msg.from_id === playerId && msg.to_id === activeTab);
+
+    if (isPlayerTab(activeTab)) {
+      return (
+        (msg.from_id === activeTab && msg.to_id === playerId) ||
+        (msg.from_id === playerId && msg.to_id === activeTab)
+      );
+    }
+
+    if (isGroupTab(activeTab)) {
+      return msg.to_id === activeTab;
+    }
+
+    return false;
   });
 
   // 2. Trigger the instant snap ONLY when the amount of messages changes
@@ -93,6 +157,7 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
   }, [displayMessages.length]); // <-- Check the length, not the array reference
 
   return (
+  <>
     <div className="card" style={{
       display: "flex",
       flexDirection: "column",
@@ -205,6 +270,78 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
             </button>
           );
         })}
+
+        {chats.map(chat => {
+          const unread = getGroupUnreadCount(chat.id);
+          console.log("showCreateChat", showCreateChat);
+
+          return (
+            <button
+              key={chat.id}
+              style={{
+                flexShrink: 0,
+                padding: "10px 15px",
+                border: "none",
+                background: activeTab === chat.id ? "#fff" : "transparent",
+                borderBottom:
+                  activeTab === chat.id
+                    ? "3px solid #2196F3"
+                    : "3px solid transparent",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "5px",
+                fontWeight: "normal"
+              }}
+              onClick={() => setActiveTab(chat.id)}
+            >
+              <span style={{ width: "24px" }} />
+
+              <span>#{chat.name}</span>
+
+              <span
+                style={{
+                  width: "24px",
+                  display: "flex",
+                  justifyContent: "center"
+                }}
+              >
+                {unread > 0 && (
+                  <span
+                    style={{
+                      background: "red",
+                      color: "white",
+                      borderRadius: "10px",
+                      padding: "2px 6px",
+                      fontSize: "0.7rem",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    {unread}
+                  </span>
+                )}
+              </span>
+            </button>
+          );
+        })}
+
+        <button
+          onClick={() => {
+            console.log("ADD CHAT CLICKED");
+            setShowCreateChat(true);
+          }}
+          style={{
+            flexShrink: 0,
+            padding: "10px 15px",
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            fontWeight: "bold"
+          }}
+        >
+          + Chat
+        </button>
       </div>
 
       {/* CHAT AREA */}
@@ -221,7 +358,9 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
             const isMe = msg.from_id === playerId;
             return (
               <div key={msg.id} style={{ alignSelf: isMe ? "flex-end" : "flex-start", maxWidth: "80%" }}>
-                {!isMe && activeTab === "global" && (
+                {!isMe &&
+                  (activeTab === "global" ||
+                    isGroupTab(activeTab)) && (
                   <div style={{ fontSize: "0.7rem", color: "#666", marginBottom: "2px", marginLeft: "2px" }}>{getPlayerName(msg.from_id)}</div>
                 )}
                 <div style={{ background: isMe ? "#e3f2fd" : "#f1f3f4", border: isMe ? "1px solid #bbdefb" : "1px solid #e0e0e0", padding: "8px 12px", borderRadius: "12px", fontSize: "0.9rem", wordWrap: "break-word" }}>
@@ -237,7 +376,13 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
       <div className="send_bar">
         <input
           className="send_input"
-          placeholder={`Message ${activeTab === "global" ? "everyone" : getPlayerName(activeTab)}...`}
+          placeholder={`Message ${
+            activeTab === "global"
+              ? "everyone"
+              : isPlayerTab(activeTab)
+                ? getPlayerName(activeTab)
+                : chats.find(c => c.id === activeTab)?.name ?? "group"
+          }...`}
           value={chatInput}
           onChange={(e) => setChatInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
@@ -247,7 +392,120 @@ const TabbedCommunicator: React.FC<Props> = ({ messages = [], playerId, players,
         </button>
       </div>
     </div>
-  );
+
+    {showCreateChat && (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.5)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 1000
+        }}
+      >
+        <div
+          style={{
+            background: "white",
+            padding: "20px",
+            borderRadius: "8px",
+            width: "400px",
+            maxHeight: "80vh",
+            overflowY: "auto"
+          }}
+        >
+          <h3>Create Group Chat</h3>
+
+          <input
+            value={newChatName}
+            onChange={e => setNewChatName(e.target.value)}
+            placeholder="Chat name"
+            style={{
+              width: "100%",
+              marginBottom: "15px"
+            }}
+          />
+
+          <div>
+            {otherPlayers.map(player => (
+              <label
+                key={player.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginBottom: "5px",
+                  color: "black"
+                }}
+              >
+                <div
+                  style={{
+                    width: "40px",
+                    display: "flex",
+                    justifyContent: "center"
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedPlayers.includes(player.id)}
+                    onChange={e => {
+                      if (e.target.checked) {
+                        setSelectedPlayers(prev => [...prev, player.id]);
+                      } else {
+                        setSelectedPlayers(prev =>
+                          prev.filter(id => id !== player.id)
+                        );
+                      }
+                    }}
+                  />
+                </div>
+
+                <span>{player.name}</span>
+              </label>
+            ))}
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              marginTop: "15px"
+            }}
+          >
+            <button
+              className="btn"
+              onClick={() => {
+                if (!newChatName.trim()) return;
+
+                onCreateChat(
+                  newChatName,
+                  selectedPlayers
+                );
+
+                setShowCreateChat(false);
+                setNewChatName("");
+                setSelectedPlayers([]);
+              }}
+            >
+              Create
+            </button>
+
+            <button
+              className="btn"
+              onClick={() => {
+                setShowCreateChat(false);
+                setNewChatName("");
+                setSelectedPlayers([]);
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </>
+);
 };
 
 export default TabbedCommunicator;

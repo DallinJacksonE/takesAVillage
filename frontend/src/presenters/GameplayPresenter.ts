@@ -223,6 +223,20 @@ export class GameplayPresenter extends Presenter<GameplayView> {
     });
   }
 
+  public createChat = (
+    name: string,
+    memberIds: string[]
+  ) => {
+    if (!this.userId) return;
+
+    this.service.createChat(
+      this.gameId,
+      this.userId,
+      name,
+      memberIds
+    );
+  }
+
   // --------------------------------------------------------
   // Universal Contract Responses (Accept/Deny/Cancel)
   // --------------------------------------------------------

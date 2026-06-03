@@ -1,9 +1,10 @@
 
 class ChatMessage:
-    def __init__(self, id, from_id, to_id, content, timestamp) -> None:
+    def __init__(self, id, from_id, to_id, content, timestamp, chat_id=None) -> None:
         self.id: str = id
         self.from_id: str = from_id
         self.to_id: str = to_id
+        self.chat_id: str = chat_id
         self.content: str = content
         self.timestamp: float = timestamp
 

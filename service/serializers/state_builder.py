@@ -17,6 +17,12 @@ def build_player_state(game, session_id):
 
     development_list = [value.to_dict()
                         for _, value in game.developments.items()]
+    
+    chat_list = [
+        chat.to_dict()
+        for chat in game.chats
+        if session_id in chat.member_ids
+    ]
 
     state_dto = {
         "status": game.status,
@@ -28,6 +34,7 @@ def build_player_state(game, session_id):
         "player_list": player_list,
         "map": map_dto,
         "developments": development_list,
+        "chats": chat_list, # Include chats in the state DTO
         "development_costs": game.rules.DEVELOPMENT_COSTS,
         "max_fire_seats": game.rules.MAX_FIRE_SEATS,
         "campfire_cost": game.rules.CAMPFIRE_COST,

@@ -74,9 +74,20 @@ async def process_game_event(
         if new_message:
 
             message_dict = new_message.to_dict()
+            print("New chat message:", message_dict)
 
             # GLOBAL CHAT
             if new_message.to_id == "GLOBAL":
+
+                await manager.broadcast_to_game(
+                    {
+                        "event": "new_chat_message",
+                        "data": message_dict
+                    },
+                    game_id
+                )
+
+            elif new_message.to_id in [chat.id for chat in game.chats]:  # GROUP CHAT
 
                 await manager.broadcast_to_game(
                     {
@@ -121,14 +132,23 @@ async def process_game_event(
                     "action_command": action_cmd
                 }
             }, game_id, user_id)
+    
+    elif event == "create_chat":
+
+        chat = game.create_chat(
+            creator_id=user_id,
+            name=payload["name"],
+            member_ids=payload["memberIds"]
+        )
+
+        if chat:
+            await manager.broadcast_game_state(game_id, game)
 
 
 @ws_router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    # 1. Accept the connection immediately to bypass Vite proxy blocks
     await websocket.accept()
 
-    # 2. Initialize variables so the except block doesn't crash
     user_id = None
     game_id = None
 
