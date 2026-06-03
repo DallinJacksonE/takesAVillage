@@ -39,9 +39,6 @@ const TabbedCommunicator: React.FC<Props> = ({
   const isPlayerTab = (id: string) =>
     playerIds.has(id);
 
-  const isGroupTab = (id: string) =>
-    chats.some(chat => chat.id === id);
-
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [showCreateChat, setShowCreateChat] = useState(false);
   const [newChatName, setNewChatName] = useState("");
@@ -64,8 +61,8 @@ const TabbedCommunicator: React.FC<Props> = ({
           );
 
         const isGroup =
-          isGroupTab(activeTab) &&
-          msg.chat_id === activeTab;
+          chats.some(c => c.id === activeTab) &&
+          msg.to_id === activeTab;
 
         if (
           (activeTab === "global" && isGlobal) ||
@@ -107,7 +104,7 @@ const TabbedCommunicator: React.FC<Props> = ({
   const getGroupUnreadCount = (chatId: string) => {
     return messages.filter(
       m =>
-        m.chat_id === chatId &&
+        m.to_id === chatId &&
         m.from_id !== playerId &&
         !readMessages.has(m.id)
     ).length;
@@ -135,18 +132,16 @@ const TabbedCommunicator: React.FC<Props> = ({
       return msg.to_id === "GLOBAL";
     }
 
-    if (isPlayerTab(activeTab)) {
+    // private chat
+    if (playerIds.has(activeTab)) {
       return (
         (msg.from_id === activeTab && msg.to_id === playerId) ||
         (msg.from_id === playerId && msg.to_id === activeTab)
       );
     }
 
-    if (isGroupTab(activeTab)) {
-      return msg.to_id === activeTab;
-    }
-
-    return false;
+    // group chat (NOW uses to_id ONLY)
+    return msg.to_id === activeTab;
   });
 
   // 2. Trigger the instant snap ONLY when the amount of messages changes
@@ -359,9 +354,17 @@ const TabbedCommunicator: React.FC<Props> = ({
             return (
               <div key={msg.id} style={{ alignSelf: isMe ? "flex-end" : "flex-start", maxWidth: "80%" }}>
                 {!isMe &&
-                  (activeTab === "global" ||
-                    isGroupTab(activeTab)) && (
-                  <div style={{ fontSize: "0.7rem", color: "#666", marginBottom: "2px", marginLeft: "2px" }}>{getPlayerName(msg.from_id)}</div>
+                  (activeTab === "global" || msg.to_id !== playerId) && (
+                  <div
+                    style={{
+                      fontSize: "0.7rem",
+                      color: "#666",
+                      marginBottom: "2px",
+                      marginLeft: "2px"
+                    }}
+                  >
+                    {getPlayerName(msg.from_id)}
+                  </div>
                 )}
                 <div style={{ background: isMe ? "#e3f2fd" : "#f1f3f4", border: isMe ? "1px solid #bbdefb" : "1px solid #e0e0e0", padding: "8px 12px", borderRadius: "12px", fontSize: "0.9rem", wordWrap: "break-word" }}>
                   {msg.content}
