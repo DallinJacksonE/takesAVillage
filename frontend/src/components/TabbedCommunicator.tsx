@@ -126,6 +126,24 @@ const TabbedCommunicator: React.FC<Props> = ({
       return unreadB - unreadA;
     });
 
+  const playerTabs = otherPlayers.map(p => ({
+    id: p.id,
+    label: p.name,
+    unread: getUnreadCount(p.id, playerId),
+    type: "player" as const
+  }));
+
+  const chatTabs = chats.map(c => ({
+    id: c.id,
+    label: `#${c.name}`,
+    unread: getGroupUnreadCount(c.id),
+    type: "chat" as const
+  }));
+
+  const sortedTabs = [...playerTabs, ...chatTabs].sort(
+    (a, b) => b.unread - a.unread
+  );
+
   // Filter messages for the currently active tab
   const displayMessages = messages.filter(msg => {
     if (activeTab === "global") {
@@ -220,122 +238,63 @@ const TabbedCommunicator: React.FC<Props> = ({
             )}
           </span>
         </button>
-        {otherPlayers.map(p => {
-          const unread = getUnreadCount(p.id, playerId);
-          return (
-            <button
-              key={p.id}
-              style={{
-                flexShrink: 0,
-                padding: "10px 15px",
-                border: "none",
-                background: activeTab === p.id ? "#fff" : "transparent",
-                borderBottom: activeTab === p.id ? "3px solid #2196F3" : "3px solid transparent",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between", // Pushes the outer containers to the edges, centering the middle
-                gap: "5px",
-                fontWeight: "normal"
-              }}
-              onClick={() => setActiveTab(p.id)}
-            >
-              {/* 1. Ghost element on the left to balance the math */}
-              <span style={{ width: "24px" }}></span>
+        {sortedTabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              flexShrink: 0,
+              padding: "10px 15px",
+              border: "none",
+              background: activeTab === tab.id ? "#fff" : "transparent",
+              borderBottom:
+                activeTab === tab.id
+                  ? "3px solid #2196F3"
+                  : "3px solid transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              minWidth: "140px"
+            }}
+          >
+            <span style={{ width: "24px" }} />
+            <span>{tab.label}</span>
 
-              {/* 2. Text in the dead center */}
-              <span>{p.name}</span>
-
-              {/* 3. Original invisible container on the right */}
-              <span style={{ width: "24px", display: "flex", justifyContent: "center" }}>
-                {unread > 0 && (
-                  <span style={{
-                    background: "red",
-                    color: "white",
-                    borderRadius: "10px",
-                    padding: "2px 6px",
-                    fontSize: "0.7rem",
-                    whiteSpace: "nowrap"
-                  }}>
-                    {unread}
-                  </span>
-                )}
-              </span>
-
-            </button>
-          );
-        })}
-
-        {chats.map(chat => {
-          const unread = getGroupUnreadCount(chat.id);
-          console.log("showCreateChat", showCreateChat);
-
-          return (
-            <button
-              key={chat.id}
-              style={{
-                flexShrink: 0,
-                padding: "10px 15px",
-                border: "none",
-                background: activeTab === chat.id ? "#fff" : "transparent",
-                borderBottom:
-                  activeTab === chat.id
-                    ? "3px solid #2196F3"
-                    : "3px solid transparent",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "5px",
-                fontWeight: "normal"
-              }}
-              onClick={() => setActiveTab(chat.id)}
-            >
-              <span style={{ width: "24px" }} />
-
-              <span>#{chat.name}</span>
-
-              <span
-                style={{
-                  width: "24px",
-                  display: "flex",
-                  justifyContent: "center"
-                }}
-              >
-                {unread > 0 && (
-                  <span
-                    style={{
-                      background: "red",
-                      color: "white",
-                      borderRadius: "10px",
-                      padding: "2px 6px",
-                      fontSize: "0.7rem",
-                      whiteSpace: "nowrap"
-                    }}
-                  >
-                    {unread}
-                  </span>
-                )}
-              </span>
-            </button>
-          );
-        })}
+            <span style={{ width: "24px", display: "flex", justifyContent: "center" }}>
+              {tab.unread > 0 && (
+                <span style={{
+                  background: "red",
+                  color: "white",
+                  borderRadius: "10px",
+                  padding: "2px 6px",
+                  fontSize: "0.7rem"
+                }}>
+                  {tab.unread}
+                </span>
+              )}
+            </span>
+          </button>
+        ))}
 
         <button
-          onClick={() => {
-            console.log("ADD CHAT CLICKED");
-            setShowCreateChat(true);
-          }}
+          onClick={() => setShowCreateChat(true)}
           style={{
             flexShrink: 0,
             padding: "10px 15px",
             border: "none",
             background: "transparent",
             cursor: "pointer",
-            fontWeight: "bold"
+            fontWeight: "bold",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            minWidth: "120px"
           }}
         >
-          + Chat
+          <span style={{ width: "24px" }} />
+          <span>+ Chat</span>
+          <span style={{ width: "24px" }} />
         </button>
       </div>
 
@@ -354,18 +313,18 @@ const TabbedCommunicator: React.FC<Props> = ({
             return (
               <div key={msg.id} style={{ alignSelf: isMe ? "flex-end" : "flex-start", maxWidth: "80%" }}>
                 {!isMe &&
-                  (activeTab === "global" || msg.to_id !== playerId) && (
-                  <div
-                    style={{
-                      fontSize: "0.7rem",
-                      color: "#666",
-                      marginBottom: "2px",
-                      marginLeft: "2px"
-                    }}
-                  >
-                    {getPlayerName(msg.from_id)}
-                  </div>
-                )}
+                (activeTab === "global" || msg.to_id !== playerId) && (
+                <div
+                  style={{
+                    fontSize: "0.7rem",
+                    color: "#666",
+                    marginBottom: "2px",
+                    marginLeft: "2px"
+                  }}
+                >
+                  {getPlayerName(msg.from_id)}
+                </div>
+              )}
                 <div style={{ background: isMe ? "#e3f2fd" : "#f1f3f4", border: isMe ? "1px solid #bbdefb" : "1px solid #e0e0e0", padding: "8px 12px", borderRadius: "12px", fontSize: "0.9rem", wordWrap: "break-word" }}>
                   {msg.content}
                 </div>
