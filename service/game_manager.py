@@ -21,9 +21,24 @@ async def game_loop(connection_manager):
     """The main loop managing phase transitions and game endings."""
     while True:
         for game in list(active_games.values()):
-            if game.status == "RUNNING" and game.check_timer():
-                print("Next phase")
-                await connection_manager.broadcast_game_state(game.id, game)
+            if game.status == "RUNNING":
+                print("running bot turns")
+
+                game.run_bot_turns()
+
+                await connection_manager.broadcast_game_state(
+                    game.id,
+                    game
+                )
+
+                game.check_all_players_locked()
+
+                if game.check_timer():
+                    print("Next phase")
+                    await connection_manager.broadcast_game_state(
+                        game.id,
+                        game
+                    )
 
             elif game.status == "ENDED":
                 map_dict = build_map_hist(game)
