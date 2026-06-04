@@ -1,77 +1,94 @@
 import random
 from dataclasses import dataclass, fields
 
-# =========================
-# Genome
-# =========================
 
 @dataclass
 class Genome:
+
+    # Resource valuation
     food_weight: float
     wood_weight: float
     iron_weight: float
+
+    # Scarcity response
+    food_desperation_weight: float
+    wood_desperation_weight: float
+    iron_desperation_weight: float
+
+    # General strategy
+    survival_weight: float
+    growth_weight: float
     reputation_weight: float
-    health_weight: float
-    build_farm_weight: float
-    build_woods_weight: float
-    build_mine_weight: float
+
+    # Personality
+    aggression_weight: float
+    cooperation_weight: float
+    risk_weight: float
+
+    # Development preferences
+    farm_preference: float
+    woods_preference: float
+    mine_preference: float
+
+    # Action biases
+    build_weight: float
     upgrade_weight: float
     maintain_weight: float
     contest_weight: float
-    survival_weight: float
-    growth_weight: float
+    work_weight: float
+    fire_weight: float
+
+    # Time horizon
+    immediate_reward_weight: float
+    future_reward_weight: float
 
     @staticmethod
     def random():
-        return Genome(
-            food_weight=random.uniform(-1, 1),
-            wood_weight=random.uniform(-1, 1),
-            iron_weight=random.uniform(-1, 1),
-            reputation_weight=random.uniform(-1, 1),
-            health_weight=random.uniform(-1, 1),
-            build_farm_weight=random.uniform(-1, 1),
-            build_woods_weight=random.uniform(-1, 1),
-            build_mine_weight=random.uniform(-1, 1),
-            upgrade_weight=random.uniform(-1, 1),
-            maintain_weight=random.uniform(-1, 1),
-            contest_weight=random.uniform(-1, 1),
-            survival_weight=random.uniform(-1, 1),
-            growth_weight=random.uniform(-1, 1)
-            )
+
+        values = {}
+
+        for field in fields(Genome):
+            values[field.name] = random.uniform(-2, 2)
+
+        return Genome(**values)
 
     @staticmethod
     def mutate(
         genome,
-        mutation_strength=0.3,
-        mutation_rate=0.2
+        mutation_strength=0.25,
+        mutation_rate=0.15
     ):
 
-        mutated = {}
+        values = {}
 
         for field in fields(Genome):
 
-            value = getattr(genome, field.name)
+            value = getattr(
+                genome,
+                field.name
+            )
 
             if random.random() < mutation_rate:
+
                 value += random.gauss(
                     0,
                     mutation_strength
                 )
 
-            mutated[field.name] = value
+            values[field.name] = value
 
-        return Genome(**mutated)
+        return Genome(**values)
 
     @staticmethod
     def crossover(parent_a, parent_b):
 
-        child = {}
+        values = {}
 
         for field in fields(Genome):
-            child[field.name] = random.choice([
+
+            values[field.name] = random.choice([
                 getattr(parent_a, field.name),
                 getattr(parent_b, field.name)
             ])
 
-        return Genome(**child)
-
+        return Genome(**values)

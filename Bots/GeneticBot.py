@@ -1,6 +1,3 @@
-from Bots.Genome import Genome
-
-
 class GeneticBot:
 
     def __init__(self, genome):
@@ -11,6 +8,7 @@ class GeneticBot:
         actions = game.get_available_actions(player)
 
         if not actions:
+
             return {
                 "action_command": "FINISH_PHASE",
                 "payload": {}
@@ -18,133 +16,197 @@ class GeneticBot:
 
         return max(
             actions,
-            key=lambda action: self.score_action(
-                action,
+            key=lambda a: self.score_action(
+                a,
                 game,
                 player
             )
         )
 
-    def score_action(self, action, game, player):
+    def score_action(
+        self,
+        action,
+        game,
+        player
+    ):
+
+        g = self.genome
 
         score = 0
 
-        food = player.resources.get("food", 0)
-        wood = player.resources.get("wood", 0)
-        iron = player.resources.get("iron", 0)
-
         command = action["action_command"]
 
-        # ------------------
-        # BUILD DEV
-        # ------------------
+        resources = player.resources
+
+        food = resources.get("food", 0)
+        wood = resources.get("wood", 0)
+        iron = resources.get("iron", 0)
+
+        # =====================
+        # NEEDS
+        # =====================
+
+        food_need = max(0, 5 - food)
+        wood_need = max(0, 5 - wood)
+        iron_need = max(0, 5 - iron)
+
+        score += (
+            food_need *
+            g.food_desperation_weight
+        )
+
+        score += (
+            wood_need *
+            g.wood_desperation_weight
+        )
+
+        score += (
+            iron_need *
+            g.iron_desperation_weight
+        )
+
+        # =====================
+        # BUILD
+        # =====================
 
         if command == "BUILD_DEV":
 
-            tile_id = action["payload"]["tile_id"]
+            score += g.build_weight
 
-            tile = game.map_data.get(tile_id)
+            tile_type = (
+                action["payload"]
+                .get("tile_type")
+            )
 
-            if not tile:
-                return -9999
+            if tile_type == "Farm":
 
-            if tile.type == "Farm":
-                score += self.genome.build_farm_weight
+                score += (
+                    g.farm_preference
+                    + g.growth_weight
+                )
 
-            elif tile.type == "Woods":
-                score += self.genome.build_woods_weight
+                if food_need > 0:
+                    score += (
+                        food_need *
+                        g.survival_weight
+                    )
 
-            elif tile.type == "Mine":
-                score += self.genome.build_mine_weight
+            elif tile_type == "Woods":
 
-            score += self.genome.growth_weight
+                score += (
+                    g.woods_preference
+                    + g.growth_weight
+                )
 
-        # ------------------
-        # COMMIT WORK
-        # ------------------
+            elif tile_type == "Mine":
+
+                score += (
+                    g.mine_preference
+                    + g.growth_weight
+                )
+
+        # =====================
+        # UPGRADE
+        # =====================
+
+        elif command == "UPGRADE_DEV":
+
+            score += (
+                g.upgrade_weight
+                + g.growth_weight
+            )
+
+        # =====================
+        # MAINTAIN
+        # =====================
+
+        elif command == "MAINTAIN_DEV":
+
+            score += (
+                g.maintain_weight
+                + g.future_reward_weight
+            )
+
+        # =====================
+        # CONTEST
+        # =====================
+
+        elif command == "CONTEST_DEV":
+
+            score += (
+                g.contest_weight
+                + g.aggression_weight
+            )
+
+        # =====================
+        # CAMPFIRE
+        # =====================
+
+        elif command == "START_FIRE":
+
+            score += (
+                g.fire_weight
+                + g.cooperation_weight
+                + g.reputation_weight
+            )
+
+        # =====================
+        # WORK
+        # =====================
 
         elif command == "COMMIT_WORK":
+
+            score += g.work_weight
 
             job = action["payload"]["job"]
 
             wage = job["wage"]
+
             wage_type = job["wage_type"]
 
             if wage_type == "food":
 
                 score += (
                     wage *
-                    self.genome.food_weight
+                    g.food_weight
                 )
 
-                if food == 0:
-                    score += (
-                        5 *
-                        self.genome.survival_weight
-                    )
-
-                elif food == 1:
-                    score += (
-                        2 *
-                        self.genome.survival_weight
-                    )
+                score += (
+                    food_need *
+                    g.food_desperation_weight
+                )
 
             elif wage_type == "wood":
 
                 score += (
                     wage *
-                    self.genome.wood_weight
+                    g.wood_weight
                 )
 
-                if wood == 0:
-                    score += (
-                        3 *
-                        self.genome.survival_weight
-                    )
+                score += (
+                    wood_need *
+                    g.wood_desperation_weight
+                )
 
             elif wage_type == "iron":
 
                 score += (
                     wage *
-                    self.genome.iron_weight
+                    g.iron_weight
                 )
 
-                if iron == 0:
-                    score += (
-                        2 *
-                        self.genome.survival_weight
-                    )
+                score += (
+                    iron_need *
+                    g.iron_desperation_weight
+                )
 
-        # ------------------
-        # UPGRADE DEV
-        # ------------------
+        # =====================
+        # RANDOMNESS
+        # =====================
 
-        elif command == "UPGRADE_DEV":
-
-            score += (
-                self.genome.upgrade_weight +
-                self.genome.growth_weight
-            )
-
-        # ------------------
-        # MAINTAIN DEV
-        # ------------------
-
-        elif command == "MAINTAIN_DEV":
-
-            score += self.genome.maintain_weight
-
-        # ------------------
-        # CONTEST DEV
-        # ------------------
-
-        elif command == "CONTEST_DEV":
-
-            score += self.genome.contest_weight
-
-        # ------------------
-        # FINISH PHASE
-        # ------------------
-
+        score += (
+            g.risk_weight *
+            0.1
+        )
 
         return score
