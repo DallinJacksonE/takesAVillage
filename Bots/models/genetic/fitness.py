@@ -1,7 +1,8 @@
 def calculate_fitness(game_state: dict) -> float:
     """
     Evaluates the final game state and returns a fitness score.
-    As this logic grows, you can easily inject different scoring strategies here.
+    As this logic grows, you can easily inject different scoring
+    strategies here.
     """
     me = game_state.get("me", {})
 
@@ -17,7 +18,8 @@ def calculate_fitness(game_state: dict) -> float:
         (50 if is_alive else 0)  # Massive bonus for surviving the winter
     )
 
-    # As you add more complex metrics (e.g., developments owned, kill count, etc.),
+    # As you add more complex metrics (e.g., developments owned,
+    # kill count, etc.),
     # simply extract them from game_state and weigh them here.
 
     return float(score)

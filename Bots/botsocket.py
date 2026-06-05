@@ -2,6 +2,7 @@ import asyncio
 import json
 import httpx
 import websockets
+from typing import Callable, Awaitable, Optional
 
 
 class BotSocket:
@@ -22,16 +23,15 @@ class BotSocket:
         self._listen_task = None
 
         # Callbacks for the bot logic to hook into
-        self.on_game_state = None
-        self.on_chat_history = None
-        self.on_new_chat_message = None
-        self.on_game_started = None
-        self.on_error = None
-        self.on_disconnect = None
-
-    # ---------------------------------------
-    # CONNECTION LIFECYCLE
-    # ---------------------------------------
+        self.on_game_state: Optional[Callable[[dict], Awaitable[None]]] = None
+        self.on_chat_history: Optional[Callable[[
+            list], Awaitable[None]]] = None
+        self.on_new_chat_message: Optional[Callable[[
+            dict], Awaitable[None]]] = None
+        self.on_game_started: Optional[Callable[[
+            dict], Awaitable[None]]] = None
+        self.on_error: Optional[Callable[[dict], Awaitable[None]]] = None
+        self.on_disconnect: Optional[Callable[[], Awaitable[None]]] = None
 
     async def connect(self):
         """Authenticates via HTTP, then opens the WebSocket."""

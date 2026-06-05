@@ -31,7 +31,8 @@ class BaseBot(ABC):
             map_data = game_state.get("map", {})
 
             # Handle map_data whether it arrives as a dict or a list
-            tiles = map_data.values() if isinstance(map_data, dict) else map_data
+            tiles = map_data.values() if isinstance(
+                map_data, dict) else map_data
 
             for tile in tiles:
                 if not tile.get("development"):
@@ -48,7 +49,7 @@ class BaseBot(ABC):
                             "action_command": "BUILD_DEV",
                             "payload": {
                                 "tile_id": tile["id"],
-                                "_tile_type": tile_type  # Hidden key for internal bot scoring
+                                "_tile_type": tile_type
                             }
                         })
 
@@ -79,7 +80,7 @@ class BaseBot(ABC):
 
     def format_network_payload(self, action: dict | None) -> dict:
         """
-        Strips internal bot metadata (keys starting with '_') and ensures 
+        Strips internal bot metadata (keys starting with '_') and ensures
         the payload matches the strict GameActionPayload TS interface.
         """
         if not action:

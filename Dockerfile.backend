@@ -2,7 +2,7 @@ FROM python:3.10-slim
 WORKDIR /app/service
 
 # Added 'uvicorn' to the end of the installation list
-RUN pip install --no-cache-dir fastapi mysql-connector-python matplotlib uvicorn websockets
+RUN pip install --no-cache-dir fastapi mysql-connector-python matplotlib uvicorn websockets httpx
 
 # Copy the backend source
 COPY service/ .

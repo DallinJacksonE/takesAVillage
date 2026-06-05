@@ -7,7 +7,8 @@ class GeneticBot(BaseBot):
 
     def choose_action(self, game_state: dict) -> dict | None:
         """
-        Evaluates actions using genetic weights and returns a formatted payload.
+        Evaluates actions using genetic weights and returns a
+        formatted payload.
         """
         me = game_state.get("me", {})
 

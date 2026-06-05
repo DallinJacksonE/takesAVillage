@@ -5,9 +5,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from bots.genetic.Genome import Genome
-from bots.genetic.GeneticBot import GeneticBot
-from bots.genetic.fitness import calculate_fitness
+from models.genetic.Genome import Genome
+from models.genetic.GeneticBot import GeneticBot
+from models.genetic.fitness import calculate_fitness
 from botsocket import BotSocket
 import json
 # Global state to keep track of running processes
@@ -18,7 +18,9 @@ training_data_queue = multiprocessing.Queue()
 # ---------------------------------------------------------
 
 
-def run_bot_process(game_id: str, bot_secret: str, result_queue: multiprocessing.Queue):
+def run_bot_process(game_id: str,
+                    bot_secret: str,
+                    result_queue: multiprocessing.Queue):
     """
     Runs entirely inside a new, isolated memory space.
     """
@@ -91,7 +93,7 @@ async def process_training_data(queue: multiprocessing.Queue):
 
 async def reap_zombies():
     """
-    Periodically checks for finished processes and calls .join() 
+    Periodically checks for finished processes and calls .join()
     on them to prevent zombie processes from eating up container RAM.
     """
     global active_bot_processes
