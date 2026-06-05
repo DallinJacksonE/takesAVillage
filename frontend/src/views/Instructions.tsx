@@ -88,6 +88,60 @@ const Instructions: React.FC = () => {
           nearing game completion.
         </p>
       </div>
+      <div style={{ marginTop: "4rem", marginBottom: "4rem" }}>
+        <h2>
+          Day 1 Work Phase Example:
+        </h2>
+          <img src="/images/workphase.png" alt="Day 1 Work Phase Example" style={{ width: "95%", height: "auto" }}></img>
+        <p>
+          In the above photo you can see the UI of Day 1 work phase. The player Tresagg hasn't taken an action yet,
+          but players Loki and Tresagg have already build by clicking on the respective hexes and building developments.
+          Since other players have already built, Tresagg can apply to work for them by clicking their developments in the
+          Village Development section, or can build a development in the woods.
+        </p>  
+      </div>
+      <div style={{ marginTop: "4rem", marginBottom: "4rem" }}>
+        <h2>
+          Day 2 Work Phase Example:
+        </h2>
+        <img src="/images/workphaseday2.png" alt="Day 2 Work Phase Example" style={{ width: "95%", height: "auto" }}></img>
+        <p>
+          Here the player has reached day 2 where in day 1 he built a farm, his opponents have spent their actions building and
+          working as well.
+        </p>
+      </div>
+      <div style={{ marginTop: "4rem", marginBottom: "4rem" }}>
+        <h2>
+          Trade Phase Example:
+        </h2>
+        <img src="/images/tradephase.png" alt="Trade Phase Example" style={{ width: "95%", height: "auto" }}></img>
+        <p>
+          This is the trade menu, where players can draft, confirm, ship, and counter trade. Remember, players may not ship
+          what they promise!
+        </p>
+      </div>
+      <div style={{ marginTop: "4rem", marginBottom: "4rem" }}>
+        <h2>
+          Night Phase Example:
+        </h2>
+        <img src="/images/nightphase.png" alt="Night Phase Example" style={{ width: "95%", height: "auto" }}></img>
+        <p>
+          At night you must use wood to build a fire or request a seat at someone else's. After the day ends,
+          sickness chance goes up when you don't eat or arent warm, then a random sickness roll is made to see
+          if you get sick.
+        </p>
+      </div>
+      <div style={{ marginTop: "4rem", marginBottom: "4rem" }}>
+        <h2>
+          Sick Example:
+        </h2>
+        <img src="/images/sick.png" alt="Sick Example" style={{ width: "95%", height: "auto" }}></img>
+        <p>
+          When sick, you must eat and be warm to start recovering, then the next day you must do the same to be healthy
+          again the third day. This means that you will lose 2 days worth of actions upon getting sick. If you fail the 
+          sick role on top of being sick, you die.
+        </p>
+      </div>
     </div>
   );
 };
