@@ -326,6 +326,8 @@ class Game:
     def handle_action(self, user_id, data):
         # Any logical checks for player action handling should go in
         # ActionDispatcher.player_can_perform_action
+        if self.status == "WAITING":
+            return None
         return ActionDispatcher.dispatch(self, user_id, data)
 
     # ==========================================
