@@ -77,7 +77,7 @@ class BaseBot(ABC):
                     "action_command": "START_FIRE",
                     "payload": {}
                 })
-
+        print(actions)
         return actions
 
     def format_network_payload(self, action: dict | None) -> dict:

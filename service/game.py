@@ -329,6 +329,8 @@ class Game:
         # ActionDispatcher.player_can_perform_action
         if self.status == "WAITING":
             return None
+        if user_id is None:
+            return
         return ActionDispatcher.dispatch(self, user_id, data)
 
     # ==========================================
