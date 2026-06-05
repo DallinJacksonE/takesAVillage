@@ -2,7 +2,7 @@ import random
 from Bots.Genome import Genome
 from Bots.GeneticBot import GeneticBot
 from service.actions.action_dispatcher import ActionDispatcher
-from service.game import Game
+
 
 def calculate_fitness(player, game):
 
@@ -16,7 +16,7 @@ def calculate_fitness(player, game):
         player.resources.values()
     ) * 25
 
-    fitness += 100 *sum(
+    fitness += 100 * sum(
         game.developments[dev_id].level
         for dev_id in player.developments
     )
@@ -120,6 +120,7 @@ def run_game(genomes):
 # Evolution
 # =========================
 
+
 POP_SIZE = 200
 LOBBY_SIZE = 10
 
@@ -150,7 +151,6 @@ for generation in range(GENERATIONS):
         if len(lobby) < LOBBY_SIZE:
             continue
         fitnesses = run_game(lobby)
-
 
         for genome, fitness in zip(
             lobby,

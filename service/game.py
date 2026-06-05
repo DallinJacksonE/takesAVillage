@@ -17,9 +17,6 @@ from db import db
 from serializers.snapshots import build_game_snapshot, build_work_snapshot, build_night_snapshot, build_trade_snapshot
 import json
 from models.chat import Chat
-from Bots.GeneticBot import GeneticBot
-from Bots.Genome import Genome
-
 
 
 class Game:
@@ -70,51 +67,43 @@ class Game:
 
         self.training = training
 
-        self.bots = {} # id pointing to bot object
-
-        for _ in range(bots):
-            bot_id = "bot_" + str(uuid.uuid4())[:4]
-            self.add_player(session_id=bot_id)
-            self.bots[bot_id] = GeneticBot(Genome.random())
-
-    
-    def run_bot_turns(self):
-
-        print("running bot turns")
-
-        bot_ids = list(self.bots.keys())
-        random.shuffle(bot_ids)
-
-        for bot_id in bot_ids:
-
-            player = self.players.get(bot_id)
-
-            if not player:
-                continue
-
-            if player.health == "dead":
-                continue
-
-            if player.finished_phase:
-                continue
-
-            action = self.bots[bot_id].choose_action(
-                self,
-                player
-            )
-
-            print("BOT CHOSE:", action)
-
-            if not action:
-                action = {
-                    "action_command": "FINISH_PHASE",
-                    "payload": {}
-                }
-
-            self.handle_action(
-                bot_id,
-                action
-            )
+    # def run_bot_turns(self):
+    #
+    #     print("running bot turns")
+    #
+    #     bot_ids = list(self.bots.keys())
+    #     random.shuffle(bot_ids)
+    #
+    #     for bot_id in bot_ids:
+    #
+    #         player = self.players.get(bot_id)
+    #
+    #         if not player:
+    #             continue
+    #
+    #         if player.health == "dead":
+    #             continue
+    #
+    #         if player.finished_phase:
+    #             continue
+    #
+    #         action = self.bots[bot_id].choose_action(
+    #             self,
+    #             player
+    #         )
+    #
+    #         print("BOT CHOSE:", action)
+    #
+    #         if not action:
+    #             action = {
+    #                 "action_command": "FINISH_PHASE",
+    #                 "payload": {}
+    #             }
+    #
+    #         self.handle_action(
+    #             bot_id,
+    #             action
+    #         )
 
     def add_player(self, session_id):
         if session_id not in self.players:
@@ -173,12 +162,12 @@ class Game:
                 self.phase,
                 json.dumps(game_snapshot)
             )
-            
+
         if not self.training:
 
-        # -------------------------
-        # PLAYER SNAPSHOTS
-        # -------------------------
+            # -------------------------
+            # PLAYER SNAPSHOTS
+            # -------------------------
 
             for player in self.players.values():
 
@@ -272,6 +261,7 @@ class Game:
                 player.committed_action = None
             else:
                 player.committed_action = None
+
     def get_time_remaining(self):
         return max(0, int(self.phase_end_time - time.time()))
 
@@ -311,7 +301,7 @@ class Game:
                 )
 
         return chat_msg
-    
+
     def create_chat(
         self,
         creator_id,
@@ -425,7 +415,7 @@ class Game:
         actions = []
 
         if self.phase == "WORK":
-            
+
             if player.health == "SICK":
                 return []
 

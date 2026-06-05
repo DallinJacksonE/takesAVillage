@@ -1,3 +1,5 @@
+from pydantic import BaseModel
+import os
 import uuid
 from fastapi import APIRouter, Response, Cookie, HTTPException
 from typing import Optional
@@ -137,3 +139,39 @@ async def join_game(payload: dict):
     if game_id in active_games:
         return {"gameId": game_id}
     raise HTTPException(status_code=404, detail="Game not found")
+
+
+class BotJoinPayload(BaseModel):
+    gameId: str
+    botSecret: str
+
+
+@api_router.post('/api/botJoinGame')
+async def bot_join_game(payload: BotJoinPayload):
+    # Use an environment variable for the secret, with a fallback for local dev
+    expected_secret = os.environ.get("BOT_SECRET", "default_dev_secret")
+
+    if payload.botSecret != expected_secret:
+        raise HTTPException(status_code=403, detail="Invalid bot secret")
+
+    game_id = payload.gameId
+
+    if game_id not in active_games:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    game = active_games[game_id]
+
+    # Optional: Prevent bots from joining games that have already started
+    if game.status != "WAITING":
+        raise HTTPException(status_code=400, detail="Game already running")
+
+    # Generate a distinct prefix so it's easy to identify bots in logs/DB
+    bot_uuid = "bot_" + str(uuid.uuid4())[:8]
+
+    # Pre-register the bot in the game state
+    game.add_player(bot_uuid)
+
+    return {
+        "userId": bot_uuid,
+        "gameId": game_id
+    }
