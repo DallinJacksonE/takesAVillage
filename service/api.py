@@ -124,8 +124,8 @@ async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
                         "botCount": bot_count,
                         "botSecret": bot_secret
                     }, timeout=5.0)
-                    print(f"Successfully requested {
-                          bot_count} bots for {game_id}")
+                    print(f"Successfully requested "
+                          f"{bot_count} bots for {game_id}")
                 except Exception as e:
                     print(f"Failed to reach Bot Service: {e}")
 
