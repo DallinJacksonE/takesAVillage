@@ -59,6 +59,9 @@ def run_bot_process(game_id: str,
                 return
 
             # Normal gameplay logic
+            if state.get("status") != "RUNNING":
+                return
+            
             action = bot.choose_action(state)
             if action:
                 await socket.submit_action(action)
