@@ -1,0 +1,13 @@
+FROM python:3.10-slim
+
+WORKDIR /app/Bots
+
+RUN pip install --no-cache-dir \
+    websockets \
+    httpx \
+    fastapi \
+    uvicorn
+
+COPY Bots/ .
+
+CMD ["python", "main.py"]
