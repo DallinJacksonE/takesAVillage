@@ -24,13 +24,6 @@ async def game_loop(connection_manager):
             if game.status == "RUNNING":
                 print("running bot turns")
 
-                game.run_bot_turns()
-
-                await connection_manager.broadcast_game_state(
-                    game.id,
-                    game
-                )
-
                 game.check_all_players_locked()
 
                 if game.check_timer():

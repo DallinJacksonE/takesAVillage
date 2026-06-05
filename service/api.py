@@ -1,3 +1,5 @@
+from pydantic import BaseModel
+import os
 import uuid
 from fastapi import APIRouter, Response, Cookie, HTTPException
 from typing import Optional
@@ -5,7 +7,8 @@ import ast
 from pathlib import Path
 from db import db
 from game_manager import active_games, create_game
-
+import httpx
+import asyncio
 api_router = APIRouter()
 CONSTANTS_DIR = Path(__file__).parent / "constants"
 
@@ -100,12 +103,35 @@ async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
     if not user_session or not db.user_exists(user_session):
         raise HTTPException(status_code=403, detail="Invalid/No Session")
 
-    # Extract the payload values sent by the frontend, providing safe defaults
+    # Extract the payload values sent by the frontend
     ruleset = payload.get('ruleset', 'default')
     bot_count = payload.get('botCount', 0)
 
-    # Pass the new parameters to the game manager
+    # 1. Create the game in the backend memory
     game_id = create_game(user_session, ruleset, bot_count)
+
+    # 2. If bots are requested, trigger the Bot Service
+    if bot_count > 0:
+        bot_url = os.environ.get(
+            "BOT_SERVICE_URL", "http://bots:8001/api/spawn_bots")
+        bot_secret = os.environ.get("BOT_SECRET", "default_dev_secret")
+
+        async def spawn_external_bots():
+            async with httpx.AsyncClient() as client:
+                try:
+                    await client.post(bot_url, json={
+                        "gameId": game_id,
+                        "botCount": bot_count,
+                        "botSecret": bot_secret
+                    }, timeout=5.0)
+                    print(f"Successfully requested "
+                          f"{bot_count} bots for {game_id}")
+                except Exception as e:
+                    print(f"Failed to reach Bot Service: {e}")
+
+        # Fire and forget so the HTTP response isn't blocked
+        asyncio.create_task(spawn_external_bots())
+
     return {"gameId": game_id}
 
 
@@ -137,3 +163,39 @@ async def join_game(payload: dict):
     if game_id in active_games:
         return {"gameId": game_id}
     raise HTTPException(status_code=404, detail="Game not found")
+
+
+class BotJoinPayload(BaseModel):
+    gameId: str
+    botSecret: str
+
+
+@api_router.post('/api/botJoinGame')
+async def bot_join_game(payload: BotJoinPayload):
+    # Use an environment variable for the secret, with a fallback for local dev
+    expected_secret = os.environ.get("BOT_SECRET", "default_dev_secret")
+
+    if payload.botSecret != expected_secret:
+        raise HTTPException(status_code=403, detail="Invalid bot secret")
+
+    game_id = payload.gameId
+
+    if game_id not in active_games:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    game = active_games[game_id]
+
+    # Optional: Prevent bots from joining games that have already started
+    if game.status != "WAITING":
+        raise HTTPException(status_code=400, detail="Game already running")
+
+    # Generate a distinct prefix so it's easy to identify bots in logs/DB
+    bot_uuid = "bot_" + str(uuid.uuid4())[:8]
+
+    # Pre-register the bot in the game state
+    game.add_player(bot_uuid)
+
+    return {
+        "userId": bot_uuid,
+        "gameId": game_id
+    }
