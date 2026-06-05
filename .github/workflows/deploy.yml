@@ -59,7 +59,7 @@ jobs:
             GIT_SSH_COMMAND="ssh -i ~/.ssh/github_actions -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git pull origin main
 
             # Rebuild and restart the containers
-            docker compose up -d --build frontend backend
+            docker compose up -d --build frontend backend bots
 
             # Clean up old unused images to save disk space
             docker image prune -f
