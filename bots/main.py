@@ -147,7 +147,7 @@ async def spawn_bots(payload: SpawnBotsRequest):
         # Spawn the child process
         p = multiprocessing.Process(
             target=run_bot_process,
-            args=(payload.gameId, payload.botSecret)
+            args=(payload.gameId, payload.botSecret, training_data_queue)
         )
         p.start()
         active_bot_processes.append(p)
