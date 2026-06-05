@@ -41,7 +41,6 @@ def run_bot_process(game_id: str,
 
         async def on_game_state(state):
             # WAIT FOR HOST FIRST
-            asyncio.sleep(5)
             if not host_ready_event.is_set():
                 if state.get("host_connected") is True:
                     host_ready_event.set()
