@@ -22,7 +22,6 @@ async def game_loop(connection_manager):
     while True:
         for game in list(active_games.values()):
             if game.status == "RUNNING":
-                print("running bot turns")
 
                 game.check_all_players_locked()
 
