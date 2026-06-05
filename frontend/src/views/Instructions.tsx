@@ -92,13 +92,13 @@ const Instructions: React.FC = () => {
         <h2>
           Day 1 Work Phase Example:
         </h2>
-          <img src="/images/workphase.png" alt="Day 1 Work Phase Example" style={{ width: "95%", height: "auto" }}></img>
+        <img src="/images/workphase.png" alt="Day 1 Work Phase Example" style={{ width: "95%", height: "auto" }}></img>
         <p>
           In the above photo you can see the UI of Day 1 work phase. The player Tresagg hasn't taken an action yet,
           but players Loki and Tresagg have already build by clicking on the respective hexes and building developments.
           Since other players have already built, Tresagg can apply to work for them by clicking their developments in the
           Village Development section, or can build a development in the woods.
-        </p>  
+        </p>
       </div>
       <div style={{ marginTop: "4rem", marginBottom: "4rem" }}>
         <h2>
@@ -138,7 +138,7 @@ const Instructions: React.FC = () => {
         <img src="/images/sick.png" alt="Sick Example" style={{ width: "95%", height: "auto" }}></img>
         <p>
           When sick, you must eat and be warm to start recovering, then the next day you must do the same to be healthy
-          again the third day. This means that you will lose 2 days worth of actions upon getting sick. If you fail the 
+          again the third day. This means that you will lose 2 days worth of actions upon getting sick. If you fail the
           sick role on top of being sick, you die.
         </p>
       </div>
