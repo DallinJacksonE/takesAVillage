@@ -33,6 +33,7 @@ def build_player_state(game, session_id):
         "time_remaining": game.get_time_remaining(),
         "player_list": player_list,
         "map": map_dto,
+        "host_connected": game.host_connected,
         "developments": development_list,
         "chats": chat_list, # Include chats in the state DTO
         "development_costs": game.rules.DEVELOPMENT_COSTS,

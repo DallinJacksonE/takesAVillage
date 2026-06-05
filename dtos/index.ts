@@ -243,6 +243,7 @@ export interface PlayerDTO {
 export interface GameStateDTO {
   status: "WAITING" | "ACTIVE" | "ENDED";
   is_host: boolean;
+  host_connected: boolean;
   me: PlayerDTO;
   day: number;
   phase: Phase;

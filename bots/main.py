@@ -27,6 +27,7 @@ def run_bot_process(game_id: str,
     async def main():
         genome = Genome.random()
         bot = GeneticBot(genome)
+        host_ready_event = asyncio.Event()
 
         socket = BotSocket(
             game_id=game_id,
@@ -38,6 +39,12 @@ def run_bot_process(game_id: str,
         )
 
         async def on_game_state(state):
+            # WAIT FOR HOST FIRST
+            if not host_ready_event.is_set():
+                if state.get("host_connected") is True:
+                    host_ready_event.set()
+                else:
+                    return  # ⛔ do nothing until host joins
             # Check if the game is over
             if state.get("status") == "ENDED":
                 me = state.get("me", {})
@@ -62,6 +69,9 @@ def run_bot_process(game_id: str,
             if state.get("status") != "RUNNING":
                 return
             
+            if not host_ready_event.is_set():
+                return
+
             action = bot.choose_action(state)
             if action:
                 await socket.submit_action(action)
