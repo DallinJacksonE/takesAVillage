@@ -20,6 +20,8 @@ class BaseBot(ABC):
         """
         Reconstructs the available actions purely from the JSON state DTO.
         """
+        if game_state.get("status") == "WAITING":
+            return []
         actions = []
         phase = game_state.get("phase")
         me = game_state.get("me", {})
