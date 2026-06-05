@@ -115,9 +115,6 @@ class Game:
                 name,
                 copy.deepcopy(self.starting_inventory),
                 self.rules.DEFAULT_SICKNESS)
-            
-            if self.host_id == session_id:
-                self.host_connected = True
 
     def start_game(self):
         # Determine game length

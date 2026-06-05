@@ -186,6 +186,9 @@ async def websocket_endpoint(websocket: WebSocket):
                     user_id
                 )
 
+                if game.host_id == user_id:
+                    game.host_connected = True
+
                 # -----------------------------------
                 # INITIAL CHAT HISTORY
                 # -----------------------------------
