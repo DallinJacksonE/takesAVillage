@@ -42,6 +42,17 @@ services:
       db:
         condition: service_healthy
 
+  bots:
+    build:
+      context: .
+      dockerfile: Dockerfile.Bots
+    container_name: village_bots
+    restart: always
+    environment:
+      - BACKEND_URL=http://backend:5000
+    depends_on:
+      - backend
+
   frontend:
     build:
       context: .
