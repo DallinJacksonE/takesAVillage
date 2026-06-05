@@ -28,6 +28,7 @@ def run_bot_process(game_id: str,
         genome = Genome.random()
         bot = GeneticBot(genome)
         host_ready_event = asyncio.Event()
+        has_joined_event = asyncio.Event()
 
         socket = BotSocket(
             game_id=game_id,
@@ -40,6 +41,7 @@ def run_bot_process(game_id: str,
 
         async def on_game_state(state):
             # WAIT FOR HOST FIRST
+            asyncio.sleep(5)
             if not host_ready_event.is_set():
                 if state.get("host_connected") is True:
                     host_ready_event.set()
