@@ -11,6 +11,8 @@ class GeneticBot(BaseBot):
         formatted payload.
         """
         me = game_state.get("me", {})
+        if game_state.get("status") == "WAITING":
+            return None
 
         # Dead or locked players should not act
         if me.get("health") == "dead" or me.get("finished_phase"):
