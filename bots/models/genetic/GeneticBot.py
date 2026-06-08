@@ -1,9 +1,14 @@
 from BaseBot import BaseBot
+from models.genetic.Genome import Genome
 
 
 class GeneticBot(BaseBot):
     def __init__(self, genome):
         self.genome = genome
+
+    @staticmethod
+    def from_json(genome_json):
+        return GeneticBot(Genome(**genome_json))
 
     def choose_action(self, game_state: dict) -> dict | None:
         """
@@ -11,7 +16,7 @@ class GeneticBot(BaseBot):
         formatted payload.
         """
         me = game_state.get("me", {})
-        
+
         if game_state.get("status") == "WAITING":
             return None
 
