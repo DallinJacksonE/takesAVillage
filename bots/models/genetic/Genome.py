@@ -48,7 +48,7 @@ class Genome:
         values = {}
 
         for field in fields(Genome):
-            values[field.name] = random.uniform(-2, 2)
+            values[field.name] = random.uniform(0, 3)
 
         return Genome(**values)
 
@@ -71,7 +71,7 @@ class Genome:
             if random.random() < mutation_rate:
 
                 value += random.gauss(
-                    0,
+                    .5,
                     mutation_strength
                 )
 

@@ -11,6 +11,7 @@ class GeneticBot(BaseBot):
         formatted payload.
         """
         me = game_state.get("me", {})
+        
         if game_state.get("status") == "WAITING":
             return None
 

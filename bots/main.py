@@ -24,6 +24,7 @@ def run_bot_process(game_id: str,
     """
     Runs entirely inside a new, isolated memory space.
     """
+    fitness_sent = False  # Flag to ensure we only send fitness once per game
     async def main():
         genome = Genome.random()
         bot = GeneticBot(genome)
@@ -40,6 +41,7 @@ def run_bot_process(game_id: str,
         )
 
         async def on_game_state(state):
+            nonlocal fitness_sent
             # WAIT FOR HOST FIRST
             if not host_ready_event.is_set():
                 if state.get("host_connected") is True:
@@ -47,20 +49,22 @@ def run_bot_process(game_id: str,
                 else:
                     return  # ⛔ do nothing until host joins
             # Check if the game is over
-            if state.get("status") == "ENDED":
-                me = state.get("me", {})
 
-                # --- FITNESS CALCULATION ---
-                # Now handled entirely by the external module
+            me = state.get("me", {})
+            if me.get("health") == "dead" and not fitness_sent:
                 fitness_score = calculate_fitness(state)
 
-                # Push the data back to the parent process
                 result_queue.put({
                     "game_id": game_id,
+                    "Day": state.get("day"),
                     "bot_id": me.get("id"),
                     "fitness": fitness_score,
                     "genome": bot.genome.__dict__
                 })
+
+                fitness_sent = True # Ensure we only send fitness once per game
+
+            if state.get("status") == "ENDED":
 
                 # Close the socket and exit
                 await socket.disconnect()
@@ -72,7 +76,7 @@ def run_bot_process(game_id: str,
             
             if not host_ready_event.is_set():
                 return
-
+            
             action = bot.choose_action(state)
             if action:
                 await socket.submit_action(action)

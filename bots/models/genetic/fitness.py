@@ -15,8 +15,12 @@ def calculate_fitness(game_state: dict) -> float:
         resources.get("food", 0) +
         resources.get("wood", 0) +
         resources.get("iron", 0) +
-        (50 if is_alive else 0)  # Massive bonus for surviving the winter
+        (50 if is_alive else 0)
     )
+
+    days_survived = game_state.get("day", 0)
+
+    score += 10 * days_survived # Reward for lasting longer in the game
 
     # As you add more complex metrics (e.g., developments owned,
     # kill count, etc.),
