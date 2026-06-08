@@ -143,6 +143,8 @@ class Game:
         return False
 
     def check_all_players_locked(self):
+        if self.status == "WAITING":
+            return False
         active_players = [
             p for p in self.players.values()
             if p.health != "dead"
