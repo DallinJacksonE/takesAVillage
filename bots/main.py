@@ -80,6 +80,12 @@ def run_bot_process(game_id: str,
             action = bot.choose_action(state)
             if action:
                 await socket.submit_action(action)
+
+                if state.get("phase") in ["TRADE", "NIGHT"] and action["action_command"] == "CAMPFIRE":
+                    await socket.submit_action({
+                        "action_command": "FINISH_PHASE",
+                        "payload": {}
+                    })
         socket.on_game_state = on_game_state
 
         success = await socket.connect()
