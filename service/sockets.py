@@ -194,6 +194,13 @@ async def websocket_endpoint(websocket: WebSocket):
                     user_id
                 )
 
+                print(
+                    f"HOST CHECK: "
+                    f"user={user_id} "
+                    f"host={game.host_id} "
+                    f"connected={game.host_connected}"
+                )
+
                 if game.host_id == user_id and not game.host_connected:
                     game.host_connected = True
 
