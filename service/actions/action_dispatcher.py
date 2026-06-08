@@ -36,6 +36,8 @@ class ActionDispatcher:
 
     @staticmethod
     def dispatch(game_state, user_id, data):
+        if user_id is None:
+            return
         player = game_state.players.get(user_id)
         if not player:
             return False
