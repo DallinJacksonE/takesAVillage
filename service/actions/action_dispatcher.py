@@ -64,7 +64,7 @@ class ActionDispatcher:
                                               'UPGRADE_DEV', 'CONTEST_DEV',
                                               'COMMIT_WORK']:
                 FinishPhaseCommand(user_id, {}).execute(game_state, player)
-
+            game_state.check_all_players_locked() # Check if all players are locked after the action
             return success
 
         # 2. Route Contract/Drafting Actions

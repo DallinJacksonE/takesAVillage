@@ -23,8 +23,6 @@ async def game_loop(connection_manager):
         for game in list(active_games.values()):
             if game.status == "RUNNING":
 
-                game.check_all_players_locked()
-
                 if game.check_timer():
                     print("Next phase")
                     await connection_manager.broadcast_game_state(
