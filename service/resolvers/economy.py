@@ -1,3 +1,4 @@
+import time
 
 class EconomyResolvers:
     @staticmethod
@@ -39,6 +40,10 @@ class EconomyResolvers:
     @staticmethod
     def start_work_phase(game_state):
         DEV_OUTPUT_MAP = {"Farm": "food", "Woods": "wood", "Mine": "iron"}
+
+        if game_state.status != "RUNNING":
+            time.sleep(3)
+            return
 
         # 1. Clear out yesterday's available work for all players
         for player in game_state.players.values():
