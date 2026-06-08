@@ -1,3 +1,4 @@
+from training_orchestrator import start_training_session
 from pydantic import BaseModel
 import os
 import uuid
@@ -199,3 +200,30 @@ async def bot_join_game(payload: BotJoinPayload):
         "userId": bot_uuid,
         "gameId": game_id
     }
+
+
+@api_router.get('/api/research/genomes')
+async def get_genomes():
+    genomes = db.get_all_genomes()
+    return {"genomes": genomes}
+
+
+@api_router.post('/api/research/train')
+async def start_training(payload: dict, user_session: Optional[str] = Cookie(None)):
+    if not user_session or not db.user_exists(user_session):
+        raise HTTPException(status_code=403, detail="Invalid/No Session")
+
+    ruleset = payload.get('ruleset', 'default')
+    bot_count = payload.get('botCount', 5)
+    generations = payload.get('generations', 1)
+    base_genome = payload.get('baseGenome', 'random')
+
+    print(f"[API] Received request for training loop:"
+          f"{generations} gens, {bot_count} bots, base: {base_genome}")
+
+    # THE MISSING PIECE: Fire and forget the orchestrator
+    asyncio.create_task(
+        start_training_session(ruleset, bot_count, generations, base_genome)
+    )
+
+    return {"message": "Training sequence initiated"}

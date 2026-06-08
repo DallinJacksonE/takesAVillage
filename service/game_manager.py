@@ -5,15 +5,16 @@ from db import db
 from game import Game
 from serializers.game_info_builder import build_map_hist, build_player_hist
 
-# Single source of truth for all active games
 active_games = {}
 
 
-def create_game(user_cookie: str, ruleset: str, bots=0) -> str:
+def create_game(user_cookie: str, ruleset: str, bots=0,
+                training=False, training_session_id="") -> str:
     """Creates a new game instance and adds it to the active pool."""
     game_id = "g_" + str(uuid.uuid4())[:4]
     active_games[game_id] = Game(
-        game_id, user_cookie, ruleset_name=ruleset, bots=bots)
+        game_id, user_cookie, ruleset_name=ruleset, bots=bots,
+        training=training, training_session_id=training_session_id)
     return game_id
 
 
@@ -34,21 +35,26 @@ async def game_loop(connection_manager):
                 map_dict = build_map_hist(game)
                 player_dict = build_player_hist(game)
 
+                from training_orchestrator import handle_training_game_ended
                 # Combine the history dicts into a single payload
                 game_data = {
                     "map": map_dict,
                     "players": player_dict
                 }
 
-                # Pass the game.id and the stringified JSON payload
-                db.store_game_result(
-                    game.id,
-                    game.day,
-                    game.phase,
-                    json.dumps(game_data)
-                )
+                if game.training:
+                    asyncio.create_task(
+                        handle_training_game_ended(
+                            game.id, game.training_session_id)
+                    )
+                else:
+                    # Normal DB storage for standard games
+                    db.store_game_result(
+                        game.id,
+                        game.day,
+                        game.phase,
+                        json.dumps(game_data)
+                    )
 
                 del active_games[game.id]
-
-        # Non-blocking sleep lets FastAPI handle other requests concurrently
         await asyncio.sleep(1)

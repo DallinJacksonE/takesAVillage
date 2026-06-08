@@ -23,7 +23,7 @@ class Game:
     # ==========================================
     # INITIALIZATION & SETUP
     # ==========================================
-    def __init__(self, game_id, host_id, ruleset_name="default", bots=0, training=False):
+    def __init__(self, game_id, host_id, ruleset_name="default", bots=0, training=False, training_session_id=None):
         self.id = game_id
         self.host_id = host_id
         self.status = 'WAITING'
@@ -66,45 +66,9 @@ class Game:
         self.add_player_hist = add_player_hist
         self.add_map_hist = add_map_hist
 
+        self.bot_count = bots  # Keep track of how many bots we expect
         self.training = training
-
-    # def run_bot_turns(self):
-    #
-    #     print("running bot turns")
-    #
-    #     bot_ids = list(self.bots.keys())
-    #     random.shuffle(bot_ids)
-    #
-    #     for bot_id in bot_ids:
-    #
-    #         player = self.players.get(bot_id)
-    #
-    #         if not player:
-    #             continue
-    #
-    #         if player.health == "dead":
-    #             continue
-    #
-    #         if player.finished_phase:
-    #             continue
-    #
-    #         action = self.bots[bot_id].choose_action(
-    #             self,
-    #             player
-    #         )
-    #
-    #         print("BOT CHOSE:", action)
-    #
-    #         if not action:
-    #             action = {
-    #                 "action_command": "FINISH_PHASE",
-    #                 "payload": {}
-    #             }
-    #
-    #         self.handle_action(
-    #             bot_id,
-    #             action
-    #         )
+        self.training_session_id = training_session_id
 
     def add_player(self, session_id):
         if session_id not in self.players:
@@ -115,6 +79,12 @@ class Game:
                 name,
                 copy.deepcopy(self.starting_inventory),
                 self.rules.DEFAULT_SICKNESS)
+            print(f"[Game {self.id}] Player {session_id[:8]} joined. "
+                  f"({len(self.players)}/{self.bot_count})")
+            if self.training and self.status == 'WAITING':
+                if len(self.players) == self.bot_count:
+                    print(f"[Game {self.id}] Training game started")
+                    self.start_game()
 
     def start_game(self):
         # Determine game length
@@ -456,5 +426,4 @@ class Game:
 
         elif self.phase == "NIGHT":
             pass
-
         return actions

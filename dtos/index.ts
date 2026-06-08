@@ -11,6 +11,14 @@ export type ActionStatus =
 
 export type ResourceBundle = Record<Resource, number>;
 
+export interface GenomeDTO {
+  id: number;
+  shorthand_name: string;
+  name: string;
+  genome_data: any;
+  created_at: string;
+}
+
 export interface DevelopmentActions {
   build: ResourceBundle;
   maintain: ResourceBundle;

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { PlayPresenter, PlayView } from "../presenters/PlayPresenter";
 import { JoinableGameDTO } from "../../../dtos";
+import { NewGameModal } from "../components/NewGameModal"; // adjust path as needed
 
 const Play: React.FC = () => {
   const navigate = useNavigate();
@@ -53,10 +54,8 @@ const Play: React.FC = () => {
     presenter.getNewGameOptions();
   };
 
-  const handleStartNewGame = () => {
-    if (selectedRuleset) {
-      presenter.startNewGame(selectedRuleset, botCount);
-    }
+  const handleStartNewGame = (options: any) => {
+    presenter.startNewGame(options.ruleset, options.botCount);
   };
 
   const joinGame = (gameId: string) => {
@@ -216,106 +215,12 @@ const Play: React.FC = () => {
         </div>
       </div>
 
-      {/* New Game Setup Modal Overlay */}
-      {isModalOpen && (
-        <div style={{
-          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: "rgba(0,0,0,0.5)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          zIndex: 1000,
-          color: "black"
-        }}>
-          <div style={{
-            backgroundColor: "white", padding: "30px", borderRadius: "8px",
-            width: "600px", maxWidth: "90%", boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
-          }}>
-            <h2 style={{ marginTop: 0 }}>Game Setup</h2>
-
-            <div style={{ display: "flex", gap: "20px", marginTop: "20px", height: "250px" }}>
-              {/* Ruleset Selection Column */}
-              <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                <h4>Ruleset</h4>
-                <div style={{ flex: 1, overflowY: "auto", border: "1px solid #ddd", borderRadius: "4px" }}>
-                  {Object.keys(gameOptions).map((rulesetName) => (
-                    <div
-                      key={rulesetName}
-                      onClick={() => setSelectedRuleset(rulesetName)}
-                      onMouseEnter={() => setHoveredRuleset(rulesetName)}
-                      onMouseLeave={() => setHoveredRuleset(null)}
-                      style={{
-                        padding: "10px",
-                        cursor: "pointer",
-                        backgroundColor: selectedRuleset === rulesetName ? "#e3f2fd" : "transparent",
-                        borderLeft: selectedRuleset === rulesetName ? "4px solid #1976d2" : "4px solid transparent",
-                        borderBottom: "1px solid #eee",
-                      }}
-                    >
-                      {rulesetName}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Rules Preview Column */}
-              <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                <h4>Rules Preview</h4>
-                <div style={{
-                  flex: 1, padding: "10px", backgroundColor: "#f5f5f5",
-                  borderRadius: "4px", fontSize: "0.85rem", overflowY: "auto",
-                  border: "1px solid #ddd"
-                }}>
-                  {hoveredRuleset || selectedRuleset ? (
-                    <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
-                      {JSON.stringify(gameOptions[hoveredRuleset || selectedRuleset], null, 2)}
-                    </pre>
-                  ) : (
-                    <span style={{ color: "#888" }}>Hover over a ruleset to see its configuration.</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Bot Count Setup */}
-            <div style={{ marginTop: "20px", display: "flex", alignItems: "center", gap: "15px" }}>
-              <h4>Bot Count:</h4>
-              <input
-                type="number"
-                min="0"
-                max="5"
-                value={botCount}
-                onChange={(e) => {
-                  let val = parseInt(e.target.value, 10);
-                  if (isNaN(val)) val = 0;
-                  if (val < 0) val = 0;
-                  if (val > 5) val = 5;
-                  setBotCount(val);
-                }}
-                style={{ width: "60px", padding: "5px", borderRadius: "4px", border: "1px solid #ccc" }}
-              />
-              <span style={{ fontSize: "0.85rem", color: "#666" }}>(0 to 5 bots)</span>
-            </div>
-
-            {/* Actions */}
-            <div style={{ marginTop: "30px", display: "flex", justifyContent: "flex-end", gap: "15px" }}>
-              <button
-                className="btn"
-                onClick={() => setIsModalOpen(false)}
-                style={{ backgroundColor: "#ccc", color: "black" }}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn"
-                onClick={handleStartNewGame}
-                disabled={!selectedRuleset}
-                style={{ opacity: !selectedRuleset ? 0.5 : 1 }}
-              >
-                Start Game
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <NewGameModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleStartNewGame}
+        gameOptions={gameOptions}
+      />
     </>
   );
 };

@@ -108,14 +108,23 @@ class DatabaseProvider(ABC):
     def store_night_snapshot(self, snapshot):
         pass
 
+    @abstractmethod
+    def store_genome(self, name: str, shorthand: str, genome_json: str):
+        pass
+
+    @abstractmethod
+    def get_all_genomes(self) -> list:
+        pass
 
 # --- 2. The In-Memory Provider (Dev) ---
+
 
 class InMemoryDB(DatabaseProvider):
     def __init__(self):
         self.users = {}
         self.history = []
         self.visualizations = {}
+        self.genomes = []
 
     def create_user(self, user_uuid: str, consent_agreed: bool) -> bool:
         self.users[user_uuid] = {
@@ -174,17 +183,25 @@ class InMemoryDB(DatabaseProvider):
     ):
         pass
 
-
     def store_work_snapshot(self, snapshot):
         pass
-
 
     def store_trade_snapshot(self, snapshot):
         pass
 
-
     def store_night_snapshot(self, snapshot):
         pass
+
+    def store_genome(self, name: str, shorthand: str, genome_json: str):
+        self.genomes.append({
+            "name": name,
+            "shorthand_name": shorthand,
+            "genome_data": json.loads(genome_json),
+            "created_at": datetime.now()
+        })
+
+    def get_all_genomes(self) -> list:
+        return sorted(self.genomes, key=lambda x: x['created_at'], reverse=True)
 
 
 # --- 3. The MySQL Provider (Prod) ---
@@ -391,8 +408,16 @@ class MySQLDB(DatabaseProvider):
 
                 `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
+
+            CREATE TABLE IF NOT EXISTS `genomes` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `shorthand_name` VARCHAR(4) NOT NULL,
+                `name` VARCHAR(64) NOT NULL,
+                `genome_data` JSON NOT NULL,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
         """
-    
+
     def store_game_result(self, game_id, day_num, phase, snapshot_json):
         conn = self.get_connection()
 
@@ -431,7 +456,6 @@ class MySQLDB(DatabaseProvider):
         finally:
             cursor.close()
             conn.close()
-
 
     def store_game_snapshot(
         self,
@@ -756,6 +780,44 @@ class MySQLDB(DatabaseProvider):
             cursor.close()
             conn.close()
 
+    def store_genome(self, name: str, shorthand: str, genome_json: str):
+        conn = self.get_connection()
+        if not conn:
+            return
+        cursor = conn.cursor()
+        query = """
+            INSERT INTO genomes (name, shorthand_name, genome_data)
+            VALUES (%s, %s, %s)
+        """
+        try:
+            cursor.execute(query, (name, shorthand, genome_json))
+            conn.commit()
+        except mysql.connector.Error as err:
+            print(f"Error storing genome: {err}")
+        finally:
+            cursor.close()
+            conn.close()
+
+    def get_all_genomes(self) -> list:
+        conn = self.get_connection()
+        if not conn:
+            return []
+        cursor = conn.cursor(dictionary=True)
+        query = "SELECT * FROM genomes ORDER BY created_at DESC"
+        try:
+            cursor.execute(query)
+            results = cursor.fetchall()
+            for row in results:
+                if isinstance(row['genome_data'], str):
+                    row['genome_data'] = json.loads(row['genome_data'])
+            return results
+        except mysql.connector.Error as err:
+            print(f"Error getting genomes: {err}")
+            return []
+        finally:
+            cursor.close()
+            conn.close()
+
     def get_all_games(self):
         conn = self.get_connection()
 
@@ -784,7 +846,6 @@ class MySQLDB(DatabaseProvider):
         finally:
             cursor.close()
             conn.close()
-
 
     def get_all_game_history(self) -> list:
         conn = self.get_connection()
