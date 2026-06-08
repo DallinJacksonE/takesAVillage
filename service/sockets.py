@@ -194,8 +194,6 @@ async def websocket_endpoint(websocket: WebSocket):
                     user_id
                 )
 
-                asyncio.sleep(1)
-
                 if game.host_id == user_id and not game.host_connected:
                     game.host_connected = True
 
