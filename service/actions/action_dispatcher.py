@@ -115,7 +115,8 @@ class ActionDispatcher:
                 game_state.players[dev.owner].developments.pop(dev.id)
 
         game_state.actions = []
-        game_state.status = "ENDED" if game_state.is_game_over() else "RUNNING"
+        if game_state.is_game_over():
+            game_state.status = "ENDED" 
 
     @staticmethod
     def start_day(game_state):
