@@ -113,7 +113,7 @@ async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
 
     await asyncio.sleep(1)
 
-    # 2. If bots are requested, trigger the Bot Service
+    '''# 2. If bots are requested, trigger the Bot Service
     if bot_count > 0:
         bot_url = os.environ.get(
             "BOT_SERVICE_URL", "http://bots:8001/api/spawn_bots")
@@ -133,7 +133,7 @@ async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
                     print(f"Failed to reach Bot Service: {e}")
 
         # Fire and forget so the HTTP response isn't blocked
-        asyncio.create_task(spawn_external_bots())
+        asyncio.create_task(spawn_external_bots())'''
 
     return {"gameId": game_id}
 

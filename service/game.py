@@ -56,6 +56,7 @@ class Game:
         self.names = self.rules.AVAILABLE_NAMES.copy()
         self.chats = []
         self.host_connected = False
+        self.bots_spawned = False
 
         # Time and Phase state
         self.day = 1

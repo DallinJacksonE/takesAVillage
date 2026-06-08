@@ -1,5 +1,8 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from game_manager import active_games
+import os
+import httpx
+import asyncio
 
 ws_router = APIRouter()
 
@@ -186,9 +189,43 @@ async def websocket_endpoint(websocket: WebSocket):
                     user_id
                 )
 
-                if game.host_id == user_id:
+                if game.host_id == user_id and not game.host_connected:
                     game.host_connected = True
 
+                    if game.bot_count > 0 and not game.bots_spawned:
+
+                        game.bots_spawned = True
+
+                        bot_url = os.environ.get(
+                            "BOT_SERVICE_URL",
+                            "http://bots:8001/api/spawn_bots"
+                        )
+
+                        bot_secret = os.environ.get(
+                            "BOT_SECRET",
+                            "default_dev_secret"
+                        )
+
+                        async def spawn_external_bots():
+                            async with httpx.AsyncClient() as client:
+                                try:
+                                    await client.post(
+                                        bot_url,
+                                        json={
+                                            "gameId": game.id,
+                                            "botCount": game.bot_count,
+                                            "botSecret": bot_secret
+                                        },
+                                        timeout=5.0
+                                    )
+                                    print(
+                                        f"Successfully requested "
+                                        f"{game.bot_count} bots for {game.id}"
+                                    )
+                                except Exception as e:
+                                    print(f"Failed to reach Bot Service: {e}")
+
+                        asyncio.create_task(spawn_external_bots())
                 # -----------------------------------
                 # INITIAL CHAT HISTORY
                 # -----------------------------------
