@@ -16,6 +16,31 @@ class BaseBot(ABC):
         """
         pass
 
+    def get_upgrade_cost(self, dev, game_state: dict):
+        if dev.get("type") not in game_state.get("RESOURCE_COSTS", {}):
+            return {
+                "food": dev.get("level", 0),
+                "wood": dev.get("level", 0),
+                "iron": dev.get("level", 0) * 2 + 1
+            }
+        opposite = game_state.get("RESOURCE_COSTS", {}).get(dev.get("type"))
+        return {
+            opposite: dev.get("level", 0) * 2 + 1,
+            "iron": dev.get("level", 0)
+        }
+    
+    def get_maintenance_cost(self, dev, game_state: dict):
+        if dev.get("type") not in game_state.get("RESOURCE_COSTS", {}):
+            return {
+                "food": dev.get("level", 0) * 2 + 1,
+                "wood": dev.get("level", 0) * 2 + 1
+            }
+        opposite = game_state.get("RESOURCE_COSTS", {}).get(dev.get("type"))
+        return {
+            opposite: dev.get("level", 0),
+            "iron": max(dev.get("level", 0) - 1, 0)
+        }
+
     def get_available_actions(self, game_state: dict) -> list[dict]:
         """
         Reconstructs the available actions purely from the JSON state DTO.
@@ -27,7 +52,7 @@ class BaseBot(ABC):
         me = game_state.get("me", {})
         resources = me.get("resources", {"wood": 0, "food": 0, "iron": 0})
 
-        if phase == "WORK" and me.get("health") not in ["sick", "dead"]:
+        if phase == "WORK" and me.get("health") not in ["sick", "recovering", "dead"]:
             # --- 1. BUILD ACTIONS ---
             dev_costs = game_state.get("development_costs", {})
             map_data = game_state.get("map", {})
@@ -54,6 +79,45 @@ class BaseBot(ABC):
                                 "_tile_type": tile_type
                             }
                         })
+            for dev in game_state.get("developments", []):
+                if dev["owner_id"] == me["id"] and dev["can_upgrade"]:
+                    upgrade_cost = self.get_upgrade_cost(dev, game_state)
+
+                    affordable = all(
+                        resources.get(res, 0) >= amount
+                        for res, amount in upgrade_cost.items()
+                    )
+
+                    if affordable:
+                        actions.append({
+                            "action_command": "UPGRADE_DEV",
+                            "payload": {
+                                "dev_id": dev["id"]
+                            }
+                        })
+            
+                if dev["owner_id"] == me["id"]:
+                    affordable = all(
+                        resources.get(r, 0) >= amt
+                        for r, amt in self.get_maintenance_cost(dev, game_state).items()
+                    )
+
+                    if affordable:
+                        actions.append({
+                            "action_command": "MAINTAIN_DEV",
+                            "payload": {
+                                "dev_id": dev["id"]
+                            }
+                        })
+            
+                if dev["owner_id"] != me["id"]:
+                    actions.append({
+                        "action_command": "CONTEST_DEV",
+                        "payload": {
+                            "dev_id": dev["id"],
+                            "side": "INITIATOR"
+                        }
+                    })
 
             # --- 2. WORK ACTIONS ---
             for job in me.get("available_work", []):
@@ -61,8 +125,53 @@ class BaseBot(ABC):
                     "action_command": "COMMIT_WORK",
                     "payload": {"job": job}
                 })
+            
+            for action in me.get("actions", []):
+                if (
+                    action["type"] == "EMPLOYMENT"
+                    and action["status"] == "PENDING"
+                    and action["target_id"] == me["id"]
+                ):
+                    actions.append({
+                        "action_command": "ACCEPT",
+                        "payload": {
+                            "action_id": action["id"]
+                        }
+                    })
+                    actions.append({
+                        "action_command": "DENY",
+                        "payload": {
+                            "action_id": action["id"]
+                        }
+                    })
 
-            # Note: Expand with UPGRADE/MAINTAIN/CONTEST checks here as needed.
+        elif phase == "TRADE":
+            for action in me.get("actions", []):
+                if (
+                    action["type"] == "TRADE"
+                    and action["waiting_on_id"] == me["id"]
+                ):
+                    actions.append({
+                        "action_command": "ACCEPT",
+                        "payload": {
+                            "action_id": action["id"]
+                        }
+                    })
+                    actions.append({
+                        "action_command": "DENY",
+                        "payload": {
+                            "action_id": action["id"]
+                        }
+                    })
+                if action["status"] == "ACCEPTED":
+                    actions.append({
+                        "action_command": "FINALIZE",
+                        "payload": {
+                            "action_id": action["id"],
+                            "actual_items": action["offer_items"]
+                        }
+                    })
+                
 
         elif phase == "NIGHT":
             # --- CAMPFIRE ACTIONS ---
@@ -77,6 +186,46 @@ class BaseBot(ABC):
                     "action_command": "START_FIRE",
                     "payload": {}
                 })
+            for action in me.get("actions", []):
+                if (
+                    action["type"] == "CAMPFIRE"
+                    and action["waiting_on_id"] == me["id"]
+                ):
+                    actions.append({
+                        "action_command": "ACCEPT",
+                        "payload": {
+                            "action_id": action["id"]
+                        }
+                    })
+                    actions.append({
+                        "action_command": "DENY",
+                        "payload": {
+                            "action_id": action["id"]
+                        }
+                    })
+            
+            for player in game_state["player_list"]:
+                if player["id"] == me["id"]:
+                    continue
+                if me["fire_status"] == "HOST":
+                    actions.append({
+                        "action_command": "CAMPFIRE",
+                        "payload": {
+                            "target_id": player["id"],
+                            "is_request": False,
+                            "type": "CAMPFIRE"
+                        }
+                    })
+                
+                elif player["fire_status"] == "HOST" and me["fire_status"] == "COLD":
+                    actions.append({
+                        "action_command": "CAMPFIRE",
+                        "payload": {
+                            "target_id": player["id"],
+                            "is_request": True,
+                            "type": "CAMPFIRE"
+                        }
+                    })
         print(actions)
         return actions
 

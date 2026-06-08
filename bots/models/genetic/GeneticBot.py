@@ -9,6 +9,13 @@ class GeneticBot(BaseBot):
     @staticmethod
     def from_json(genome_json):
         return GeneticBot(Genome(**genome_json))
+    
+    def resource_value(self,bundle):
+        return (
+            bundle.get("food", 0) * self.genome.food_weight +
+            bundle.get("wood", 0) * self.genome.wood_weight +
+            bundle.get("iron", 0) * self.genome.iron_weight
+        )
 
     def choose_action(self, game_state: dict) -> dict | None:
         """
@@ -45,8 +52,22 @@ class GeneticBot(BaseBot):
         g = self.genome
         score = 0
         command = action["action_command"]
+        contract = None
+        
+        contract_type = contract["type"] if contract else None
 
         me = game_state.get("me", {})
+
+        if "action_id" in action["payload"]:
+            action_id = action["payload"]["action_id"]
+            contract = next(
+                ( 
+                    a for a in me.get("actions", [])
+                    if a["id"] == action_id
+                )
+                , None
+            )
+            
         resources = me.get("resources", {"wood": 0, "food": 0, "iron": 0})
 
         food = resources.get("food", 0)
@@ -117,6 +138,19 @@ class GeneticBot(BaseBot):
             elif wage_type == "iron":
                 score += (wage * g.iron_weight)
                 score += (iron_need * g.iron_desperation_weight)
+
+        elif command == "ACCEPT":
+            score += g.cooperation_weight + g.reputation_weight
+
+            if contract_type == "TRADE":
+                if action["initiator_id"] == me["id"]:
+                    given = action.get("offer_items", {})
+                    received = action.get("request_items", {})
+                else:
+                    given = action.get("request_items", {})
+                    received = action.get("offer_items", {})
+                
+                score += self.resource_value(received) - self.resource_value(given)
 
         # =====================
         # RANDOMNESS
