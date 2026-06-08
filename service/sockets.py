@@ -3,6 +3,7 @@ from game_manager import active_games
 import os
 import httpx
 import asyncio
+import traceback
 
 ws_router = APIRouter()
 
@@ -170,6 +171,10 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 game = active_games.get(game_id)
 
+                print("JOIN_ROOM RECEIVED")
+                print("user_id =", user_id)
+                print("game_id =", game_id)
+
                 if not game:
 
                     await websocket.send_json({
@@ -294,7 +299,7 @@ async def websocket_endpoint(websocket: WebSocket):
         else:
             print("❌ Unregistered socket disconnected before joining a room.")
 
-    except Exception as e:
-        print(f"⚠️ Unhandled WS Exception: {e}")
-        if game_id and user_id:
-            manager.disconnect(websocket, game_id, user_id)
+
+    except Exception:
+        traceback.print_exc()
+        manager.disconnect(websocket, game_id, user_id)
