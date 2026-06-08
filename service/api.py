@@ -111,6 +111,8 @@ async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
     # 1. Create the game in the backend memory
     game_id = create_game(user_session, ruleset, bot_count)
 
+    await asyncio.sleep(1)
+
     # 2. If bots are requested, trigger the Bot Service
     if bot_count > 0:
         bot_url = os.environ.get(
