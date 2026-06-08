@@ -1,7 +1,5 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from game_manager import active_games
-import os
-import httpx
 import asyncio
 
 ws_router = APIRouter()
@@ -63,7 +61,7 @@ async def process_game_event(
             await manager.broadcast_to_game(
                 {"event": "game_started", "data": {"day": 1}}, game_id
             )
-
+            await manager.broadcast_game_state(game_id, game)
     elif event == 'request_update':
         state = game.get_state_for_player(user_id)
         await manager.send_personal_message(
@@ -124,6 +122,9 @@ async def process_game_event(
                 )
 
     elif event == 'submit_action':
+        if game.status == "WAITING":
+            return
+
         if game.handle_action(user_id, payload):
             await manager.broadcast_game_state(game_id, game)
         else:
@@ -135,7 +136,7 @@ async def process_game_event(
                     "action_command": action_cmd
                 }
             }, game_id, user_id)
-    
+
     elif event == "create_chat":
 
         chat = game.create_chat(
@@ -192,41 +193,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 if game.host_id == user_id and not game.host_connected:
                     game.host_connected = True
 
-                    if game.bot_count > 0 and not game.bots_spawned:
-
-                        game.bots_spawned = True
-
-                        bot_url = os.environ.get(
-                            "BOT_SERVICE_URL",
-                            "http://bots:8001/api/spawn_bots"
-                        )
-
-                        bot_secret = os.environ.get(
-                            "BOT_SECRET",
-                            "default_dev_secret"
-                        )
-
-                        async def spawn_external_bots():
-                            async with httpx.AsyncClient() as client:
-                                try:
-                                    await client.post(
-                                        bot_url,
-                                        json={
-                                            "gameId": game.id,
-                                            "botCount": game.bot_count,
-                                            "botSecret": bot_secret
-                                        },
-                                        timeout=5.0
-                                    )
-                                    print(
-                                        f"Successfully requested "
-                                        f"{game.bot_count} bots for {game.id}"
-                                    )
-                                except Exception as e:
-                                    print(f"Failed to reach Bot Service: {e}")
-
-                        asyncio.create_task(spawn_external_bots())
-                # -----------------------------------
                 # INITIAL CHAT HISTORY
                 # -----------------------------------
 
@@ -267,6 +233,16 @@ async def websocket_endpoint(websocket: WebSocket):
                 )
 
                 print(f"✅ Player {user_id} joined game {game_id}")
+
+                # -----------------------------------
+                # HEADLESS AUTO-START TRIGGER
+                # -----------------------------------
+                if game.training and game.status == "RUNNING":
+                    await manager.broadcast_to_game(
+                        {"event": "game_started", "data": {"day": 1}}, game_id
+                    )
+                    await manager.broadcast_game_state(game_id, game)
+                    print(f"🚀 Training Game {game_id} Auto-Started!")
 
             # ---------------------------------------
             # NORMAL GAME EVENTS

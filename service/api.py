@@ -138,26 +138,40 @@ async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
     return {"gameId": game_id}
 
 
-@api_router.get('/api/newGame')
-async def new_game_options(user_session: Optional[str] = Cookie(None)):
+@api_router.post('/api/newGame')
+async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
     if not user_session or not db.user_exists(user_session):
         raise HTTPException(status_code=403, detail="Invalid/No Session")
 
-    options = {}
+    ruleset = payload.get('ruleset', 'default')
+    bot_count = int(payload.get('botCount', 0))
 
-    # Ensure the directory exists to prevent crashes
-    if CONSTANTS_DIR.exists() and CONSTANTS_DIR.is_dir():
-        # Iterate through all .py files in the directory
-        for filepath in CONSTANTS_DIR.glob("*.py"):
-            # Skip the __init__.py file
-            if filepath.name == "__init__.py":
-                continue
+    game_id = create_game(user_session, ruleset, bot_count)
 
-            # Use the filename (without .py) as the dictionary key
-            rule_type = filepath.stem
-            options[rule_type] = parse_ruleset_file(filepath)
+    await asyncio.sleep(1)
 
-    return {"options": options}
+    # 2. Trigger the Bot Service via HTTP (Fire and Forget)
+    if bot_count > 0:
+        bot_url = os.environ.get(
+            "BOT_SERVICE_URL", "http://bots:8001/api/spawn_bots")
+        bot_secret = os.environ.get("BOT_SECRET", "default_dev_secret")
+
+        async def spawn_external_bots():
+            async with httpx.AsyncClient() as client:
+                try:
+                    await client.post(bot_url, json={
+                        "gameId": game_id,
+                        "botCount": bot_count,
+                        "botSecret": bot_secret
+                    }, timeout=5.0)
+                    print(f"✅ Successfully requested {
+                          bot_count} bots for {game_id}")
+                except Exception as e:
+                    print(f"⚠️ Failed to reach Bot Service: {e}")
+
+        asyncio.create_task(spawn_external_bots())
+
+    return {"gameId": game_id}
 
 
 @api_router.post('/api/joinGame')

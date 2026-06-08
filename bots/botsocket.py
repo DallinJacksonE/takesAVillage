@@ -90,7 +90,10 @@ class BotSocket:
                 data = packet.get("data")
 
                 if event == "game_state" and self.on_game_state:
+                    if data.get("status") == "WAITING":
+                        continue
                     await self.on_game_state(data)
+
                 elif event == "chat_history" and self.on_chat_history:
                     await self.on_chat_history(data)
                 elif event == "new_chat_message" and self.on_new_chat_message:
