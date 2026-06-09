@@ -7,6 +7,7 @@ import {
   GameplayPresenter,
   GameplayView,
 } from "../presenters/GameplayPresenter";
+import { ConnectionState } from "../service/GameplayService";
 import InfoTooltip from "../components/InfoTooltip"
 import PlayerStatusCard from "../components/PlayerStatusCard";
 import DevelopmentsCard from "../components/DevelopmentsCard";
@@ -29,6 +30,8 @@ const Gameplay: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [userId, setUserId] = useState("");
   const [messages, setMessages] = useState<ChatMessageDTO[]>([]);
+  const [connectionState, setConnectionState] = useState<ConnectionState>("CONNECTING");
+
   const getPhaseTooltip = (phase: string) => {
     switch (phase) {
       case "WORK":
@@ -43,7 +46,6 @@ const Gameplay: React.FC = () => {
   };
 
   useEffect(() => {
-
     if (!gameId) return;
 
     const view: GameplayView = {
@@ -52,33 +54,54 @@ const Gameplay: React.FC = () => {
       setTimeLeft,
       setUserId,
       showAlert: (msg: string) => alert(msg),
-
       setChatHistory: setMessages,
       addChatMessage: (msg: ChatMessageDTO) =>
         setMessages(prev => [...prev, msg]),
+
+      // NEW: Wire the connection state to the UI
+      setConnectionState,
     };
 
-    const presenter =
-      new GameplayPresenter(view, gameId);
-
+    const presenter = new GameplayPresenter(view, gameId);
     presenterRef.current = presenter;
 
     return () => {
-
       presenter.destroy();
-
       presenterRef.current = null;
     };
-
   }, [gameId]);
 
   const presenter = presenterRef.current;
 
-  if (!gameState || !presenter) return <div>Loading...</div>;
+  const ConnectionBanner = () => {
+    if (connectionState === "CONNECTED") return null;
+    return (
+      <div style={{
+        position: "sticky", top: 0, zIndex: 1000,
+        backgroundColor: connectionState === "CONNECTING" ? "#0288d1" : "#d32f2f",
+        color: "white", textAlign: "center", padding: "10px", fontWeight: "bold",
+        borderRadius: "4px", marginBottom: "15px", boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+      }}>
+        {connectionState === "CONNECTING"
+          ? "🔌 Negotiating connection..."
+          : "⚠️ Connection lost. Watchdog is reconnecting..."}
+      </div>
+    );
+  };
+
+  if (!gameState || !presenter) {
+    return (
+      <div style={{ padding: "40px", textAlign: "center" }}>
+        <ConnectionBanner />
+        <h2>Loading Village...</h2>
+      </div>
+    );
+  }
 
   if (gameState.status === "WAITING") {
     return (
       <div style={{ padding: "40px", textAlign: "center" }}>
+        <ConnectionBanner />
         <h2>Waiting Room: Village {gameId}</h2>
         <p>Players: {playerCount} / 10</p>
         {gameState.is_host ? (
@@ -136,6 +159,7 @@ const Gameplay: React.FC = () => {
   console.log(gameState)
   return (
     <div style={{ padding: "20px" }}>
+      <ConnectionBanner />
       <GameStateProvider gameState={gameState}>
         <PlayerColorProvider gameState={gameState}>
           <PlayerProvider players={gameState.player_list}>

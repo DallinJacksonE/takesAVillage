@@ -17,7 +17,7 @@ import {
 } from "../../../dtos";
 import { Presenter } from "./Presenter";
 import { View } from "./View";
-import { GameplayService } from "../service/GameplayService";
+import { GameplayService, ConnectionState } from "../service/GameplayService";
 
 export interface GameplayView extends View {
   setGameState(gameState: GameStateDTO | null): void;
@@ -25,7 +25,7 @@ export interface GameplayView extends View {
   setTimeLeft(timeLeft: number): void;
   setUserId(userId: string): void;
   showAlert(message: string): void;
-
+  setConnectionState(state: ConnectionState): void;
   setChatHistory(messages: ChatMessageDTO[]): void;
   addChatMessage(message: ChatMessageDTO): void;
 }
@@ -61,7 +61,14 @@ export class GameplayPresenter extends Presenter<GameplayView> {
     // --------------------------------------------------------
     // Presenter defines the Callbacks and plugs them into Service
     // --------------------------------------------------------
+    this.service.setOnConnectionStateChange((state: ConnectionState) => {
+      this._view.setConnectionState(state);
 
+      // Optional safety: If the socket drops, clear the local timer to prevent drift
+      if (state === "DISCONNECTED" || state === "RECONNECTING") {
+        this.timeLeft = 0;
+      }
+    });
     this.service.setOnPlayerCount((count: number) => {
       this._view.setPlayerCount(count);
     });
