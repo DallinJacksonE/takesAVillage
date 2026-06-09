@@ -28,8 +28,25 @@ class GeneticBot(BaseBot):
         if game_state.get("status") == "WAITING":
             return None
 
-        # Dead or locked players should not act
-        if me.get("health") == "dead" or me.get("finished_phase"):
+        actions = self.get_available_actions(game_state)
+
+        if me.get("health") == "dead":
+            return None
+
+        if me.get("finished_phase"):
+            if game_state.get("phase") == "WORK":
+
+                accept_action = next(
+                    (
+                        a for a in actions
+                        if a["action_command"] == "ACCEPT"
+                    ),
+                    None
+                )
+
+                if accept_action:
+                    return self.format_network_payload(accept_action)
+
             return None
 
         # 1. Fetch valid moves from the base class parser
@@ -163,6 +180,7 @@ class GeneticBot(BaseBot):
 
         elif command == "ACCEPT":
             score += g.cooperation_weight + g.reputation_weight
+            score += 10000000
 
             if contract and contract_type == "TRADE":
 

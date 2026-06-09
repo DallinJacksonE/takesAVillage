@@ -277,7 +277,6 @@ class BaseBot(ABC):
                             "type": "CAMPFIRE"
                         }
                     })
-        print(actions)
         return actions
 
     def format_network_payload(self, action: dict | None) -> dict:
