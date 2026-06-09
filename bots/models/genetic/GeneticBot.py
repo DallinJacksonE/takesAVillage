@@ -5,6 +5,7 @@ from models.genetic.Genome import Genome
 class GeneticBot(BaseBot):
     def __init__(self, genome):
         self.genome = genome
+        super().__init__()
 
     @staticmethod
     def from_json(genome_json):
@@ -34,6 +35,11 @@ class GeneticBot(BaseBot):
         # 1. Fetch valid moves from the base class parser
         actions = self.get_available_actions(game_state)
 
+        print(f"available actions for bot: {actions}")
+
+        if self.waiting:
+            return None
+        
         # 2. If no valid moves, finish the phase
         if not actions:
             return self.format_network_payload(None)
@@ -53,10 +59,20 @@ class GeneticBot(BaseBot):
         score = 0
         command = action["action_command"]
         contract = None
-        
-        contract_type = contract["type"] if contract else None
-
         me = game_state.get("me", {})
+
+        if "action_id" in action.get("payload", {}):
+            action_id = action["payload"]["action_id"]
+
+            contract = next(
+                (
+                    a for a in me.get("actions", [])
+                    if a.get("id") == action_id
+                ),
+                None
+            )
+
+        contract_type = contract.get("type") if contract else None
 
         if "action_id" in action["payload"]:
             action_id = action["payload"]["action_id"]
@@ -84,6 +100,9 @@ class GeneticBot(BaseBot):
         score += (food_need * g.food_desperation_weight)
         score += (wood_need * g.wood_desperation_weight)
         score += (iron_need * g.iron_desperation_weight)
+
+        if command == "EMPLOYMENT":
+            score +=100
 
         # =====================
         # BUILD
@@ -139,19 +158,25 @@ class GeneticBot(BaseBot):
                 score += (wage * g.iron_weight)
                 score += (iron_need * g.iron_desperation_weight)
 
+            if job.get("action_id"):
+                score += 10000
+
         elif command == "ACCEPT":
             score += g.cooperation_weight + g.reputation_weight
 
-            if contract_type == "TRADE":
-                if action["initiator_id"] == me["id"]:
-                    given = action.get("offer_items", {})
-                    received = action.get("request_items", {})
-                else:
-                    given = action.get("request_items", {})
-                    received = action.get("offer_items", {})
-                
-                score += self.resource_value(received) - self.resource_value(given)
+            if contract and contract_type == "TRADE":
 
+                if contract["initiator_id"] == me["id"]:
+                    given = contract.get("offer_items", {})
+                    received = contract.get("request_items", {})
+                else:
+                    given = contract.get("request_items", {})
+                    received = contract.get("offer_items", {})
+
+                score += (
+                    self.resource_value(received)
+                    - self.resource_value(given)
+                )
         # =====================
         # RANDOMNESS
         # =====================

@@ -7,6 +7,8 @@ class BaseBot(ABC):
     and formatting GameActionPayloads. Bot implementations only need to provide
     the decision-making logic.
     """
+    def __init__(self):
+        self.waiting = None
 
     @abstractmethod
     def choose_action(self, game_state: dict) -> dict | None:
@@ -51,6 +53,20 @@ class BaseBot(ABC):
         phase = game_state.get("phase")
         me = game_state.get("me", {})
         resources = me.get("resources", {"wood": 0, "food": 0, "iron": 0})
+
+        pending_application = any(
+            action.get("type") == "EMPLOYMENT"
+            and action.get("is_application")
+            and action.get("initiator_id") == me.get("id")
+            and action.get("status") == "PENDING"
+            for action in me.get("actions", [])
+        )
+
+        if pending_application:
+            self.waiting = True
+            return []
+        
+        self.waiting = False
 
         if phase == "WORK" and me.get("health") not in ["sick", "recovering", "dead"]:
             # --- 1. BUILD ACTIONS ---
@@ -119,12 +135,47 @@ class BaseBot(ABC):
                         }
                     })
 
+            # --- JOB APPLICATIONS ---
+
+            existing_apps = {
+                (a.get("dev_id"), a.get("target_id"))
+                for a in me.get("actions", [])
+                if a["type"] == "EMPLOYMENT"
+            }
+
+            for dev in game_state.get("developments", []):
+
+                if (dev['id'], dev['owner_id']) in existing_apps:
+                    continue
+
+                if dev["owner_id"] == me["id"]:
+                    continue
+
+                if dev.get("worker_id"):
+                    continue
+
+                if dev.get("is_contested"):
+                    continue
+
+                actions.append({
+                    "action_command": "EMPLOYMENT",
+                    "payload": {
+                        "type": "EMPLOYMENT",
+                        "target_id": dev["owner_id"],
+                        "dev_id": dev["id"],
+                        "wage": dev['level'],
+                        "wage_type": dev['type'],
+                        "is_application": True
+                    }
+                })
+
             # --- 2. WORK ACTIONS ---
             for job in me.get("available_work", []):
-                actions.append({
-                    "action_command": "COMMIT_WORK",
-                    "payload": {"job": job}
-                })
+                if not job.get('development').get('is_contested'):
+                    actions.append({
+                        "action_command": "COMMIT_WORK",
+                        "payload": {"job": job}
+                    })
             
             for action in me.get("actions", []):
                 if (
