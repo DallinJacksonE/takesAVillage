@@ -19,25 +19,21 @@ def parse_ruleset_file(filepath: Path) -> dict:
     rules = {}
     try:
         with open(filepath, "r", encoding="utf-8") as f:
-            # Parse the file into an Abstract Syntax Tree
             tree = ast.parse(f.read(), filename=filepath.name)
 
         for node in tree.body:
-            # Look for assignment operations (e.g., KEY = VALUE)
             if isinstance(node, ast.Assign):
                 for target in node.targets:
-                    # Ensure the target is a variable name
                     if isinstance(target, ast.Name):
                         try:
-                            # Safely evaluate the right side of the equals sign
-                            # This handles strings, numbers, booleans, lists, and dicts
                             rules[target.id] = ast.literal_eval(node.value)
-                        except ValueError:
-                            # Skip complex expressions (like function calls or math operations)
-                            # since ast.literal_eval only evaluates python literals
+                        except ValueError as ve:
+                            # DIAGNOSTIC: See exactly which variables are being rejected
+                            print(f"⚠️ Skipped '{target.id}' in "
+                                  f"{filepath.name}: Not a simple literal.")
                             continue
     except Exception as e:
-        print(f"Error parsing {filepath.name}: {e}")
+        print(f"❌ Error parsing {filepath.name}: {e}")
 
     return rules
 
@@ -104,45 +100,6 @@ async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
     if not user_session or not db.user_exists(user_session):
         raise HTTPException(status_code=403, detail="Invalid/No Session")
 
-    # Extract the payload values sent by the frontend
-    ruleset = payload.get('ruleset', 'default')
-    bot_count = payload.get('botCount', 0)
-
-    # 1. Create the game in the backend memory
-    game_id = create_game(user_session, ruleset, bot_count)
-
-    await asyncio.sleep(1)
-
-    '''# 2. If bots are requested, trigger the Bot Service
-    if bot_count > 0:
-        bot_url = os.environ.get(
-            "BOT_SERVICE_URL", "http://bots:8001/api/spawn_bots")
-        bot_secret = os.environ.get("BOT_SECRET", "default_dev_secret")
-
-        async def spawn_external_bots():
-            async with httpx.AsyncClient() as client:
-                try:
-                    await client.post(bot_url, json={
-                        "gameId": game_id,
-                        "botCount": bot_count,
-                        "botSecret": bot_secret
-                    }, timeout=5.0)
-                    print(f"Successfully requested "
-                          f"{bot_count} bots for {game_id}")
-                except Exception as e:
-                    print(f"Failed to reach Bot Service: {e}")
-
-        # Fire and forget so the HTTP response isn't blocked
-        asyncio.create_task(spawn_external_bots())'''
-
-    return {"gameId": game_id}
-
-
-@api_router.post('/api/newGame')
-async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
-    if not user_session or not db.user_exists(user_session):
-        raise HTTPException(status_code=403, detail="Invalid/No Session")
-
     ruleset = payload.get('ruleset', 'default')
     bot_count = int(payload.get('botCount', 0))
 
@@ -164,14 +121,45 @@ async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
                         "botCount": bot_count,
                         "botSecret": bot_secret
                     }, timeout=5.0)
-                    print(f"✅ Successfully requested {
-                          bot_count} bots for {game_id}")
+                    print(f"[api/newGame bot request] Successfully requested"
+                          f"{bot_count} bots for {game_id}")
                 except Exception as e:
                     print(f"⚠️ Failed to reach Bot Service: {e}")
 
         asyncio.create_task(spawn_external_bots())
 
     return {"gameId": game_id}
+
+
+@api_router.get('/api/newGame')
+async def get_new_game_options(user_session: Optional[str] = Cookie(None)):
+    """Fetches the available rulesets to populate the frontend New Game Modal."""
+    if not user_session or not db.user_exists(user_session):
+        raise HTTPException(status_code=403, detail="Invalid/No Session")
+
+    rulesets = {}
+
+    # DIAGNOSTIC: Force an absolute path resolution to guarantee Docker finds the folder
+    constants_path = Path(__file__).resolve().parent / "constants"
+    print(f"Searching for ruleset files in: {constants_path}")
+
+    if constants_path.exists() and constants_path.is_dir():
+        for filepath in constants_path.glob("*.py"):
+            if filepath.name.startswith("__"):
+                continue
+
+            ruleset_name = filepath.stem
+            print(f"Found ruleset file: {filepath.name}")
+
+            parsed_rules = parse_ruleset_file(filepath)
+            rulesets[ruleset_name] = parsed_rules
+
+            print(f"✅ Successfully parsed "
+                  f"{len(parsed_rules)} keys for '{ruleset_name}'")
+    else:
+        print(f"❌ Constants directory NOT FOUND at {constants_path}")
+
+    return {"options": rulesets}
 
 
 @api_router.post('/api/joinGame')

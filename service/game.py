@@ -87,6 +87,18 @@ class Game:
                     print(f"[Game {self.id}] Training game started")
                     self.start_game()
 
+    def remove_player(self, session_id):
+        """Removes a player if the game is still in the WAITING room."""
+        if session_id in self.players:
+            # Reclaim the player's name so it can be reused
+            name = self.players[session_id].name
+            if name not in self.names:
+                self.names.append(name)
+
+            del self.players[session_id]
+            print(f"[Game {self.id}] Player {session_id[:8]} left the lobby. "
+                  f"({len(self.players)}/{self.bot_count})")
+
     def start_game(self):
         # Determine game length
         self.game_length += random.randint(-4, 4)
@@ -120,6 +132,8 @@ class Game:
             p for p in self.players.values()
             if p.health != "dead"
         ]
+        if not active_players:
+            return False
 
         if all(p.finished_phase for p in active_players):
             self.next_phase()

@@ -1,3 +1,5 @@
+import httpx
+import os
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from game_manager import active_games
 import asyncio
@@ -51,6 +53,25 @@ class ConnectionManager:
 
 # Initialize a global manager instance
 manager = ConnectionManager()
+
+
+async def request_replacement_bot(game_id: str):
+    """Fires a background HTTP request to replace a dropped bot."""
+    bot_url = os.environ.get(
+        "BOT_SERVICE_URL", "http://bots:8001/api/spawn_bots")
+    bot_secret = os.environ.get("BOT_SECRET", "default_dev_secret")
+
+    async with httpx.AsyncClient() as client:
+        try:
+            await client.post(bot_url, json={
+                "gameId": game_id,
+                "botCount": 1,  # Request exactly one replacement
+                "botSecret": bot_secret
+            }, timeout=5.0)
+            print(f"🔄 SOS sent: Requested 1 replacement bot for {game_id}")
+        except Exception as e:
+            print(
+                f"⚠️ Failed to request replacement bot from Bot Service: {e}")
 
 
 async def process_game_event(
@@ -278,11 +299,36 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         if game_id and user_id:
             manager.disconnect(websocket, game_id, user_id)
-            print(f"❌ Player {user_id} disconnected from {game_id}")
-        else:
-            print("❌ Unregistered socket disconnected before joining a room.")
+            print(f"Player {user_id} disconnected from {game_id}")
 
+            game = active_games.get(game_id)
+
+            # SELF-HEALING LOBBY LOGIC
+            if game and game.status == "WAITING":
+                game.remove_player(user_id)
+
+                # If the disconnected user was a bot, request a replacement
+                if user_id.startswith("bot_"):
+                    asyncio.create_task(request_replacement_bot(game_id))
+
+                # Broadcast the updated player count to the frontend
+                asyncio.create_task(
+                    manager.broadcast_to_game(
+                        {
+                            "event": "room_update",
+                            "data": {
+                                "player_count": len(game.players)
+                            }
+                        },
+                        game_id
+                    )
+                )
+        else:
+            print("Unregistered socket disconnected before joining a room.")
 
     except Exception:
         traceback.print_exc()
-        manager.disconnect(websocket, game_id, user_id)
+
+        # Only attempt to disconnect if the user successfully joined a room
+        if game_id and user_id:
+            manager.disconnect(websocket, game_id, user_id)
