@@ -4,4 +4,5 @@ __pycache__/
 *.pyc
 config.json
 frontend/vite.config.ts
-bots/bot_training_data.jsonl
+bots/*.jsonl
+bots/*.json
