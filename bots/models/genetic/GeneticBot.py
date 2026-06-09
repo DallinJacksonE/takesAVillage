@@ -34,7 +34,7 @@ class GeneticBot(BaseBot):
             return None
 
         if me.get("finished_phase"):
-            if game_state.get("phase") == "WORK":
+            if game_state.get("phase") in ["WORK", "NIGHT"]:
 
                 accept_action = next(
                     (
