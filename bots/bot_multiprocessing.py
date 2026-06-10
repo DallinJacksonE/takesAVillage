@@ -29,16 +29,17 @@ def run_bot_process(game_id: str,
             
         bot = GeneticBot(genome)
         host_ready_event = asyncio.Event()
+        game_ended = False
 
         socket = BotSocket(
             game_id=game_id,
             bot_secret=bot_secret,
-            http_url=os.environ.get("GAME_SERVER_HTTP_URL", "http://game-server:8000"),
-            ws_url=os.environ.get("GAME_SERVER_WS_URL", "ws://game-server:8000/ws")
+            http_url=os.environ.get("GAME_SERVER_HTTP_URL", "http://localhost:5000"),
+            ws_url=os.environ.get("GAME_SERVER_WS_URL", "ws://localhost:5000/ws")
         )
 
         async def on_game_state(state):
-            nonlocal fitness_sent
+            nonlocal fitness_sent, game_ended
             
             # WAIT FOR HOST FIRST
             if not host_ready_event.is_set():
@@ -61,6 +62,7 @@ def run_bot_process(game_id: str,
                 fitness_sent = True
 
             if state.get("status") == "ENDED":
+                game_ended = True
                 await socket.disconnect()
                 return
 
@@ -77,13 +79,57 @@ def run_bot_process(game_id: str,
                         "action_command": "FINISH_PHASE",
                         "payload": {}
                     })
+            # Auto-finalize accepted trades we haven't finalized yet
+            me_actions = me.get("actions", [])
+            for a in me_actions:
+                try:
+                    if a.get("type") == "TRADE" and a.get("status") == "ACCEPTED":
+                        is_initiator = a.get("initiator_id") == me.get("id")
+                        already_finalized = a.get("initiator_finalized") if is_initiator else a.get("target_finalized")
+                        if already_finalized:
+                            continue
+
+                        # Determine which items this side should ship
+                        promised = a.get("offer_items") if is_initiator else a.get("request_items")
+                        feasible = {}
+                        for r, qty in (promised or {}).items():
+                            try:
+                                q = int(qty)
+                            except Exception:
+                                q = 0
+                            available = int(me.get("resources", {}).get(r, 0))
+                            send_amt = max(0, min(q, available))
+                            if send_amt > 0:
+                                feasible[r] = send_amt
+
+                        # Submit finalize even if feasible is empty (server will cap),
+                        # but prefer to send something only if feasible non-empty.
+                        if feasible:
+                            await socket.submit_action({
+                                "action_command": "FINALIZE",
+                                "payload": {
+                                    "action_id": a.get("id"),
+                                    "actual_items": feasible
+                                }
+                            })
+                            await asyncio.sleep(0.2)
+                except Exception:
+                    # Defensive: don't let auto-finalize break the bot loop
+                    continue
 
         socket.on_game_state = on_game_state
         success = await socket.connect()
 
-        if success:
-            while socket._listen_task and not socket._listen_task.done():
-                await asyncio.sleep(1)
+        while not game_ended:
+            if success:
+                while socket._listen_task and not socket._listen_task.done():
+                    await asyncio.sleep(1)
+
+            if game_ended:
+                break
+
+            await asyncio.sleep(3)
+            success = await socket.connect()
 
     asyncio.run(main())
 
@@ -129,10 +175,16 @@ def spawn_bot_processes(game_id: str, bot_count: int, bot_secret: str, base_geno
     """
     Helper function to abstract the multiprocessing trigger out of the API layer.
     """
-    genomes = seed_genomes(base_genome, bot_count)
+    # If the caller provided a full population list, use that directly.
+    if isinstance(base_genome, list):
+        genomes = base_genome
+    else:
+        genomes = seed_genomes(base_genome, bot_count)
 
     for i in range(bot_count):
-        assigned_genome = genomes[i].__dict__
+        # Support both Genome objects and plain dicts
+        g = genomes[i]
+        assigned_genome = g.__dict__ if hasattr(g, "__dict__") else g
         p = multiprocessing.Process(
             target=run_bot_process,
             args=(game_id, bot_secret, training_data_queue, assigned_genome)

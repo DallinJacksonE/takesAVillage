@@ -9,6 +9,11 @@ class BaseBot(ABC):
     """
     def __init__(self):
         self.waiting = None
+        # Track last seen phase to reset per-phase state
+        self._last_phase = None
+        # Limit how many draft trades a bot will initiate per TRADE phase
+        self.trade_offers_made = 0
+        self.max_trade_offers_per_phase = 1
 
     @abstractmethod
     def choose_action(self, game_state: dict) -> dict | None:
@@ -67,6 +72,12 @@ class BaseBot(ABC):
             return []
         
         self.waiting = False
+
+        # reset per-phase counters when phase changes
+        if phase != self._last_phase:
+            self._last_phase = phase
+            if phase == "TRADE":
+                self.trade_offers_made = 0
 
         if phase == "WORK" and me.get("health") not in ["sick", "recovering", "dead"]:
             # --- 1. BUILD ACTIONS ---
@@ -215,13 +226,82 @@ class BaseBot(ABC):
                         }
                     })
                 if action["status"] == "ACCEPTED":
-                    actions.append({
-                        "action_command": "FINALIZE",
-                        "payload": {
-                            "action_id": action["id"],
-                            "actual_items": action["offer_items"]
-                        }
-                    })
+                    # Determine which side we are on and propose feasible
+                        # actual_items for the shipping window (don't overpromise)
+                        is_initiator = action.get("initiator_id") == me.get("id")
+                        promised = action.get("offer_items") if is_initiator else action.get("request_items")
+
+                        feasible = {}
+                        resources = me.get("resources", {})
+                        for r, qty in (promised or {}).items():
+                            try:
+                                q = int(qty)
+                            except Exception:
+                                q = 0
+                            available = int(resources.get(r, 0))
+                            send_amt = max(0, min(q, available))
+                            if send_amt > 0:
+                                feasible[r] = send_amt
+
+                        actions.append({
+                            "action_command": "FINALIZE",
+                            "payload": {
+                                "action_id": action["id"],
+                                "actual_items": feasible
+                            }
+                        })
+            # --- 1. Draft simple trades ---
+            # Bots may propose trades to other players offering surplus
+            # and requesting resources they lack.
+            resources = me.get("resources", {"wood": 0, "food": 0, "iron": 0})
+            # determine offer (most abundant) and request (least abundant)
+            sorted_res = sorted(resources.items(), key=lambda kv: kv[1])
+            if sorted_res:
+                request_res = sorted_res[0][0]
+                offer_res = sorted_res[-1][0]
+                offer_amt = max(1, resources.get(offer_res, 0) // 2)
+
+                if resources.get(offer_res, 0) >= 1:
+                    # Don't create new offers if we already have an outstanding
+                    # outgoing trade (pending/negotiating/accepted).
+                    existing_outgoing_trade = any(
+                        a.get("type") == "TRADE" and a.get("initiator_id") == me.get("id")
+                        and a.get("status") in ["PENDING", "NEGOTIATING", "ACCEPTED"]
+                        for a in me.get("actions", [])
+                    )
+
+                    if existing_outgoing_trade:
+                        # Respect a single outstanding trade until it's resolved
+                        pass
+                    else:
+                        # Throttle number of trades per bot per TRADE phase
+                        if self.trade_offers_made < self.max_trade_offers_per_phase:
+                            for player in game_state.get("player_list", []):
+                                if player.get("id") == me.get("id"):
+                                    continue
+
+                                # Avoid creating duplicate pending trades to same target
+                                existing = any(
+                                    a.get("type") == "TRADE" and a.get("target_id") == player.get("id")
+                                    for a in me.get("actions", [])
+                                )
+                                if existing:
+                                    continue
+
+                                actions.append({
+                                    "action_command": "TRADE",
+                                    "payload": {
+                                        "type": "TRADE",
+                                        "target_id": player.get("id"),
+                                        "offer_items": {offer_res: offer_amt},
+                                        "request_items": {request_res: 1}
+                                    }
+                                })
+                                # Count this draft so we don't spam the phase
+                                self.trade_offers_made += 1
+                                # Stop creating more offers once limit reached
+                                if self.trade_offers_made >= self.max_trade_offers_per_phase:
+                                    break
                 
 
         elif phase == "NIGHT":
@@ -242,12 +322,31 @@ class BaseBot(ABC):
                     action["type"] == "CAMPFIRE"
                     and action["waiting_on_id"] == me["id"]
                 ):
-                    actions.append({
-                        "action_command": "ACCEPT",
-                        "payload": {
-                            "action_id": action["id"]
-                        }
-                    })
+                    # Only offer ACCEPT when the host still has seats available
+                    is_request = action.get("is_request", False)
+                    host_id = action.get("target_id") if is_request else action.get("initiator_id")
+                    host_player = None
+                    for p in game_state.get("player_list", []):
+                        if p.get("id") == host_id:
+                            host_player = p
+                            break
+
+                    can_accept = False
+                    if host_player and host_player.get("fire_status") == "HOST":
+                        max_seats = game_state.get("max_fire_seats", 0)
+                        current = len(host_player.get("fire_guests", []) or [])
+                        if current < max_seats:
+                            can_accept = True
+
+                    if can_accept:
+                        actions.append({
+                            "action_command": "ACCEPT",
+                            "payload": {
+                                "action_id": action["id"]
+                            }
+                        })
+
+                    # Always allow denying an invite
                     actions.append({
                         "action_command": "DENY",
                         "payload": {

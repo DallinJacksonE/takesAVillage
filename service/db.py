@@ -34,7 +34,9 @@ def load_config():
         'DB_NAME', config_data['db'].get('database', 'village_db'))
 
     # NEW: Catch the DB_TYPE flag to determine which database to build
-    config_data['db_type'] = os.environ.get('DB_TYPE', 'mysql').lower()
+    config_data['db_type'] = os.environ.get(
+        'DB_TYPE', config_data.get('db_type', 'mysql')
+    ).strip().lower()
 
     return config_data
 
@@ -140,7 +142,18 @@ class InMemoryDB(DatabaseProvider):
         print("✅ InMemoryDB ready. (Note: Data wipes on container restart)")
 
     def store_game_result(self, game_id, day_num, phase, snapshot_json):
-        return super().store_game_result(game_id, day_num, phase, snapshot_json)
+        if isinstance(snapshot_json, str):
+            data = json.loads(snapshot_json)
+        else:
+            data = snapshot_json
+
+        self.history.append({
+            "game_id": game_id,
+            "day_num": day_num,
+            "phase": phase,
+            "data": data,
+            "created_at": datetime.now()
+        })
 
     def store_game_snapshot(
         self,
@@ -159,11 +172,10 @@ class InMemoryDB(DatabaseProvider):
         # print(self.history)
 
     def get_all_games(self):
-        pass
+        return sorted(self.history, key=lambda x: x['created_at'], reverse=True)
 
     def get_all_game_history(self) -> list:
-        # Return sorted by finished_at descending to mimic SQL ORDER BY DESC
-        return sorted(self.history, key=lambda x: x['finished_at'], reverse=True)
+        return sorted(self.history, key=lambda x: x['created_at'], reverse=True)
 
     def store_visualization(self, game_id: str, plot_name: str, figure):
         buf = io.BytesIO()

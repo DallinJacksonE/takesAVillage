@@ -46,11 +46,18 @@ class GeneticBot(BaseBot):
 
                 if accept_action:
                     return self.format_network_payload(accept_action)
+            elif game_state.get("phase") == "TRADE":
+                finalize_action = next(
+                    (
+                        a for a in actions
+                        if a["action_command"] == "FINALIZE"
+                    ),
+                    None
+                )
+                if finalize_action:
+                    return self.format_network_payload(finalize_action)
 
             return None
-
-        # 1. Fetch valid moves from the base class parser
-        actions = self.get_available_actions(game_state)
 
         print(f"available actions for bot: {actions}")
 
@@ -180,7 +187,6 @@ class GeneticBot(BaseBot):
 
         elif command == "ACCEPT":
             score += g.cooperation_weight + g.reputation_weight
-            score += 10000000
 
             if contract and contract_type == "TRADE":
 
@@ -195,6 +201,29 @@ class GeneticBot(BaseBot):
                     self.resource_value(received)
                     - self.resource_value(given)
                 )
+        elif command == "TRADE" or command == "BARTER":
+            score += 10000
+            # Evaluate draft trade proposals: prefer positive net resource value
+            offer = action.get("payload", {}).get("offer_items", {})
+            request = action.get("payload", {}).get("request_items", {})
+            score += (self.resource_value(request) - self.resource_value(offer))
+            score += g.cooperation_weight + g.reputation_weight
+        elif command == "FINALIZE":
+            # Prefer to finalize (ship goods) if we can actually send the items
+            actual = action.get("payload", {}).get("actual_items", {})
+            feasible = {
+                r: min(int(qty), resources.get(r, 0))
+                for r, qty in actual.items()
+            }
+            feasible_value = self.resource_value(feasible)
+
+            if feasible_value > 0:
+                # Strongly favor finalizing when we can ship what we promised
+                score += 15000
+                score += feasible_value * 50
+            else:
+                # If we can't ship anything, deprioritize
+                score -= 1000
         # =====================
         # RANDOMNESS
         # =====================

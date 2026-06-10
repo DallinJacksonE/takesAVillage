@@ -38,6 +38,12 @@ class SocialResolvers:
         if not initiator or not target:
             return False
 
+        # Guard: if this trade has already been executed, skip it.
+        if any(r.get("id") == action.id for r in initiator.trade_history):
+            return False
+        if any(r.get("id") == action.id for r in target.trade_history):
+            return False
+
         # 1. Fill boxes (capped by actual inventory)
         initiator_box = {}
         for res, amt in getattr(action, 'actual_offer_items', {}).items():

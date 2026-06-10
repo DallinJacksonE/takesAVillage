@@ -19,19 +19,39 @@ const Research: React.FC = () => {
 
   const handleOpenTrainingMenu = async () => {
     try {
-      // Fetch Rulesets (Assuming this endpoint exists from your Play logic)
+      console.log("[Research] Opening training menu...");
+
+      // Fetch Rulesets
+      console.log("[Research] Fetching rulesets from /api/newGame...");
       const rulesRes = await fetch("/api/newGame");
+      console.log(`[Research] Ruleset response status: ${rulesRes.status}`);
+
+      if (!rulesRes.ok) {
+        throw new Error(`Failed to fetch rulesets: ${rulesRes.status} ${rulesRes.statusText}`);
+      }
+
       const rulesData = await rulesRes.json();
+      console.log(`[Research] Received rulesets:`, rulesData);
       setGameOptions(rulesData.options || {});
 
       // Fetch Genomes
+      console.log("[Research] Fetching genomes from /api/research/genomes...");
       const genomeRes = await fetch("/api/research/genomes");
+      console.log(`[Research] Genomes response status: ${genomeRes.status}`);
+
+      if (!genomeRes.ok) {
+        throw new Error(`Failed to fetch genomes: ${genomeRes.status} ${genomeRes.statusText}`);
+      }
+
       const genomeData = await genomeRes.json();
+      console.log(`[Research] Received ${genomeData.genomes?.length || 0} genomes:`, genomeData);
       setAvailableGenomes(genomeData.genomes || []);
 
+      console.log("[Research] Opening training modal...");
       setIsTrainingModalOpen(true);
     } catch (e) {
-      console.error("Failed to load training options", e);
+      console.error("Failed to load training options:", e);
+      alert(`Error loading training options: ${e instanceof Error ? e.message : String(e)}`);
     }
   };
 

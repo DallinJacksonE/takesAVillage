@@ -164,6 +164,30 @@ class EmploymentContract(Contract):
                 if not hasattr(worker, 'available_work'):
                     worker.available_work = []
                 worker.available_work.append(hired_job)
+                # ---> NEW: Automatically create a trade contract representing the promised wage
+                try:
+                    wage_amt = int(getattr(self, 'wage', 0))
+                except Exception:
+                    wage_amt = 0
+
+                if wage_amt > 0:
+                    # Only auto-create wage-trade when the employer is a bot
+                    # Bot session_ids are prefixed with 'bot_' by the API.
+                    if isinstance(employer_id, str) and employer_id.startswith("bot_"):
+                        trade = TradeContract(
+                            employer_id, worker_id,
+                            {getattr(self, 'wage_type', 'food'): wage_amt},
+                            {}
+                        )
+                        # Attach trade to both players' action lists so clients see it
+                        if worker:
+                            if not hasattr(worker, 'actions'):
+                                worker.actions = {}
+                            worker.actions[trade.id] = trade
+                        if employer:
+                            if not hasattr(employer, 'actions'):
+                                employer.actions = {}
+                            employer.actions[trade.id] = trade
         else:
             print(f"Warning: Development "
                   f"{self.dev_id} not found during contract acceptance.")

@@ -132,10 +132,8 @@ async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
 
 
 @api_router.get('/api/newGame')
-async def get_new_game_options(user_session: Optional[str] = Cookie(None)):
+async def get_new_game_options():
     """Fetches the available rulesets to populate the frontend New Game Modal."""
-    if not user_session or not db.user_exists(user_session):
-        raise HTTPException(status_code=403, detail="Invalid/No Session")
 
     rulesets = {}
 
@@ -208,24 +206,26 @@ async def bot_join_game(payload: BotJoinPayload):
 
 @api_router.get('/api/research/genomes')
 async def get_genomes():
+    """Fetch all saved genomes. Research endpoint, no auth required."""
     genomes = db.get_all_genomes()
     return {"genomes": genomes}
 
 
 @api_router.post('/api/research/train')
-async def start_training(payload: dict, user_session: Optional[str] = Cookie(None)):
-    if not user_session or not db.user_exists(user_session):
-        raise HTTPException(status_code=403, detail="Invalid/No Session")
-
+async def start_training(payload: dict):
+    """Start a training loop. Research endpoint, no auth required."""
     ruleset = payload.get('ruleset', 'default')
     bot_count = payload.get('botCount', 5)
     generations = payload.get('generations', 1)
     base_genome = payload.get('baseGenome', 'random')
 
-    print(f"[API] Received request for training loop:"
-          f"{generations} gens, {bot_count} bots, base: {base_genome}")
+    print(f"[API /api/research/train] Received training request:")
+    print(f"  - Ruleset: {ruleset}")
+    print(f"  - Bots: {bot_count}")
+    print(f"  - Generations: {generations}")
+    print(f"  - Base Genome: {base_genome}")
 
-    # THE MISSING PIECE: Fire and forget the orchestrator
+    # Fire and forget the orchestrator
     asyncio.create_task(
         start_training_session(ruleset, bot_count, generations, base_genome)
     )

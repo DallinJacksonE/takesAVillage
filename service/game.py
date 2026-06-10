@@ -29,10 +29,20 @@ class Game:
         self.status = 'WAITING'
         try:
             self.rules = importlib.import_module(f"constants.{ruleset_name}")
-        except ImportError:
-            print(f"Warning: Ruleset"
-                  f" '{ruleset_name}' not found. Falling back to default.")
+            print(f"✅ Loaded ruleset: {ruleset_name}")
+        except ImportError as e:
+            print(f"⚠️ Warning: Ruleset '{ruleset_name}' not found: {e}. Falling back to default.")
             self.rules = importlib.import_module("constants.default")
+
+        # Validate all required constants are present
+        required_constants = [
+            "DEVELOPMENT_COSTS", "CAMPFIRE_COST", "MAX_FIRE_SEATS", 
+            "STARTING_INVENTORY", "PHASE_LENGTH", "GAME_LENGTH",
+            "MOUNTAINS_RATIO", "WOODS_RATIO", "FARMS_RATIO"
+        ]
+        for const in required_constants:
+            if not hasattr(self.rules, const):
+                raise AttributeError(f"Ruleset {ruleset_name} missing required constant: {const}")
 
         # Constants for the game, can add new rulesets in constants folder
         self.development_costs = self.rules.DEVELOPMENT_COSTS
@@ -44,6 +54,8 @@ class Game:
         self.mountains_ratio = self.rules.MOUNTAINS_RATIO
         self.woods_ratio = self.rules.WOODS_RATIO
         self.farms_ratio = self.rules.FARMS_RATIO
+
+        print(f"[Game {game_id}] Ruleset '{ruleset_name}' | Phase: {self.phase_length}s | Game Length: {self.game_length} days")
 
         self.players = {}
         self.developments = {}
@@ -111,6 +123,10 @@ class Game:
                              self.woods_ratio, self.mountains_ratio)
 
         self.map_data = factory.map_tiles
+
+        # For training games, auto-mark host as connected so bots don't wait
+        if self.training:
+            self.host_connected = True
 
         self.status = 'RUNNING'
         self.start_phase('WORK')

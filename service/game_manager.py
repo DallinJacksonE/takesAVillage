@@ -39,21 +39,23 @@ async def game_loop(connection_manager):
                 # Combine the history dicts into a single payload
                 game_data = {
                     "map": map_dict,
-                    "players": player_dict
+                    "players": player_dict,
+                    "training": game.training,
+                    "training_session_id": game.training_session_id
                 }
+
+                # Always persist completed games so training runs are visible in SQL.
+                db.store_game_result(
+                    game.id,
+                    game.day,
+                    game.phase,
+                    json.dumps(game_data)
+                )
 
                 if game.training:
                     asyncio.create_task(
                         handle_training_game_ended(
                             game.id, game.training_session_id)
-                    )
-                else:
-                    # Normal DB storage for standard games
-                    db.store_game_result(
-                        game.id,
-                        game.day,
-                        game.phase,
-                        json.dumps(game_data)
                     )
 
                 del active_games[game.id]

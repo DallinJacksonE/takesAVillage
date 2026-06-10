@@ -28,14 +28,14 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - PYTHONUNBUFFERED=1
-      - DB_TYPE=mysql # <-- Set this to 'memory' to bypass MySQL
-      - DB_HOST=db
-      - DB_USER=village
-      - DB_PASSWORD=village_db
-      - DB_NAME=village_db
-      - BOT_SECRET=default_dev_secret
-      - BOT_SERVICE_URL=http://bots:8001/api/spawn_bots
+      PYTHONUNBUFFERED: 1
+      DB_TYPE: mysql
+      DB_HOST: db
+      DB_USER: village
+      DB_PASSWORD: village_db
+      DB_NAME: village_db
+      BOT_SECRET: default_dev_secret
+      BOT_SERVICE_URL: http://bots:8001/api/spawn_bots
     volumes:
       - ./service:/app/service
     # If DB_TYPE=memory, it won't crash if the DB container isn't up, 
