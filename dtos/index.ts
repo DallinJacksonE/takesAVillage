@@ -271,6 +271,7 @@ export interface GameStateDTO {
   cold_sickness_rate: number;
   hunger_sickness_rate: number;
   recovery_rate: number;
+  training: boolean;
 }
 
 // --- Network & Lobby DTOs ---

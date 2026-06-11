@@ -166,7 +166,7 @@ async def handle_training_game_ended(game_id: str, training_session_id: str):
     # 1. Fetch all genome entries for this game from the Bot Server
     async with httpx.AsyncClient() as client:
         try:
-            await asyncio.sleep(1)
+            await asyncio.sleep(.1)
             response = await client.get(f"{bot_url}/api/genomes/{game_id}/all", timeout=10.0)
             if response.status_code == 200:
                 data = response.json()

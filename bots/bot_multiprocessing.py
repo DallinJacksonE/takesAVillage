@@ -19,6 +19,7 @@ def run_bot_process(game_id: str,
     Runs entirely inside a new, isolated memory space.
     """
     fitness_sent = False
+    training = False
     
     async def main():
         # INITIALIZE WITH ASSIGNED DNA
@@ -72,8 +73,10 @@ def run_bot_process(game_id: str,
             action = bot.choose_action(state)
             if action:
                 await socket.submit_action(action)
-                if action["action_command"] == "EMPLOYMENT":
+                if action["action_command"] == "EMPLOYMENT" and not state.get("training"):
                     await asyncio.sleep(5)
+                elif state.get("training"):
+                    training = True
                 if state.get("phase") in ["TRADE", "NIGHT"] and action["action_command"] == "CAMPFIRE":
                     await socket.submit_action({
                         "action_command": "FINISH_PHASE",
@@ -123,12 +126,15 @@ def run_bot_process(game_id: str,
         while not game_ended:
             if success:
                 while socket._listen_task and not socket._listen_task.done():
-                    await asyncio.sleep(1)
+                    if training:
+                        await asyncio.sleep(.01)
+                    else:
+                        await asyncio.sleep(0.25)
 
             if game_ended:
                 break
 
-            await asyncio.sleep(3)
+            await asyncio.sleep(0.2)
             success = await socket.connect()
 
     asyncio.run(main())
@@ -148,7 +154,7 @@ async def process_training_data(queue: multiprocessing.Queue):
 
             print(f"📊 Saved training data! Bot Fitness: {result['fitness']}")
 
-        await asyncio.sleep(2)  # Don't block the event loop
+        await asyncio.sleep(0.5)  # Poll more frequently during training
 
 
 async def reap_zombies():

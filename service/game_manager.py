@@ -59,4 +59,4 @@ async def game_loop(connection_manager):
                     )
 
                 del active_games[game.id]
-        await asyncio.sleep(1)
+        await asyncio.sleep(.1)

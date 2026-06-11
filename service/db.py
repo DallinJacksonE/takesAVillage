@@ -418,7 +418,9 @@ class MySQLDB(DatabaseProvider):
 
                 `data` JSON NOT NULL,
 
-                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+                INDEX idx_created_at (created_at)
             );
 
             CREATE TABLE IF NOT EXISTS `genomes` (
@@ -842,9 +844,11 @@ class MySQLDB(DatabaseProvider):
             SELECT *
             FROM games
             ORDER BY created_at DESC
+            LIMIT 10;
         """
 
         try:
+            print(query)
             cursor.execute(query)
 
             results = cursor.fetchall()

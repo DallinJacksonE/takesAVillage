@@ -43,6 +43,7 @@ def build_player_state(game, session_id):
         "cold_sickness_rate": float(game.rules.COLD_SICKNESS_INCREASE),
         "hunger_sickness_rate": float(game.rules.HUNGER_SICKNESS_INCREASE),
         "recovery_rate": float(game.rules.RECOVERY_RATE),
+        "training": game.training
     }
     # print(f"-------State_Builder-------\n"
     #      f"player: {state_dto['me']}")
@@ -65,4 +66,5 @@ def build_player_state(game, session_id):
   max_fire_seats: number;
   campfire_cost: ResourceBundle;
   session_id?: string;
+  training: boolean;
 }"""

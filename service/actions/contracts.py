@@ -93,18 +93,32 @@ class TradeContract(Contract):
         return f"UPDATED_{self.status}"
 
     def _handle_finalize(self, user_id, data, context):
-        """Handles the secret payload drop-off before the trade executes."""
+
+        # Initiator already finalized
+        if user_id == self.initiator_id and self.initiator_finalized:
+            return "ILLEGAL"
+
+        # Target already finalized
+        if user_id == self.target_id and self.target_finalized:
+            return "ILLEGAL"
+
         if user_id == self.initiator_id:
             self.actual_offer_items = data.get(
-                'actual_items', self.offer_items)
+                'actual_items',
+                self.offer_items
+            )
             self.initiator_finalized = True
+
         elif user_id == self.target_id:
             self.actual_request_items = data.get(
-                'actual_items', self.request_items)
+                'actual_items',
+                self.request_items
+            )
             self.target_finalized = True
 
         if self.initiator_finalized and self.target_finalized:
             self.status = 'COMPLETED'
+            self.waiting_on_id = None
             return "UPDATED_COMPLETED"
 
         return f"UPDATED_{self.status}"
@@ -228,6 +242,14 @@ class CampfireContract(Contract):
         self.command_map['ACCEPT'] = self._handle_accept
 
     def _handle_accept(self, user_id, data, context):
+
+        if self.status != "PENDING":
+            print(
+                f"Ignoring duplicate ACCEPT "
+                f"for contract {self.id} "
+                f"(status={self.status})"
+            )
+            return "ILLEGAL"
         self.status = 'ACCEPTED'
         self.waiting_on_id = None
         return f"UPDATED_{self.status}"

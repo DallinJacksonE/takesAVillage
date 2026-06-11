@@ -14,41 +14,95 @@ class ConnectionManager:
         self.active_connections: dict[str, dict[str, WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, game_id: str, user_id: str):
-        if game_id not in self.active_connections:
+        if game_id not in self.active_connections.keys():
             self.active_connections[game_id] = {}
         self.active_connections[game_id][user_id] = websocket
 
     def disconnect(self, websocket: WebSocket, game_id: str, user_id: str):
-        if (game_id in self.active_connections and
-                user_id in self.active_connections[game_id]):
+        try:
+            if game_id in self.active_connections:
+                self.active_connections[game_id].pop(user_id, None)
 
-            # ONLY delete if the current active socket is the one disconnecting
-            if self.active_connections[game_id][user_id] == websocket:
-                del self.active_connections[game_id][user_id]
-
-                # Clean up empty games to prevent memory leaks
                 if not self.active_connections[game_id]:
                     del self.active_connections[game_id]
 
-    async def send_personal_message(
-        self, message: dict, game_id: str, user_id: str
-    ):
-        if (game_id in self.active_connections and
-                user_id in self.active_connections[game_id]):
+        except Exception:
+            traceback.print_exc()
+
+    async def send_personal_message(self, message: dict, game_id: str, user_id: str):
+        try:
             ws = self.active_connections[game_id][user_id]
             await ws.send_json(message)
 
+        except Exception as e:
+            print(
+                f"[WS ERROR] send_personal_message "
+                f"game={game_id} user={user_id}: {e}"
+            )
+
+            self.active_connections.get(game_id, {}).pop(user_id, None)
+
+    async def _send_safe(self, connection, message: dict, game_id: str, user_id: str, dead_users: list[str]):
+        try:
+            await connection.send_json(message)
+        except Exception as e:
+            print(
+                f"[WS ERROR] safe_send "
+                f"game={game_id} user={user_id}: {e}"
+            )
+            dead_users.append(user_id)
+
     async def broadcast_to_game(self, message: dict, game_id: str):
-        if game_id in self.active_connections:
-            for connection in self.active_connections[game_id].values():
-                await connection.send_json(message)
+        if game_id not in self.active_connections:
+            return
+
+        dead_users: list[str] = []
+        tasks = []
+
+        for user_id, connection in list(self.active_connections[game_id].items()):
+            tasks.append(
+                self._send_safe(
+                    connection,
+                    message,
+                    game_id,
+                    user_id,
+                    dead_users
+                )
+            )
+
+        if tasks:
+            await asyncio.gather(*tasks)
+
+        for user_id in dead_users:
+            self.active_connections[game_id].pop(user_id, None)
 
     async def broadcast_game_state(self, game_id: str, game):
-        """Broadcasts player-specific state to everyone in the room."""
-        if game_id in self.active_connections:
-            for uid, ws in self.active_connections[game_id].items():
-                state = game.get_state_for_player(uid)
-                await ws.send_json({"event": "game_state", "data": state})
+        if game_id not in self.active_connections:
+            return
+
+        dead_users: list[str] = []
+        tasks = []
+
+        for user_id, ws in list(self.active_connections[game_id].items()):
+            state = game.get_state_for_player(user_id)
+            tasks.append(
+                self._send_safe(
+                    ws,
+                    {
+                        "event": "game_state",
+                        "data": state
+                    },
+                    game_id,
+                    user_id,
+                    dead_users
+                )
+            )
+
+        if tasks:
+            await asyncio.gather(*tasks)
+
+        for user_id in dead_users:
+            self.active_connections[game_id].pop(user_id, None)
 
 
 # Initialize a global manager instance

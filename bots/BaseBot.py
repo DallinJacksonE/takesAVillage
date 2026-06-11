@@ -13,7 +13,7 @@ class BaseBot(ABC):
         self._last_phase = None
         # Limit how many draft trades a bot will initiate per TRADE phase
         self.trade_offers_made = 0
-        self.max_trade_offers_per_phase = 1
+        self.max_trade_offers_per_phase = 2
 
     @abstractmethod
     def choose_action(self, game_state: dict) -> dict | None:
@@ -47,6 +47,24 @@ class BaseBot(ABC):
             opposite: dev.get("level", 0),
             "iron": max(dev.get("level", 0) - 1, 0)
         }
+
+    def is_dead_player(self, player: dict | None) -> bool:
+        return not player or player.get("health") == "dead"
+
+    def get_alive_players(self, game_state: dict) -> list[dict]:
+        return [
+            p for p in game_state.get("player_list", [])
+            if p.get("health") != "dead"
+        ]
+
+    def find_player(self, game_state: dict, player_id: str) -> dict | None:
+        return next(
+            (
+                p for p in game_state.get("player_list", [])
+                if p.get("id") == player_id
+            ),
+            None
+        )
 
     def get_available_actions(self, game_state: dict) -> list[dict]:
         """
@@ -162,6 +180,10 @@ class BaseBot(ABC):
                 if dev["owner_id"] == me["id"]:
                     continue
 
+                owner = self.find_player(game_state, dev["owner_id"])
+                if self.is_dead_player(owner):
+                    continue
+
                 if dev.get("worker_id"):
                     continue
 
@@ -182,6 +204,10 @@ class BaseBot(ABC):
 
             # --- 2. WORK ACTIONS ---
             for job in me.get("available_work", []):
+                owner_id = job.get('development', {}).get('owner_id')
+                owner = self.find_player(game_state, owner_id)
+                if self.is_dead_player(owner):
+                    continue
                 if not job.get('development').get('is_contested'):
                     actions.append({
                         "action_command": "COMMIT_WORK",
@@ -276,7 +302,7 @@ class BaseBot(ABC):
                     else:
                         # Throttle number of trades per bot per TRADE phase
                         if self.trade_offers_made < self.max_trade_offers_per_phase:
-                            for player in game_state.get("player_list", []):
+                            for player in self.get_alive_players(game_state):
                                 if player.get("id") == me.get("id"):
                                     continue
 
@@ -354,7 +380,7 @@ class BaseBot(ABC):
                         }
                     })
             
-            for player in game_state["player_list"]:
+            for player in self.get_alive_players(game_state):
                 if player["id"] == me["id"]:
                     continue
                 if me["fire_status"] == "HOST":
