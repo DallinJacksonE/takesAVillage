@@ -100,8 +100,8 @@ async def start_training_session(ruleset: str,
         "population": population,
         "generation": 1,
         # genetic hyperparameters
-        "elite_count": 1,
-        "selection_size": min(4, bot_count),
+        "elite_count": 2,
+        "selection_size": min(3, bot_count),
         "mutation_strength": 0.25,
         "mutation_rate": 0.15,
     }
