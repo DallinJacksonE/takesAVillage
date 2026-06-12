@@ -121,17 +121,31 @@ class GeneticBot(BaseBot):
         wood_need = max(0, 5 - wood)
         iron_need = max(0, 5 - iron)
 
-        score += (food_need * g.food_desperation_weight)
-        score += (wood_need * g.wood_desperation_weight)
-        score += (iron_need * g.iron_desperation_weight)
-
         if command == "EMPLOYMENT":
-            score +=100
+            score += g.work_weight
+
+            if not contract:
+                return -100000
+
+            wage = contract.get("wage", 0)
+            wage_type = contract.get("wage_type")
+
+            if wage_type == "food":
+                score += (wage * g.food_weight)
+                score += (food_need * g.food_desperation_weight)
+            elif wage_type == "wood":
+                score += (wage * g.wood_weight)
+                score += (wood_need * g.wood_desperation_weight)
+            elif wage_type == "iron":
+                score += (wage * g.iron_weight)
+                score += (iron_need * g.iron_desperation_weight)
+
+            score -= .5 # prefer working for self all else equal
 
         # =====================
         # BUILD
         # =====================
-        if command == "BUILD_DEV":
+        elif command == "BUILD_DEV":
             score += g.build_weight
 
             # Retrieve the injected hidden type from BaseBot
@@ -182,9 +196,6 @@ class GeneticBot(BaseBot):
                 score += (wage * g.iron_weight)
                 score += (iron_need * g.iron_desperation_weight)
 
-            if job.get("action_id"):
-                score += 10000
-
         elif command == "ACCEPT":
             score += g.cooperation_weight + g.reputation_weight
 
@@ -202,7 +213,6 @@ class GeneticBot(BaseBot):
                     - self.resource_value(given)
                 )
         elif command == "TRADE" or command == "BARTER":
-            score += 10000
             # Evaluate draft trade proposals: prefer positive net resource value
             offer = action.get("payload", {}).get("offer_items", {})
             request = action.get("payload", {}).get("request_items", {})

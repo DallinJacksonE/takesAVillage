@@ -47,7 +47,7 @@ def _mutate_genome(genome: dict, mutation_strength=0.25, mutation_rate=0.15) -> 
     out = {}
     for k, v in genome.items():
         if random.random() < mutation_rate:
-            out[k] = v + random.gauss(0.5, mutation_strength)
+            out[k] = v + random.gauss(0, mutation_strength)
         else:
             out[k] = v
     return out

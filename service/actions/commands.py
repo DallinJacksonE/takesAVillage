@@ -1,6 +1,7 @@
 import uuid
 from models.developments import Development
 from models.map import MapTile
+from actions.contracts import TradeContract
 
 # ==========================================
 # BASE COMMAND
@@ -234,10 +235,32 @@ class CommitWorkCommand(Command):
 
         # 2. If this is a contracted job, clean up the other offers
         if action_id:
-            chosen_action = game_state.contract_factory.find_contract(
-                action_id)
+            chosen_action = game_state.contract_factory.find_contract(action_id)
+
             if chosen_action:
                 chosen_action.status = 'COMPLETED'
+
+                if chosen_action.type == "EMPLOYMENT":
+                    wage_trade = TradeContract(
+                        initiator_id=chosen_action.target_id,      # employer
+                        target_id=chosen_action.initiator_id,      # employee
+                        offer_items={
+                            chosen_action.wage_type: chosen_action.wage
+                        },
+                        request_items={}
+                    )
+
+                    wage_trade.status = "ACCEPTED"
+                    wage_trade.target_finalized = True
+
+                    game_state.contract_factory._add_contract_to_players(
+                        wage_trade
+                    )
+
+                    game_state.contract_factory._add_contract_to_players(
+                        wage_trade
+                    )
+
                 # Cleanup other accepted offers
                 for act in list(player.actions.values()):
                     if getattr(act, 'type', None) == 'EMPLOYMENT' and (

@@ -1,3 +1,4 @@
+from actions.contracts import TradeContract
 
 class SocialResolvers:
     @staticmethod

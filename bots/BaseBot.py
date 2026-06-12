@@ -233,7 +233,7 @@ class BaseBot(ABC):
                         }
                     })
 
-        elif phase == "TRADE":
+        elif phase == "TRADE" and me.get("health") != "dead":
             for action in me.get("actions", []):
                 if (
                     action["type"] == "TRADE"
