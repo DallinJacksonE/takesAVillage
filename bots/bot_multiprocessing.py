@@ -50,7 +50,7 @@ def run_bot_process(game_id: str,
                     return  # ⛔ do nothing until host joins
 
             me = state.get("me", {})
-            if me.get("health") == "dead" and not fitness_sent:
+            if (me.get("health") == "dead" and not fitness_sent) or (state.get("status") == "ENDED" and not fitness_sent):
                 fitness_score = calculate_fitness(state)
 
                 result_queue.put({

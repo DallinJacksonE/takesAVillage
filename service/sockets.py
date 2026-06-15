@@ -75,6 +75,15 @@ class ConnectionManager:
 
         for user_id in dead_users:
             self.active_connections[game_id].pop(user_id, None)
+            game = active_games.get(game_id)
+
+            if game:
+                game.remove_player(user_id)
+
+                print(
+                    f"Removed disconnected player "
+                    f"{user_id} from game {game_id}"
+                )
 
     async def broadcast_game_state(self, game_id: str, game):
         if game_id not in self.active_connections:
@@ -103,6 +112,16 @@ class ConnectionManager:
 
         for user_id in dead_users:
             self.active_connections[game_id].pop(user_id, None)
+
+            game = active_games.get(game_id)
+
+            if game:
+                game.remove_player(user_id)
+
+                print(
+                    f"Removed disconnected player "
+                    f"{user_id} from game {game_id}"
+                )
 
 
 # Initialize a global manager instance
@@ -279,6 +298,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 if game.host_id == user_id and not game.host_connected:
                     game.host_connected = True
+                    await manager.broadcast_game_state(game_id, game)
 
                 # INITIAL CHAT HISTORY
                 # -----------------------------------
