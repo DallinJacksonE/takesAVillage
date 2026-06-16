@@ -36,7 +36,6 @@ class BotSocket:
         self.on_disconnect: Optional[Callable[[], Awaitable[None]]] = None
 
     async def connect(self):
-<<<<<<< HEAD
         """Authenticates via HTTP (first connect) then opens the WebSocket."""
         # 1. Join Game via HTTP only on first connect
 
@@ -48,8 +47,6 @@ class BotSocket:
         ):
             return True
 
-=======
->>>>>>> bb375b5 (logging class for db)
         if not self.user_id:
             async with httpx.AsyncClient() as client:
                 try:
