@@ -14,6 +14,7 @@ class BaseBot(ABC):
         # Limit how many draft trades a bot will initiate per TRADE phase
         self.trade_offers_made = 0
         self.max_trade_offers_per_phase = 2
+        self.resource_map = {"Woods": "wood", "Farm": "food", "Mine": "iron"}
 
     @abstractmethod
     def choose_action(self, game_state: dict) -> dict | None:
@@ -174,20 +175,49 @@ class BaseBot(ABC):
 
             for dev in game_state.get("developments", []):
 
+                owner = self.find_player(game_state, dev["owner_id"])
+
                 if (dev['id'], dev['owner_id']) in existing_apps:
                     continue
 
-                if dev["owner_id"] == me["id"]:
-                    continue
+                if dev["is_contested"]:
 
-                owner = self.find_player(game_state, dev["owner_id"])
-                if self.is_dead_player(owner):
-                    continue
+                    if dev["owner_id"] == me["id"]:
+                        actions.append({
+                            "action_command": "CONTEST_DEV",
+                            "payload": {
+                            "dev_id": dev["id"],
+                            "side": "OWNER"
+                        }
+                    })
+                    
+                    elif dev.get("contest_initiator_id") == me["id"]:
+                        actions.append({
+                            "action_command": "CONTEST_DEV",
+                            "payload": {
+                                "dev_id": dev["id"],
+                                "side": "CONTESTER"
+                            }
+                        })
+
+                    else:
+                        actions.append({
+                            "action_command": "CONTEST_DEV",
+                            "payload": {
+                                "dev_id": dev["id"],
+                                "side": "OWNER"
+                            }
+                        })
+
+                        actions.append({
+                            "action_command": "CONTEST_DEV",
+                            "payload": {
+                                "dev_id": dev["id"],
+                                "side": "CONTESTER"
+                            }
+                        })
 
                 if dev.get("worker_id"):
-                    continue
-
-                if dev.get("is_contested"):
                     continue
 
                 actions.append({
@@ -197,7 +227,7 @@ class BaseBot(ABC):
                         "target_id": dev["owner_id"],
                         "dev_id": dev["id"],
                         "wage": dev['level'],
-                        "wage_type": dev['type'],
+                        "wage_type": self.resource_map[dev['type']],
                         "is_application": True
                     }
                 })

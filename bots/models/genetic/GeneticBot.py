@@ -124,11 +124,8 @@ class GeneticBot(BaseBot):
         if command == "EMPLOYMENT":
             score += g.work_weight
 
-            if not contract:
-                return -100000
-
-            wage = contract.get("wage", 0)
-            wage_type = contract.get("wage_type")
+            wage = action["payload"].get("wage", 0)
+            wage_type = action["payload"].get("wage_type")
 
             if wage_type == "food":
                 score += (wage * g.food_weight)
@@ -165,10 +162,98 @@ class GeneticBot(BaseBot):
         # =====================
         elif command == "UPGRADE_DEV":
             score += (g.upgrade_weight + g.growth_weight)
+
+            dev_id = action["payload"]["dev_id"]
+
+            dev = next(
+                (
+                    d for d in game_state.get("developments", [])
+                    if d["id"] == dev_id
+                ),
+                None
+            )
+
+            if dev:
+                
+                dev_type = dev.get("type")
+
+                if dev_type == "Farm":
+                    score += g.farm_preference
+                elif dev_type == "Woods":
+                    score += g.woods_preference
+                elif dev_type == "Mine":
+                    score += g.mine_preference
+
+                level = dev.get("level", 1)
+                days_left = dev.get("maintenance_days")
+
+                # Growth value
+                score += level * g.future_reward_weight
+
+                urgency_bonus = max(0, 5 - days_left)
+
+                score += (
+                    urgency_bonus
+                    * (g.maintain_weight
+                    + g.upgrade_weight)
+                    )
+
         elif command == "MAINTAIN_DEV":
             score += (g.maintain_weight + g.future_reward_weight)
+
+            dev_id = action["payload"]["dev_id"]
+
+            dev = next(
+                (
+                    d for d in game_state.get("developments", [])
+                    if d["id"] == dev_id
+                ),
+                None
+            )
+
+            if dev:
+                days_left = dev.get("maintenance_days")
+                score += (
+                    max(0, 5 - days_left)
+                    * g.maintain_weight
+                )
+
         elif command == "CONTEST_DEV":
-            score += (g.contest_weight + g.aggression_weight)
+
+            side = action["payload"].get("side")
+            dev_id = action["payload"].get("dev_id")
+
+            dev = next(
+                (d for d in game_state.get("developments", [])
+                if d["id"] == dev_id),
+                None
+            )
+
+            if dev:
+                score += dev.get("level", 1) * g.future_reward_weight
+
+                if side == "OWNER":
+
+                    if dev["owner_id"] == me["id"]:
+                        score += (
+                            dev["level"]
+                            * g.future_reward_weight
+                            * 3
+                        )
+
+                    score += g.cooperation_weight
+
+                elif side == "INITIATOR":
+                    score += (
+                        g.contest_weight +
+                        g.aggression_weight
+                    )
+
+                elif side == "CONTESTER":
+                    score += (
+                        g.contest_weight +
+                        g.cooperation_weight
+                    )
 
         # =====================
         # CAMPFIRE

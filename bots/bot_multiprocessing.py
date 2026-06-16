@@ -1,6 +1,7 @@
 import asyncio
 import os
 import json
+from socket import socket
 from models.genetic.Genome import Genome
 from models.genetic.GeneticBot import GeneticBot
 from models.genetic.fitness import calculate_fitness
@@ -40,7 +41,7 @@ def run_bot_process(game_id: str,
         )
 
         async def on_game_state(state):
-            nonlocal fitness_sent, game_ended
+            nonlocal fitness_sent, game_ended, training
             
             # WAIT FOR HOST FIRST
             if not host_ready_event.is_set():
@@ -77,7 +78,7 @@ def run_bot_process(game_id: str,
                     await asyncio.sleep(5)
                 elif state.get("training"):
                     training = True
-                if state.get("phase") in ["TRADE", "NIGHT"] and action["action_command"] == "CAMPFIRE":
+                if state.get("phase") == "NIGHT" and action["action_command"] == "CAMPFIRE":
                     await socket.submit_action({
                         "action_command": "FINISH_PHASE",
                         "payload": {}
@@ -121,6 +122,7 @@ def run_bot_process(game_id: str,
                     continue
 
         socket.on_game_state = on_game_state
+        await asyncio.sleep(1.0)  # add backoff after reconnect attempt
         success = await socket.connect()
 
         while not game_ended:

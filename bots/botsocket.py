@@ -36,6 +36,15 @@ class BotSocket:
     async def connect(self):
         """Authenticates via HTTP (first connect) then opens the WebSocket."""
         # 1. Join Game via HTTP only on first connect
+
+        if (
+            self.websocket
+            and not self.websocket.closed
+            and self._listen_task
+            and not self._listen_task.done()
+        ):
+            return True
+
         if not self.user_id:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
