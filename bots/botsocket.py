@@ -40,8 +40,7 @@ class BotSocket:
         # 1. Join Game via HTTP only on first connect
 
         if (
-            self.websocket
-            and not self.websocket.closed
+            self.websocket is not None
             and self._listen_task
             and not self._listen_task.done()
         ):
