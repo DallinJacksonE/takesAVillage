@@ -3,14 +3,14 @@ import os
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from game_manager import active_games
 import asyncio
-import traceback
+from logger import BackendLogger
 
 ws_router = APIRouter()
+ws_logger = BackendLogger("ws")
 
 
 class ConnectionManager:
     def __init__(self):
-        # Maps game_id -> { user_id: WebSocket instance }
         self.active_connections: dict[str, dict[str, WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, game_id: str, user_id: str):
@@ -22,33 +22,28 @@ class ConnectionManager:
         try:
             if game_id in self.active_connections:
                 self.active_connections[game_id].pop(user_id, None)
-
                 if not self.active_connections[game_id]:
                     del self.active_connections[game_id]
-
-        except Exception:
-            traceback.print_exc()
+        except Exception as e:
+            ws_logger.error(f"Error during disconnect for "
+                            f"user={user_id}", exc=e)
 
     async def send_personal_message(self, message: dict, game_id: str, user_id: str):
         try:
             ws = self.active_connections[game_id][user_id]
             await ws.send_json(message)
-
         except Exception as e:
-            print(
-                f"[WS ERROR] send_personal_message "
-                f"game={game_id} user={user_id}: {e}"
+            ws_logger.error(
+                f"Failed to send personal message game={game_id} user={user_id}", exc=e
             )
-
             self.active_connections.get(game_id, {}).pop(user_id, None)
 
     async def _send_safe(self, connection, message: dict, game_id: str, user_id: str, dead_users: list[str]):
         try:
             await connection.send_json(message)
         except Exception as e:
-            print(
-                f"[WS ERROR] safe_send "
-                f"game={game_id} user={user_id}: {e}"
+            ws_logger.error(
+                f"Safe send failed for game={game_id} user={user_id}", exc=e
             )
             dead_users.append(user_id)
 
@@ -61,13 +56,8 @@ class ConnectionManager:
 
         for user_id, connection in list(self.active_connections[game_id].items()):
             tasks.append(
-                self._send_safe(
-                    connection,
-                    message,
-                    game_id,
-                    user_id,
-                    dead_users
-                )
+                self._send_safe(connection, message,
+                                game_id, user_id, dead_users)
             )
 
         if tasks:
@@ -76,14 +66,10 @@ class ConnectionManager:
         for user_id in dead_users:
             self.active_connections[game_id].pop(user_id, None)
             game = active_games.get(game_id)
-
             if game:
                 game.remove_player(user_id)
-
-                print(
-                    f"Removed disconnected player "
-                    f"{user_id} from game {game_id}"
-                )
+                ws_logger.info(f"Removed disconnected player "
+                               f"{user_id} from game {game_id}")
 
     async def broadcast_game_state(self, game_id: str, game):
         if game_id not in self.active_connections:
@@ -96,15 +82,7 @@ class ConnectionManager:
             state = game.get_state_for_player(user_id)
             tasks.append(
                 self._send_safe(
-                    ws,
-                    {
-                        "event": "game_state",
-                        "data": state
-                    },
-                    game_id,
-                    user_id,
-                    dead_users
-                )
+                    ws, {"event": "game_state", "data": state}, game_id, user_id, dead_users)
             )
 
         if tasks:
@@ -112,24 +90,17 @@ class ConnectionManager:
 
         for user_id in dead_users:
             self.active_connections[game_id].pop(user_id, None)
-
             game = active_games.get(game_id)
-
             if game:
                 game.remove_player(user_id)
-
-                print(
-                    f"Removed disconnected player "
-                    f"{user_id} from game {game_id}"
-                )
+                ws_logger.info(f"Removed disconnected player "
+                               f"{user_id} from game {game_id}")
 
 
-# Initialize a global manager instance
 manager = ConnectionManager()
 
 
 async def request_replacement_bot(game_id: str):
-    """Fires a background HTTP request to replace a dropped bot."""
     bot_url = os.environ.get(
         "BOT_SERVICE_URL", "http://bots:8001/api/spawn_bots")
     bot_secret = os.environ.get("BOT_SECRET", "default_dev_secret")
@@ -138,83 +109,34 @@ async def request_replacement_bot(game_id: str):
         try:
             await client.post(bot_url, json={
                 "gameId": game_id,
-                "botCount": 1,  # Request exactly one replacement
+                "botCount": 1,
                 "botSecret": bot_secret
             }, timeout=5.0)
-            print(f"🔄 SOS sent: Requested 1 replacement bot for {game_id}")
+            ws_logger.info(
+                f"SOS sent: Requested 1 replacement bot for {game_id}")
         except Exception as e:
-            print(
-                f"⚠️ Failed to request replacement bot from Bot Service: {e}")
+            ws_logger.error(
+                "Failed to request replacement bot from Bot Service", exc=e)
 
 
-async def process_game_event(
-    event: str, payload: dict, game_id: str, user_id: str, game
-):
-    """Handles specific game actions to reduce cyclomatic complexity."""
+async def process_game_event(event: str, payload: dict, game_id: str, user_id: str, game):
     if event == 'start_game_request':
         if game.host_id == user_id and game.start_game():
-            await manager.broadcast_to_game(
-                {"event": "game_started", "data": {"day": 1}}, game_id
-            )
+            await manager.broadcast_to_game({"event": "game_started", "data": {"day": 1}}, game_id)
             await manager.broadcast_game_state(game_id, game)
     elif event == 'request_update':
         state = game.get_state_for_player(user_id)
-        await manager.send_personal_message(
-            {"event": "game_state", "data": state}, game_id, user_id
-        )
+        await manager.send_personal_message({"event": "game_state", "data": state}, game_id, user_id)
 
     elif event == 'send_chat':
-
         new_message = game.handle_chat(user_id, payload)
-
         if new_message:
-
             message_dict = new_message.to_dict()
-            print("New chat message:", message_dict)
-
-            # GLOBAL CHAT
-            if new_message.to_id == "GLOBAL":
-
-                await manager.broadcast_to_game(
-                    {
-                        "event": "new_chat_message",
-                        "data": message_dict
-                    },
-                    game_id
-                )
-
-            elif new_message.to_id in [chat.id for chat in game.chats]:  # GROUP CHAT
-
-                await manager.broadcast_to_game(
-                    {
-                        "event": "new_chat_message",
-                        "data": message_dict
-                    },
-                    game_id
-                )
-
-            # PRIVATE CHAT
+            if new_message.to_id == "GLOBAL" or new_message.to_id in [chat.id for chat in game.chats]:
+                await manager.broadcast_to_game({"event": "new_chat_message", "data": message_dict}, game_id)
             else:
-
-                # sender
-                await manager.send_personal_message(
-                    {
-                        "event": "new_chat_message",
-                        "data": message_dict
-                    },
-                    game_id,
-                    new_message.from_id
-                )
-
-                # recipient
-                await manager.send_personal_message(
-                    {
-                        "event": "new_chat_message",
-                        "data": message_dict
-                    },
-                    game_id,
-                    new_message.to_id
-                )
+                await manager.send_personal_message({"event": "new_chat_message", "data": message_dict}, game_id, new_message.from_id)
+                await manager.send_personal_message({"event": "new_chat_message", "data": message_dict}, game_id, new_message.to_id)
 
     elif event == 'submit_action':
         if game.status == "WAITING":
@@ -226,20 +148,11 @@ async def process_game_event(
             action_cmd = payload.get('action_command', payload.get('actionId'))
             await manager.send_personal_message({
                 "event": "error",
-                "data": {
-                    "message": "Action rejected by game rules.",
-                    "action_command": action_cmd
-                }
+                "data": {"message": "Action rejected by game rules.", "action_command": action_cmd}
             }, game_id, user_id)
 
     elif event == "create_chat":
-
-        chat = game.create_chat(
-            creator_id=user_id,
-            name=payload["name"],
-            member_ids=payload["memberIds"]
-        )
-
+        chat = game.create_chat(user_id, payload["name"], payload["memberIds"])
         if chat:
             await manager.broadcast_game_state(game_id, game)
 
@@ -253,156 +166,76 @@ async def websocket_endpoint(websocket: WebSocket):
 
     try:
         while True:
-
             packet = await websocket.receive_json()
-
             event = packet.get("event")
             payload = packet.get("data", {})
 
             if event == "join_room":
-
                 user_id = payload.get("userId")
                 game_id = payload.get("gameId")
-
                 game = active_games.get(game_id)
 
-                print("JOIN_ROOM RECEIVED")
-                print("user_id =", user_id)
-                print("game_id =", game_id)
-
                 if not game:
-
                     await websocket.send_json({
                         "event": "error",
-                        "data": {
-                            "message": "Game not found."
-                        }
+                        "data": {"message": "Game not found."}
                     })
-
                     continue
 
                 game.add_player(user_id)
-
-                await manager.connect(
-                    websocket,
-                    game_id,
-                    user_id
-                )
-
-                print(
-                    f"HOST CHECK: "
-                    f"user={user_id} "
-                    f"host={game.host_id} "
-                    f"connected={game.host_connected}"
-                )
+                await manager.connect(websocket, game_id, user_id)
 
                 if game.host_id == user_id and not game.host_connected:
                     game.host_connected = True
                     await manager.broadcast_game_state(game_id, game)
 
-                # INITIAL CHAT HISTORY
-                # -----------------------------------
-
                 await manager.send_personal_message(
-                    {
-                        "event": "chat_history",
-                        "data": game.get_private_chat_history(user_id)
-                    },
-                    game_id,
-                    user_id
+                    {"event": "chat_history", "data": game.get_private_chat_history(
+                        user_id)}, game_id, user_id
                 )
-
-                # -----------------------------------
-                # INITIAL GAME STATE
-                # -----------------------------------
-
                 await manager.send_personal_message(
-                    {
-                        "event": "game_state",
-                        "data": game.get_state_for_player(user_id)
-                    },
-                    game_id,
-                    user_id
+                    {"event": "game_state", "data": game.get_state_for_player(
+                        user_id)}, game_id, user_id
                 )
-
-                # -----------------------------------
-                # ROOM COUNT UPDATE
-                # -----------------------------------
-
                 await manager.broadcast_to_game(
-                    {
-                        "event": "room_update",
-                        "data": {
-                            "player_count": len(game.players)
-                        }
-                    },
-                    game_id
+                    {"event": "room_update", "data": {
+                        "player_count": len(game.players)}}, game_id
                 )
 
-                print(f"✅ Player {user_id} joined game {game_id}")
+                ws_logger.info(f"Player {user_id} joined game {game_id}")
 
-                # -----------------------------------
-                # HEADLESS AUTO-START TRIGGER
-                # -----------------------------------
                 if game.training and game.status == "RUNNING":
-                    await manager.broadcast_to_game(
-                        {"event": "game_started", "data": {"day": 1}}, game_id
-                    )
+                    await manager.broadcast_to_game({"event": "game_started", "data": {"day": 1}}, game_id)
                     await manager.broadcast_game_state(game_id, game)
-                    print(f"🚀 Training Game {game_id} Auto-Started!")
-
-            # ---------------------------------------
-            # NORMAL GAME EVENTS
-            # ---------------------------------------
+                    ws_logger.info(f"Training Game {game_id} Auto-Started!")
 
             elif game_id and user_id:
-
                 game = active_games.get(game_id)
-
                 if not game:
                     continue
-
-                await process_game_event(
-                    event,
-                    payload,
-                    game_id,
-                    user_id,
-                    game
-                )
+                await process_game_event(event, payload, game_id, user_id, game)
 
     except WebSocketDisconnect:
         if game_id and user_id:
             manager.disconnect(websocket, game_id, user_id)
-            print(f"Player {user_id} disconnected from {game_id}")
+            ws_logger.info(f"Player {user_id} disconnected from {game_id}")
 
             game = active_games.get(game_id)
-
-            # SELF-HEALING LOBBY LOGIC
             if game and game.status == "WAITING":
                 game.remove_player(user_id)
 
-                # If the disconnected user was a bot, request a replacement
                 if user_id.startswith("bot_"):
                     asyncio.create_task(request_replacement_bot(game_id))
 
-                # Broadcast the updated player count to the frontend
-                asyncio.create_task(
-                    manager.broadcast_to_game(
-                        {
-                            "event": "room_update",
-                            "data": {
-                                "player_count": len(game.players)
-                            }
-                        },
-                        game_id
-                    )
-                )
+                asyncio.create_task(manager.broadcast_to_game(
+                    {"event": "room_update", "data": {
+                        "player_count": len(game.players)}}, game_id
+                ))
         else:
-            print("Unregistered socket disconnected before joining a room.")
+            ws_logger.warning(
+                "Unregistered socket disconnected before joining a room.")
 
     except Exception:
-        traceback.print_exc()
-
-        # Only attempt to disconnect if the user successfully joined a room
+        ws_logger.exception("Unexpected exception in WebSocket endpoint")
         if game_id and user_id:
             manager.disconnect(websocket, game_id, user_id)

@@ -1,0 +1,1666 @@
+2026-06-17 17:26:22,706 | [ws] ERROR: Safe send failed for game=g_6f06 user=bot_212cf10a | Exception: 
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/websockets/legacy/protocol.py", line 951, in transfer_data
+    await asyncio.shield(self._put_message_waiter)
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 317, in asgi_send
+    await self.send(data)  # type: ignore[arg-type]
+  File "/usr/local/lib/python3.10/site-packages/websockets/legacy/protocol.py", line 618, in send
+    await self.ensure_open()
+  File "/usr/local/lib/python3.10/site-packages/websockets/legacy/protocol.py", line 925, in ensure_open
+    raise self.connection_closed_exc()
+websockets.exceptions.ConnectionClosedError: sent 1011 (internal error) keepalive ping timeout; no close frame received
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/starlette/websockets.py", line 86, in send
+    await self._send(message)
+  File "/usr/local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 39, in sender
+    await send(message)
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 330, in asgi_send
+    raise ClientDisconnected from exc
+uvicorn.protocols.utils.ClientDisconnected
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 43, in _send_safe
+    await connection.send_json(message)
+  File "/usr/local/lib/python3.10/site-packages/starlette/websockets.py", line 176, in send_json
+    await self.send({"type": "websocket.send", "text": text})
+  File "/usr/local/lib/python3.10/site-packages/starlette/websockets.py", line 89, in send
+    raise WebSocketDisconnect(code=1006)
+starlette.websockets.WebSocketDisconnect
+
+2026-06-17 17:26:22,710 | [ws] ERROR: Unexpected exception in WebSocket endpoint
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 169, in websocket_endpoint
+    packet = await websocket.receive_json()
+  File "/usr/local/lib/python3.10/site-packages/starlette/websockets.py", line 134, in receive_json
+    raise RuntimeError('WebSocket is not connected. Need to call "accept" first.')
+RuntimeError: WebSocket is not connected. Need to call "accept" first.
+2026-06-17 17:26:46,175 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 34, in send_personal_message
+    await ws.send_json(message)
+  File "/usr/local/lib/python3.10/site-packages/starlette/websockets.py", line 176, in send_json
+    await self.send({"type": "websocket.send", "text": text})
+  File "/usr/local/lib/python3.10/site-packages/starlette/websockets.py", line 86, in send
+    await self._send(message)
+  File "/usr/local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 39, in sender
+    await send(message)
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 317, in asgi_send
+    await self.send(data)  # type: ignore[arg-type]
+  File "/usr/local/lib/python3.10/site-packages/websockets/legacy/protocol.py", line 630, in send
+    await self.write_frame(True, opcode, data)
+  File "/usr/local/lib/python3.10/site-packages/websockets/legacy/protocol.py", line 1184, in write_frame
+    await self.drain()
+  File "/usr/local/lib/python3.10/site-packages/websockets/legacy/protocol.py", line 1167, in drain
+    await self._drain()
+  File "/usr/local/lib/python3.10/site-packages/websockets/legacy/protocol.py", line 328, in _drain
+    await self._drain_helper()
+  File "/usr/local/lib/python3.10/site-packages/websockets/legacy/protocol.py", line 308, in _drain_helper
+    assert waiter is None or waiter.cancelled()
+AssertionError
+
+2026-06-17 17:26:46,601 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:46,678 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:46,754 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:46,982 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:47,058 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 34, in send_personal_message
+    await ws.send_json(message)
+  File "/usr/local/lib/python3.10/site-packages/starlette/websockets.py", line 176, in send_json
+    await self.send({"type": "websocket.send", "text": text})
+  File "/usr/local/lib/python3.10/site-packages/starlette/websockets.py", line 86, in send
+    await self._send(message)
+  File "/usr/local/lib/python3.10/site-packages/starlette/_exception_handler.py", line 39, in sender
+    await send(message)
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 317, in asgi_send
+    await self.send(data)  # type: ignore[arg-type]
+  File "/usr/local/lib/python3.10/site-packages/websockets/legacy/protocol.py", line 630, in send
+    await self.write_frame(True, opcode, data)
+  File "/usr/local/lib/python3.10/site-packages/websockets/legacy/protocol.py", line 1184, in write_frame
+    await self.drain()
+  File "/usr/local/lib/python3.10/site-packages/websockets/legacy/protocol.py", line 1167, in drain
+    await self._drain()
+  File "/usr/local/lib/python3.10/site-packages/websockets/legacy/protocol.py", line 328, in _drain
+    await self._drain_helper()
+  File "/usr/local/lib/python3.10/site-packages/websockets/legacy/protocol.py", line 308, in _drain_helper
+    assert waiter is None or waiter.cancelled()
+AssertionError
+
+2026-06-17 17:26:47,124 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:47,220 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:47,221 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:47,222 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:47,328 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:47,427 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:47,544 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:47,660 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:47,661 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:47,662 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:47,744 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:47,862 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:47,966 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:48,090 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:48,092 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:48,093 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:48,168 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:48,294 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:48,397 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:48,530 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:48,531 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:48,532 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:48,598 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:48,733 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:48,815 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:48,964 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:48,965 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:48,966 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:49,016 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:49,169 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:49,232 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:49,398 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:49,400 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:49,401 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:49,437 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:49,651 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:49,680 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:49,819 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:49,820 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:49,821 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:49,861 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:50,022 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:50,074 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:50,252 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:50,254 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:50,255 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:50,274 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:50,458 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:50,494 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:50,686 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:50,688 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:50,689 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:50,696 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:50,893 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:50,913 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:51,116 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:51,118 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:51,119 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:51,121 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:51,320 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:51,341 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:51,542 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:51,548 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:51,550 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:51,551 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:51,753 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:51,767 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:51,970 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:51,997 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:51,998 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:51,999 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:52,182 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:52,201 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:52,384 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:52,430 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:52,431 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:52,432 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:52,603 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:52,634 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:52,809 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:52,866 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:52,867 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:52,869 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:53,018 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:53,067 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:53,221 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:53,290 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:53,290 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:53,292 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:53,447 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:53,497 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:53,651 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:53,728 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:53,730 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:53,731 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:53,865 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:53,936 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:54,067 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:54,165 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:54,167 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:54,168 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:54,291 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:54,368 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:54,493 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:54,620 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:54,621 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:54,622 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:54,707 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:54,825 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:54,911 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:55,055 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:55,057 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:55,058 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:55,121 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:55,260 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:55,325 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:55,487 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:55,489 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:55,490 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:55,532 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:55,691 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:55,733 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:55,905 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:55,906 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:55,907 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:55,939 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:56,108 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:56,143 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:56,338 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:56,339 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:56,340 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:56,352 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:56,543 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:56,556 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:56,772 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:56,791 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:56,792 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:56,793 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:56,974 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:56,996 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:57,193 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:57,215 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:57,216 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:57,217 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:57,399 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:57,420 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:57,623 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:57,641 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:57,642 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:57,643 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:57,825 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:57,844 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:58,047 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:58,066 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:58,067 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:58,068 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:58,248 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:58,268 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:58,475 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:58,483 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:58,484 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:58,485 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:58,687 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:58,693 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:58,913 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:58,931 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:58,932 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:58,933 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:59,133 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:59,138 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:59,357 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:59,365 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:59,367 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:59,368 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:59,567 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:59,584 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:59,801 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:26:59,802 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:59,804 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:26:59,805 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:00,006 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:00,024 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:27:00,236 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:00,238 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:00,240 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:00,241 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_753e0555 | Exception: 'bot_753e0555'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_753e0555'
+
+2026-06-17 17:27:00,439 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:00,670 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:00,671 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:00,673 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:00,873 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:01,100 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:01,101 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:01,103 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:01,302 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:01,557 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:01,558 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:01,559 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:01,760 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:01,983 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:01,984 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:01,985 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:02,187 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:02,416 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:02,418 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:02,419 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:02,618 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:02,842 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:02,843 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:02,844 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:03,073 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:03,074 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:03,075 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:03,322 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:03,323 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:03,324 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:03,618 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:03,804 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:03,989 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,022 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,037 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,201 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,220 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,236 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,430 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,452 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,468 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,658 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,683 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,699 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,887 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,919 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,937 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,953 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,970 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,984 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:04,999 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,013 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,028 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,048 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,068 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,082 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,096 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,109 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,123 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,137 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,151 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,165 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,181 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,194 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,208 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,222 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,236 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,249 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,263 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,276 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,289 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+
+2026-06-17 17:27:05,302 | [ws] ERROR: Failed to send personal message game=g_6f06 user=bot_67f9edd5 | Exception: 'bot_67f9edd5'
+Traceback (most recent call last):
+  File "/app/service/sockets.py", line 33, in send_personal_message
+    ws = self.active_connections[game_id][user_id]
+KeyError: 'bot_67f9edd5'
+

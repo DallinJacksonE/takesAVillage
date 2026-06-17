@@ -10,8 +10,13 @@ from db import db
 from game_manager import active_games, create_game
 import httpx
 import asyncio
+from logger import BackendLogger
+
 api_router = APIRouter()
 CONSTANTS_DIR = Path(__file__).parent / "constants"
+
+# Initialize the API Logger
+api_logger = BackendLogger("api")
 
 
 def parse_ruleset_file(filepath: Path) -> dict:
@@ -28,12 +33,13 @@ def parse_ruleset_file(filepath: Path) -> dict:
                         try:
                             rules[target.id] = ast.literal_eval(node.value)
                         except ValueError as ve:
-                            # DIAGNOSTIC: See exactly which variables are being rejected
-                            print(f"⚠️ Skipped '{target.id}' in "
-                                  f"{filepath.name}: Not a simple literal.")
+                            api_logger.warning(
+                                f"Skipped '{target.id}' in "
+                                f"{filepath.name}: Not a simple literal."
+                            )
                             continue
     except Exception as e:
-        print(f"❌ Error parsing {filepath.name}: {e}")
+        api_logger.error(f"Error parsing {filepath.name}", exc=e)
 
     return rules
 
@@ -121,10 +127,12 @@ async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
                         "botCount": bot_count,
                         "botSecret": bot_secret
                     }, timeout=5.0)
-                    print(f"[api/newGame bot request] Successfully requested"
-                          f"{bot_count} bots for {game_id}")
+                    api_logger.info(
+                        f"Successfully requested "
+                        f"{bot_count} bots for {game_id}"
+                    )
                 except Exception as e:
-                    print(f"⚠️ Failed to reach Bot Service: {e}")
+                    api_logger.error("Failed to reach Bot Service", exc=e)
 
         asyncio.create_task(spawn_external_bots())
 
@@ -137,9 +145,8 @@ async def get_new_game_options():
 
     rulesets = {}
 
-    # DIAGNOSTIC: Force an absolute path resolution to guarantee Docker finds the folder
     constants_path = Path(__file__).resolve().parent / "constants"
-    print(f"Searching for ruleset files in: {constants_path}")
+    api_logger.info(f"Searching for ruleset files in: {constants_path}")
 
     if constants_path.exists() and constants_path.is_dir():
         for filepath in constants_path.glob("*.py"):
@@ -147,15 +154,15 @@ async def get_new_game_options():
                 continue
 
             ruleset_name = filepath.stem
-            print(f"Found ruleset file: {filepath.name}")
-
             parsed_rules = parse_ruleset_file(filepath)
             rulesets[ruleset_name] = parsed_rules
 
-            print(f"✅ Successfully parsed "
-                  f"{len(parsed_rules)} keys for '{ruleset_name}'")
+            api_logger.info(
+                f"Successfully parsed {len(parsed_rules)} "
+                f"keys for {ruleset_name}"
+            )
     else:
-        print(f"❌ Constants directory NOT FOUND at {constants_path}")
+        api_logger.error(f"Constants directory NOT FOUND at {constants_path}")
 
     return {"options": rulesets}
 
@@ -175,7 +182,6 @@ class BotJoinPayload(BaseModel):
 
 @api_router.post('/api/botJoinGame')
 async def bot_join_game(payload: BotJoinPayload):
-    # Use an environment variable for the secret, with a fallback for local dev
     expected_secret = os.environ.get("BOT_SECRET", "default_dev_secret")
 
     if payload.botSecret != expected_secret:
@@ -188,14 +194,11 @@ async def bot_join_game(payload: BotJoinPayload):
 
     game = active_games[game_id]
 
-    # Optional: Prevent bots from joining games that have already started
     if game.status != "WAITING":
         raise HTTPException(status_code=400, detail="Game already running")
 
-    # Generate a distinct prefix so it's easy to identify bots in logs/DB
     bot_uuid = "bot_" + str(uuid.uuid4())[:8]
 
-    # Pre-register the bot in the game state
     game.add_player(bot_uuid)
 
     return {
@@ -219,13 +222,11 @@ async def start_training(payload: dict):
     generations = payload.get('generations', 1)
     base_genome = payload.get('baseGenome', 'random')
 
-    print(f"[API /api/research/train] Received training request:")
-    print(f"  - Ruleset: {ruleset}")
-    print(f"  - Bots: {bot_count}")
-    print(f"  - Generations: {generations}")
-    print(f"  - Base Genome: {base_genome}")
+    api_logger.info(
+        f"Received training request: Ruleset={ruleset}, Bots={bot_count}, "
+        f"Generations={generations}, BaseGenome={base_genome}"
+    )
 
-    # Fire and forget the orchestrator
     asyncio.create_task(
         start_training_session(ruleset, bot_count, generations, base_genome)
     )

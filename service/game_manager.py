@@ -4,7 +4,9 @@ import uuid
 from db import db
 from game import Game
 from serializers.game_info_builder import build_map_hist, build_player_hist
+from logger import BackendLogger
 
+gm_logger = BackendLogger("game_manager")
 active_games = {}
 
 
@@ -23,9 +25,9 @@ async def game_loop(connection_manager):
     while True:
         for game in list(active_games.values()):
             if game.status == "RUNNING":
-
                 if game.check_timer():
-                    print("Next phase")
+                    gm_logger.info(
+                        f"Game {game.id} transitioning to next phase")
                     await connection_manager.broadcast_game_state(
                         game.id,
                         game
@@ -36,7 +38,7 @@ async def game_loop(connection_manager):
                 player_dict = build_player_hist(game)
 
                 from training_orchestrator import handle_training_game_ended
-                # Combine the history dicts into a single payload
+
                 game_data = {
                     "map": map_dict,
                     "players": player_dict,
@@ -44,7 +46,6 @@ async def game_loop(connection_manager):
                     "training_session_id": game.training_session_id
                 }
 
-                # Always persist completed games so training runs are visible in SQL.
                 db.store_game_result(
                     game.id,
                     game.day,

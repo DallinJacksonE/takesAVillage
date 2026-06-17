@@ -1,0 +1,222 @@
+2026-06-17 17:09:26,843 | [system] CRITICAL: UNHANDLED SYSTEM EXCEPTION
+Traceback (most recent call last):
+  File "/usr/local/bin/uvicorn", line 8, in <module>
+    sys.exit(main())
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1524, in __call__
+    return self.main(*args, **kwargs)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1445, in main
+    rv = self.invoke(ctx)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1308, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 877, in invoke
+    return callback(*args, **kwargs)
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/main.py", line 441, in main
+    run(
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/main.py", line 609, in run
+    config.load_app()
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/config.py", line 415, in load_app
+    return import_from_string(self.app)
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/usr/local/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/app/service/main.py", line 8, in <module>
+    from api import api_router
+  File "/app/service/api.py", line 1, in <module>
+    from training_orchestrator import start_training_session
+  File "/app/service/training_orchestrator.py", line 8, in <module>
+    from game_manager import create_game
+  File "/app/service/game_manager.py", line 5, in <module>
+    from game import Game
+  File "/app/service/game.py", line 33
+    self.logger.warning(f"Ruleset '{ruleset_name}' not found: {
+                        ^
+SyntaxError: unterminated string literal (detected at line 33)
+2026-06-17 17:10:27,202 | [system] CRITICAL: UNHANDLED SYSTEM EXCEPTION
+Traceback (most recent call last):
+  File "/usr/local/bin/uvicorn", line 8, in <module>
+    sys.exit(main())
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1524, in __call__
+    return self.main(*args, **kwargs)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1445, in main
+    rv = self.invoke(ctx)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1308, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 877, in invoke
+    return callback(*args, **kwargs)
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/main.py", line 441, in main
+    run(
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/main.py", line 609, in run
+    config.load_app()
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/config.py", line 415, in load_app
+    return import_from_string(self.app)
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/usr/local/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/app/service/main.py", line 8, in <module>
+    from api import api_router
+  File "/app/service/api.py", line 1, in <module>
+    from training_orchestrator import start_training_session
+  File "/app/service/training_orchestrator.py", line 8, in <module>
+    from game_manager import create_game
+  File "/app/service/game_manager.py", line 5, in <module>
+    from game import Game
+  File "/app/service/game.py", line 57
+    self.logger.info(f"Ruleset '{ruleset_name}' | Phase: {
+                     ^
+SyntaxError: unterminated string literal (detected at line 57)
+2026-06-17 17:11:27,563 | [system] CRITICAL: UNHANDLED SYSTEM EXCEPTION
+Traceback (most recent call last):
+  File "/usr/local/bin/uvicorn", line 8, in <module>
+    sys.exit(main())
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1524, in __call__
+    return self.main(*args, **kwargs)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1445, in main
+    rv = self.invoke(ctx)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1308, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 877, in invoke
+    return callback(*args, **kwargs)
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/main.py", line 441, in main
+    run(
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/main.py", line 609, in run
+    config.load_app()
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/config.py", line 415, in load_app
+    return import_from_string(self.app)
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/usr/local/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/app/service/main.py", line 8, in <module>
+    from api import api_router
+  File "/app/service/api.py", line 1, in <module>
+    from training_orchestrator import start_training_session
+  File "/app/service/training_orchestrator.py", line 8, in <module>
+    from game_manager import create_game
+  File "/app/service/game_manager.py", line 5, in <module>
+    from game import Game
+  File "/app/service/game.py", line 95
+    f"Player {session_id[:8]} joined. ({len(
+    ^
+SyntaxError: unterminated string literal (detected at line 95)
+2026-06-17 17:12:27,954 | [system] CRITICAL: UNHANDLED SYSTEM EXCEPTION
+Traceback (most recent call last):
+  File "/usr/local/bin/uvicorn", line 8, in <module>
+    sys.exit(main())
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1524, in __call__
+    return self.main(*args, **kwargs)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1445, in main
+    rv = self.invoke(ctx)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1308, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 877, in invoke
+    return callback(*args, **kwargs)
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/main.py", line 441, in main
+    run(
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/main.py", line 609, in run
+    config.load_app()
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/config.py", line 415, in load_app
+    return import_from_string(self.app)
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/usr/local/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/app/service/main.py", line 9, in <module>
+    from sockets import ws_router, manager
+  File "/app/service/sockets.py", line 28
+    ws_logger.error(f"Error during disconnect for user={
+                    ^
+SyntaxError: unterminated string literal (detected at line 28)
+2026-06-17 17:13:28,335 | [system] CRITICAL: UNHANDLED SYSTEM EXCEPTION
+Traceback (most recent call last):
+  File "/usr/local/bin/uvicorn", line 8, in <module>
+    sys.exit(main())
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1524, in __call__
+    return self.main(*args, **kwargs)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1445, in main
+    rv = self.invoke(ctx)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1308, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 877, in invoke
+    return callback(*args, **kwargs)
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/main.py", line 441, in main
+    run(
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/main.py", line 609, in run
+    config.load_app()
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/config.py", line 415, in load_app
+    return import_from_string(self.app)
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/usr/local/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/app/service/main.py", line 9, in <module>
+    from sockets import ws_router, manager
+  File "/app/service/sockets.py", line 71
+    ws_logger.info(f"Removed disconnected player {
+                   ^
+SyntaxError: unterminated string literal (detected at line 71)
+2026-06-17 17:14:28,702 | [system] CRITICAL: UNHANDLED SYSTEM EXCEPTION
+Traceback (most recent call last):
+  File "/usr/local/bin/uvicorn", line 8, in <module>
+    sys.exit(main())
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1524, in __call__
+    return self.main(*args, **kwargs)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1445, in main
+    rv = self.invoke(ctx)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 1308, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/usr/local/lib/python3.10/site-packages/click/core.py", line 877, in invoke
+    return callback(*args, **kwargs)
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/main.py", line 441, in main
+    run(
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/main.py", line 609, in run
+    config.load_app()
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/config.py", line 415, in load_app
+    return import_from_string(self.app)
+  File "/usr/local/lib/python3.10/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/usr/local/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/app/service/main.py", line 9, in <module>
+    from sockets import ws_router, manager
+  File "/app/service/sockets.py", line 71
+    ws_logger.info(f"Removed disconnected player {
+                   ^
+SyntaxError: unterminated string literal (detected at line 71)

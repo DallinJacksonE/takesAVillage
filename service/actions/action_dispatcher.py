@@ -6,6 +6,9 @@ from .commands import (
 from resolvers.social import SocialResolvers
 from resolvers.conflict import ConflictResolvers
 from resolvers.economy import EconomyResolvers
+from logger import BackendLogger
+
+dispatch_logger = BackendLogger("dispatcher")
 
 
 class ActionDispatcher:
@@ -28,9 +31,8 @@ class ActionDispatcher:
                 action_command not in ['FINISH_PHASE', 'ACCEPT',
                                        'DENY', 'CANCEL', 'BARTER',
                                        'FINALIZE']):
-            print(f"ActionDispatcher: player "
-                  f"{player.session_id} already finished phase;"
-                  f"rejecting {action_command}")
+            dispatch_logger.warning(
+                f"Player {player.session_id} already finished phase; rejecting {action_command}")
             return False
         return True
 
@@ -41,48 +43,39 @@ class ActionDispatcher:
         player = game_state.players.get(user_id)
         if not player:
             return False
-        print(f"-------ActionDispatcher------\n"
-              f"userId: {data.get('userId')}\n"
-              f"action_command: {data.get('action_command')}\n"
-              f"payload: {data.get('payload')}\n")
-        action_command = data.get('action_command')
 
+        dispatch_logger.info(f"userId: {data.get('userId')} | action: "
+                             f"{data.get('action_command')} | "
+                             f"payload: {data.get('payload')}")
+        action_command = data.get('action_command')
         payload = data.get('payload', data)
 
-        # TODO all logic for whether a player can play or not here
-        if not ActionDispatcher.player_can_perform_action(game_state,
-                                                          player,
-                                                          action_command):
+        if not ActionDispatcher.player_can_perform_action(game_state, player, action_command):
             return False
-        # 1. Execute Instant Commands
+
         if action_command in ActionDispatcher.COMMAND_MAP:
             CommandClass = ActionDispatcher.COMMAND_MAP[action_command]
             command_instance = CommandClass(user_id, payload)
-
             success = command_instance.execute(game_state, player)
 
-            # Auto-finish phase for certain actions
-            if success and action_command in ['BUILD_DEV', 'MAINTAIN_DEV',
-                                              'UPGRADE_DEV', 'CONTEST_DEV',
-                                              'COMMIT_WORK']:
+            if success and action_command in ['BUILD_DEV', 'MAINTAIN_DEV', 'UPGRADE_DEV', 'CONTEST_DEV', 'COMMIT_WORK']:
                 FinishPhaseCommand(user_id, {}).execute(game_state, player)
-            game_state.check_all_players_locked() # Check if all players are locked after the action
+            game_state.check_all_players_locked()
             return success
 
-        # 2. Route Contract/Drafting Actions
         status, contract_obj = game_state.contract_factory.process_contract(
             user_id, payload, action_command)
 
         if status not in ["ERROR", "ILLEGAL"]:
-            # Real-time Contract Intercepts using new Resolvers
             if status == "UPDATED_COMPLETED" and contract_obj.type == "TRADE":
                 SocialResolvers.execute_trade(game_state, contract_obj)
             elif status == "UPDATED_ACCEPTED" and contract_obj.type == "CAMPFIRE":
                 SocialResolvers.seat_guest(game_state, contract_obj)
 
             player.add_timeline_event(
-                f"ACTION_{status}", {"action_id": contract_obj.id,
-                                     "type": contract_obj.type})
+                f"ACTION_{status}",
+                {"action_id": contract_obj.id,
+                 "type": contract_obj.type})
             return True
 
         return False
@@ -91,7 +84,6 @@ class ActionDispatcher:
     def resolve_work_phase(game_state):
         ConflictResolvers.resolve_contests(game_state)
         EconomyResolvers.resolve_work_phase(game_state)
-
         game_state.contract_factory.cleanup_end_of_phase()
 
     @staticmethod
@@ -118,7 +110,7 @@ class ActionDispatcher:
 
         game_state.actions = []
         if game_state.is_game_over():
-            game_state.status = "ENDED" 
+            game_state.status = "ENDED"
 
     @staticmethod
     def start_day(game_state):

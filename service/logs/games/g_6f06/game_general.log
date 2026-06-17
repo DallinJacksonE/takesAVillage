@@ -1,0 +1,10 @@
+2026-06-17 17:25:19,714 | [game_g_6f06] INFO: Loaded ruleset: wealthy
+2026-06-17 17:25:19,714 | [game_g_6f06] INFO: Ruleset 'wealthy' | Phase: 60s | Game Length: 15 days
+2026-06-17 17:25:21,160 | [game_g_6f06] INFO: Player bot_212c joined. (1/5)
+2026-06-17 17:25:21,165 | [game_g_6f06] INFO: Player bot_67f9 joined. (2/5)
+2026-06-17 17:25:21,166 | [game_g_6f06] INFO: Player bot_753e joined. (3/5)
+2026-06-17 17:25:21,166 | [game_g_6f06] INFO: Player bot_bdd4 joined. (4/5)
+2026-06-17 17:25:21,170 | [game_g_6f06] INFO: Player bot_899f joined. (5/5)
+2026-06-17 17:25:21,170 | [game_g_6f06] INFO: Training game auto-started
+2026-06-17 17:26:22,709 | [game_g_6f06] INFO: Player bot_212c left the lobby. (4/5)
+2026-06-17 17:26:22,962 | [game_g_6f06] INFO: Player bot_212c joined. (5/5)
