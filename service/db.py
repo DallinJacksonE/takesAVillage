@@ -524,7 +524,10 @@ class MySQLDB(DatabaseProvider):
             return []
 
         cursor = conn.cursor(dictionary=True)
-        query = "SELECT * FROM games ORDER BY created_at DESC LIMIT 10;"
+        query = """SELECT *
+            FROM games FORCE INDEX (idx_created_at)
+            ORDER BY created_at DESC
+            LIMIT 10;"""
         try:
             cursor.execute(query)
             results = cursor.fetchall()
