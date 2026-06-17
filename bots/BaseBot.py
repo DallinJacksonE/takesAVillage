@@ -15,7 +15,6 @@ class BaseBot(ABC):
         self.trade_offers_made = 0
         self.max_trade_offers_per_phase = 2
         self.resource_map = {"Woods": "wood", "Farm": "food", "Mine": "iron"}
-
     @abstractmethod
     def choose_action(self, game_state: dict) -> dict | None:
         """
@@ -282,30 +281,46 @@ class BaseBot(ABC):
                         }
                     })
                 if action["status"] == "ACCEPTED":
-                    # Determine which side we are on and propose feasible
-                        # actual_items for the shipping window (don't overpromise)
-                        is_initiator = action.get("initiator_id") == me.get("id")
-                        promised = action.get("offer_items") if is_initiator else action.get("request_items")
 
-                        feasible = {}
-                        resources = me.get("resources", {})
-                        for r, qty in (promised or {}).items():
-                            try:
-                                q = int(qty)
-                            except Exception:
-                                q = 0
-                            available = int(resources.get(r, 0))
-                            send_amt = max(0, min(q, available))
-                            if send_amt > 0:
-                                feasible[r] = send_amt
+                    is_initiator = action.get("initiator_id") == me.get("id")
 
-                        actions.append({
-                            "action_command": "FINALIZE",
-                            "payload": {
-                                "action_id": action["id"],
-                                "actual_items": feasible
-                            }
-                        })
+                    already_finalized = (
+                        action.get("initiator_finalized", False)
+                        if is_initiator
+                        else action.get("target_finalized", False)
+                    )
+
+                    if already_finalized:
+                        continue
+
+                    promised = (
+                        action.get("offer_items")
+                        if is_initiator
+                        else action.get("request_items")
+                    )
+
+                    feasible = {}
+                    resources = me.get("resources", {})
+
+                    for r, qty in (promised or {}).items():
+                        try:
+                            q = int(qty)
+                        except Exception:
+                            q = 0
+
+                        available = int(resources.get(r, 0))
+                        send_amt = max(0, min(q, available))
+
+                        if send_amt > 0:
+                            feasible[r] = send_amt
+
+                    actions.append({
+                        "action_command": "FINALIZE",
+                        "payload": {
+                            "action_id": action["id"],
+                            "actual_items": feasible
+                        }
+                    })
             # --- 1. Draft simple trades ---
             # Bots may propose trades to other players offering surplus
             # and requesting resources they lack.

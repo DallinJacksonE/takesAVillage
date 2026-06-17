@@ -55,7 +55,7 @@ def run_bot_process(game_id: str,
 
         async def on_game_state(state):
 
-            nonlocal fitness_sent, game_ended
+            nonlocal fitness_sent, game_ended, training
 
             if not host_ready_event.is_set():
                 if state.get("host_connected") is True:
@@ -103,44 +103,6 @@ def run_bot_process(game_id: str,
             except Exception as e:
                 bot_logger.stdout_error(
                     "Failed to process game logic", exception=e)
-
-            # Auto-finalize accepted trades
-            me_actions = me.get("actions", [])
-            for a in me_actions:
-                try:
-                    if a.get("type") == "TRADE" and a.get("status") == "ACCEPTED":
-                        is_initiator = a.get("initiator_id") == me.get("id")
-                        already_finalized = a.get(
-                            "initiator_finalized") if is_initiator else a.get("target_finalized")
-                        if already_finalized:
-                            continue
-
-                        promised = a.get("offer_items") if is_initiator else a.get(
-                            "request_items")
-                        feasible = {}
-                        for r, qty in (promised or {}).items():
-                            try:
-                                q = int(qty)
-                            except Exception:
-                                q = 0
-                            available = int(me.get("resources", {}).get(r, 0))
-                            send_amt = max(0, min(q, available))
-                            if send_amt > 0:
-                                feasible[r] = send_amt
-
-                        if feasible:
-                            await socket.submit_action({
-                                "action_command": "FINALIZE",
-                                "payload": {
-                                    "action_id": a.get("id"),
-                                    "actual_items": feasible
-                                }
-                            })
-                            await asyncio.sleep(0.2)
-                except Exception as e:
-                    bot_logger.handled_error(
-                        "Trade auto-finalize failed", exception=e)
-                    continue
 
         socket.on_game_state = on_game_state
         await asyncio.sleep(1.0)  # add backoff after reconnect attempt

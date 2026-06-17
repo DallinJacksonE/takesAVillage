@@ -54,6 +54,7 @@ class GeneticBot(BaseBot):
                     ),
                     None
                 )
+
                 if finalize_action:
                     return self.format_network_payload(finalize_action)
 
