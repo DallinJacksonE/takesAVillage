@@ -7,5 +7,6 @@ frontend/vite.config.ts
 bots/*.jsonl
 bots/*.json
 bots/logs/
+service/logs/
 
 bots/bot_training_data.jsonl

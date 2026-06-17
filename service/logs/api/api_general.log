@@ -1,4 +1,0 @@
-2026-06-17 17:24:57,440 | [api] INFO: Searching for ruleset files in: /app/service/constants
-2026-06-17 17:24:57,445 | [api] INFO: Successfully parsed 17 keys for wealthy
-2026-06-17 17:24:57,448 | [api] INFO: Successfully parsed 17 keys for default
-2026-06-17 17:25:19,698 | [api] INFO: Received training request: Ruleset=wealthy, Bots=5, Generations=5, BaseGenome=random

@@ -87,20 +87,6 @@ def run_bot_process(game_id: str,
             if state.get("status") != "RUNNING" or not host_ready_event.is_set():
                 return
 
-            action = bot.choose_action(state)
-            if action:
-                await socket.submit_action(action)
-                if action["action_command"] == "EMPLOYMENT" and not state.get("training"):
-                    await asyncio.sleep(5)
-                elif state.get("training"):
-                    training = True
-                if state.get("phase") == "NIGHT" and action["action_command"] == "CAMPFIRE":
-                    await socket.submit_action({
-                        "action_command": "FINISH_PHASE",
-                        "payload": {}
-                    })
-            # Auto-finalize accepted trades we haven't finalized yet
-
             try:
                 action = bot.choose_action(state)
                 if action:
