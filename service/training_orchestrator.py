@@ -72,7 +72,7 @@ async def start_training_session(ruleset: str, bot_count: int, generations: int,
             population.append(_random_genome_dict())
 
     active_training_sessions[session_id] = {
-        "ruleset": ruleset, "bot_count": bot_count, "generations_left": generations,
+        "ruleset": ruleset, "bot_count": bot_count, "generations_left": generations-1,
         "population": population, "generation": 1, "elite_count": 2,
         "selection_size": min(3, bot_count), "mutation_strength": 0.25, "mutation_rate": 0.15,
     }
@@ -96,6 +96,7 @@ async def _trigger_next_generation(session_id: str):
         user_cookie="TRAINING_ORCHESTRATOR", ruleset=ruleset,
         bots=session["bot_count"], training=True, training_session_id=session_id
     )
+    active_training_sessions[session_id]["current_game_id"] = game_id
 
     bot_spawn_url = os.environ.get(
         "BOT_SERVICE_URL", "http://bots:8001/api/spawn_bots")

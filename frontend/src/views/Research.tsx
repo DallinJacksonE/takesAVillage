@@ -15,6 +15,29 @@ const Research: React.FC = () => {
   const [isTrainingModalOpen, setIsTrainingModalOpen] = useState(false);
   const [availableGenomes, setAvailableGenomes] = useState([]);
   const [gameOptions, setGameOptions] = useState({});
+  const [showTrainingSessions, setShowTrainingSessions] = useState(false);
+  const [trainingSessions, setTrainingSessions] = useState<any[]>([]);
+  const loadTrainingSessions = async () => {
+    try {
+      const res = await fetch("/api/research/training-sessions");
+      const data = await res.json();
+      setTrainingSessions(data.sessions || []);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    if (!showTrainingSessions) return;
+
+    loadTrainingSessions();
+
+    const interval = setInterval(() => {
+      loadTrainingSessions();
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [showTrainingSessions]);
 
 
   const handleOpenTrainingMenu = async () => {
@@ -122,12 +145,77 @@ const Research: React.FC = () => {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center"
+        }}
+      >
         <h1>Research Dashboard</h1>
-        <button className="btn" onClick={handleOpenTrainingMenu} style={{ backgroundColor: "#8e44ad" }}>
-          Start Training Loop
-        </button>
+
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button
+            className="btn"
+            onClick={() => {setShowTrainingSessions(!showTrainingSessions);}}
+            style={{ backgroundColor: "#2c3e50" }}
+          >
+            Active Training Loops
+          </button>
+
+          <button
+            className="btn"
+            onClick={handleOpenTrainingMenu}
+            style={{ backgroundColor: "#8e44ad" }}
+          >
+            Start Training Loop
+          </button>
+        </div>
       </div>
+
+      {showTrainingSessions && (
+        <div className="card" style={{ marginBottom: "20px" }}>
+          <h3>Active Training Loops</h3>
+
+          {trainingSessions.length === 0 ? (
+            <p>No active training loops.</p>
+          ) : (
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse"
+              }}
+            >
+              <thead>
+                <tr>
+                  <th>Session</th>
+                  <th>Current Game ID</th>
+                  <th>Generation</th>
+                  <th>Remaining</th>
+                  <th>Bots</th>
+                  <th>Population</th>
+                  <th>Ruleset</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {trainingSessions.map((session) => (
+                  <tr style={{textAlign: "center"}} key={session.session_id}>
+                    <td>{session.session_id.slice(0, 8)}</td>
+                    <td>{session.current_game_id ?? "-"}</td>
+                    <td>{session.generation}</td>
+                    <td>{session.generations_left}</td>
+                    <td>{session.bot_count}</td>
+                    <td>{session.population_size}</td>
+                    <td>{session.ruleset}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: "20px" }}>
         <div className='card' style={{ flex: 1 }}>
           <h3>Game Logs</h3>

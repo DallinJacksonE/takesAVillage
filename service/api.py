@@ -1,4 +1,4 @@
-from training_orchestrator import start_training_session
+from training_orchestrator import start_training_session, active_training_sessions
 from pydantic import BaseModel
 import os
 import uuid
@@ -232,3 +232,25 @@ async def start_training(payload: dict):
     )
 
     return {"message": "Training sequence initiated"}
+
+@api_router.get("/api/research/training-sessions")
+async def get_training_sessions():
+    sessions = []
+
+    for session_id, session in active_training_sessions.items():
+        api_logger.info(f"Session {session_id}: {session}")
+        sessions.append({
+            "session_id": session_id,
+            "current_game_id": session.get("current_game_id"),
+            "ruleset": session.get("ruleset"),
+            "bot_count": session.get("bot_count"),
+            "generation": session.get("generation"),
+            "generations_left": session.get("generations_left"),
+            "population_size": len(session.get("population", [])),
+            "elite_count": session.get("elite_count"),
+            "selection_size": session.get("selection_size"),
+            "mutation_strength": session.get("mutation_strength"),
+            "mutation_rate": session.get("mutation_rate")
+        })
+
+    return {"sessions": sessions}
