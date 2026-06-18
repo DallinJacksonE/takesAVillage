@@ -62,8 +62,16 @@ class ConflictResolvers:
             # Owner absent -> attackers win
             elif not owner_present:
 
-                dev.owner = dev.contest_initiator_id
+                old_owner = game_state.players.get(dev.owner)
+                new_owner = game_state.players.get(dev.contest_initiator_id)
 
+                if old_owner and dev.id in old_owner.developments:
+                    old_owner.developments.remove(dev.id)
+
+                if new_owner and dev.id not in new_owner.developments:
+                    new_owner.developments.append(dev.id)
+
+                dev.owner = dev.contest_initiator_id
                 dev.is_contested = False
                 dev.contest_initiator_id = None
 
