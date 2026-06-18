@@ -39,6 +39,10 @@ def run_bot_process(game_id: str,
         # Pass the logger to the bot so it can log logic decisions (optional)
         bot.logger = bot_logger
 
+        bot.logger.info(
+            f"loaded genome: {json.dumps(genome.__dict__, indent=2)}"
+        )
+
         host_ready_event = asyncio.Event()
         game_ended = False
 

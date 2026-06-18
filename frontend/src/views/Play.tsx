@@ -55,7 +55,13 @@ const Play: React.FC = () => {
   };
 
   const handleStartNewGame = (options: any) => {
-    presenter.startNewGame(options.ruleset, options.botCount);
+    console.log("Submitting:", options);
+
+    presenter.startNewGame(
+      options.ruleset,
+      options.botCount,
+      options.botGenome
+    );
   };
 
   const joinGame = (gameId: string) => {

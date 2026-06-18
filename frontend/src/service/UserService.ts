@@ -35,16 +35,31 @@ export class UserService {
     }
   }
 
-  async newGame(ruleset: string, botCount: number): Promise<NewGameDTO | null> {
+  async newGame(
+    ruleset: string,
+    botCount: number,
+    botGenome: string = "random"
+  ): Promise<NewGameDTO | null> {
     try {
+      console.log(
+        "Creating game:",
+        { ruleset, botCount, botGenome }
+      );
+
       const response = await fetch("/api/newGame", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ruleset, botCount })
+        body: JSON.stringify({
+          ruleset,
+          botCount,
+          botGenome
+        })
       });
+
       if (response.ok) {
         return await response.json();
       }
+
       return null;
     } catch (error) {
       console.error("Error starting game:", error);

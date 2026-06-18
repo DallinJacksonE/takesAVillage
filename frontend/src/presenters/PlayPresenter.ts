@@ -63,8 +63,17 @@ export class PlayPresenter extends Presenter<PlayView> {
   }
 
   // Updated to take the modal's configuration parameters
-  public async startNewGame(ruleset: string, botCount: number) {
-    const newGame = await this.userService.newGame(ruleset, botCount);
+  public async startNewGame(
+    ruleset: string,
+    botCount: number,
+    botGenome: string = "random"
+  ) {
+    const newGame = await this.userService.newGame(
+      ruleset,
+      botCount,
+      botGenome
+    );
+
     if (newGame) {
       this._view.hideNewGameModal();
       this._view.navigateToGame(newGame.gameId);

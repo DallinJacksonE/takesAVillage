@@ -6,6 +6,7 @@ export interface GameSetupOptions {
   botCount: number;
   generations?: number;
   baseGenome?: string;
+  botGenome?: string;
 }
 
 interface NewGameModalProps {
@@ -14,7 +15,6 @@ interface NewGameModalProps {
   onSubmit: (options: GameSetupOptions) => void;
   gameOptions: Record<string, Record<string, any>>;
   isTrainingMode?: boolean;
-  availableGenomes?: GenomeDTO[];
 }
 
 export const NewGameModal: React.FC<NewGameModalProps> = ({
@@ -23,13 +23,14 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
   onSubmit,
   gameOptions,
   isTrainingMode = false,
-  availableGenomes = [],
 }) => {
   const [selectedRuleset, setSelectedRuleset] = useState<string>("");
   const [hoveredRuleset, setHoveredRuleset] = useState<string | null>(null);
   const [botCount, setBotCount] = useState<number>(isTrainingMode ? 5 : 0);
   const [generations, setGenerations] = useState<number>(10);
   const [baseGenome, setBaseGenome] = useState<string>("random");
+  const [botGenome, setBotGenome] = useState<string>("random");
+  const [availableGenomes, setAvailableGenomes] = useState<GenomeDTO[]>([]);
 
   // Auto-select first ruleset on load
   useEffect(() => {
@@ -39,13 +40,52 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
     }
   }, [gameOptions, selectedRuleset]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchGenomes = async () => {
+      try {
+        const genomeRes = await fetch("/api/research/genomes");
+
+        if (!genomeRes.ok) {
+          throw new Error(
+            `Genome request failed: ${genomeRes.status}`
+          );
+        }
+
+        const genomeData = await genomeRes.json();
+
+        console.log(
+          `[NewGameModal] Loaded ${
+            genomeData.genomes?.length || 0
+          } genomes`
+        );
+
+        setAvailableGenomes(genomeData.genomes || []);
+      } catch (e) {
+        console.error("Failed to load genomes", e);
+      }
+    };
+
+    fetchGenomes();
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSubmit = () => {
+    console.log("Submitting game options:", {
+      ruleset: selectedRuleset,
+      botCount,
+      ...(isTrainingMode
+        ? { generations, baseGenome }
+        : { botGenome }),
+    });
     onSubmit({
       ruleset: selectedRuleset,
       botCount,
-      ...(isTrainingMode && { generations, baseGenome }),
+      ...(isTrainingMode
+        ? { generations, baseGenome }
+        : { botGenome }),
     });
     onClose();
   };
@@ -106,6 +146,33 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
               onChange={(e) => setBotCount(Math.max(0, parseInt(e.target.value) || 0))}
               style={{ width: "60px", padding: "5px" }} />
           </div>
+          {!isTrainingMode && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "15px"
+              }}
+            >
+              <h4>Bot Genome:</h4>
+
+              <select
+                value={botGenome}
+                onChange={(e) => setBotGenome(e.target.value)}
+                style={{ padding: "5px", minWidth: "250px" }}
+              >
+                <option value="random">
+                  Random Genome
+                </option>
+
+                {availableGenomes.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.shorthand_name} - {g.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {isTrainingMode && (
             <>

@@ -71,7 +71,7 @@ class Genome:
             if random.random() < mutation_rate:
 
                 value += random.gauss(
-                    .5,
+                    0,
                     mutation_strength
                 )
 

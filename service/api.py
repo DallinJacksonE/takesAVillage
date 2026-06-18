@@ -108,6 +108,16 @@ async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
 
     ruleset = payload.get('ruleset', 'default')
     bot_count = int(payload.get('botCount', 0))
+    bot_genome = payload.get('botGenome', 'random')
+    base_genome_data = None
+
+    if bot_genome != "random":
+        all_genomes = db.get_all_genomes()
+
+        for g in all_genomes:
+            if str(g["id"]) == str(bot_genome):
+                base_genome_data = g["genome_data"]
+                break
 
     game_id = create_game(user_session, ruleset, bot_count)
 
@@ -125,7 +135,8 @@ async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
                     await client.post(bot_url, json={
                         "gameId": game_id,
                         "botCount": bot_count,
-                        "botSecret": bot_secret
+                        "botSecret": bot_secret,
+                        "baseGenome": base_genome_data
                     }, timeout=5.0)
                     api_logger.info(
                         f"Successfully requested "
