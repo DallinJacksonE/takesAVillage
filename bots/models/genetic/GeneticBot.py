@@ -5,6 +5,7 @@ from models.genetic.Genome import Genome
 class GeneticBot(BaseBot):
     def __init__(self, genome):
         self.genome = genome
+        self.type_to_resource = {"woods": "wood", "farm": "food", "mine": "iron"}
         super().__init__()
 
     @staticmethod
@@ -54,18 +55,27 @@ class GeneticBot(BaseBot):
             return None
 
         if me.get("finished_phase"):
-            if game_state.get("phase") in ["WORK", "NIGHT"]:
+            if  game_state.get("phase") == "NIGHT":
+                accept_actions = [
+                    a for a in actions
+                    if a["action_command"] == "ACCEPT"
+                ]
+                if accept_actions:
+                    return self.format_network_payload(accept_actions[0])
+            elif game_state.get("phase") == "WORK":
 
-                accept_action = next(
-                    (
-                        a for a in actions
-                        if a["action_command"] == "ACCEPT"
-                    ),
-                    None
-                )
+                response_actions = [
+                    a for a in actions
+                    if a["action_command"] in ("ACCEPT", "DENY")
+                ]
 
-                if accept_action:
-                    return self.format_network_payload(accept_action)
+                if response_actions:
+                    best = max(
+                        response_actions,
+                        key=lambda a: self.score_action(a, game_state)
+                    )
+                    return self.format_network_payload(best)
+
             elif game_state.get("phase") == "TRADE":
 
                 trade_responses = [
@@ -132,16 +142,6 @@ class GeneticBot(BaseBot):
             )
 
         contract_type = contract.get("type") if contract else None
-
-        if "action_id" in action["payload"]:
-            action_id = action["payload"]["action_id"]
-            contract = next(
-                ( 
-                    a for a in me.get("actions", [])
-                    if a["id"] == action_id
-                )
-                , None
-            )
             
         resources = me.get("resources", {"wood": 0, "food": 0, "iron": 0})
 
@@ -172,7 +172,7 @@ class GeneticBot(BaseBot):
                 score += (wage * g.iron_weight)
                 score += (iron_need * g.iron_desperation_weight)
 
-            score -= .5 # prefer working for self all else equal
+            score -= .25 # prefer working for self all else equal
 
         # =====================
         # BUILD
@@ -316,10 +316,44 @@ class GeneticBot(BaseBot):
                 score += (wage * g.iron_weight)
                 score += (iron_need * g.iron_desperation_weight)
 
-        elif command == "ACCEPT":
-            score += g.cooperation_weight + g.reputation_weight
+        
+        if contract:
 
-            if contract and contract_type == "TRADE":
+            if contract_type == "EMPLOYMENT":
+
+                dev = next(
+                    (
+                        d for d in game_state.get("developments", [])
+                        if d["id"] == contract.get("development_id")
+                    ),
+                    None
+                )
+
+                if not dev:
+                    return -9999
+
+                produced_resource = self.type_to_resource[dev["type"].lower()]
+                produced_amount = dev["level"]
+
+                produced_value = self.adjusted_resource_value(
+                    {produced_resource: produced_amount},
+                    me
+                )
+
+                wage_value = self.adjusted_resource_value(
+                    {contract["wage_type"]: contract["wage"]},
+                    me
+                )
+
+                net_value = produced_value - wage_value
+
+                # symmetric decision scoring
+                if command == "ACCEPT":
+                    score += net_value + 0.01
+                elif command == "DENY":
+                    score -= net_value
+
+            elif contract_type == "TRADE":
 
                 if contract["initiator_id"] == me["id"]:
                     given = contract.get("offer_items", {})
@@ -328,34 +362,16 @@ class GeneticBot(BaseBot):
                     given = contract.get("request_items", {})
                     received = contract.get("offer_items", {})
 
-                score += (
+                utility = (
                     self.adjusted_resource_value(received, me)
                     - self.adjusted_resource_value(given, me)
                 )
-        elif command == "DENY":
 
-            if contract and contract_type == "TRADE":
+                if command == "ACCEPT":
+                    score += utility + g.cooperation_weight
+                elif command == "DENY":
+                    score -= utility
 
-                if contract["initiator_id"] == me["id"]:
-                    given = contract.get("offer_items", {})
-                    received = contract.get("request_items", {})
-                else:
-                    given = contract.get("request_items", {})
-                    received = contract.get("offer_items", {})
-
-                trade_value = (
-                    self.resource_value(received)
-                    - self.resource_value(given)
-                )
-
-                score += max(0, -trade_value)
-
-        elif command == "TRADE" or command == "BARTER":
-            # Evaluate draft trade proposals: prefer positive net resource value
-            offer = action.get("payload", {}).get("offer_items", {})
-            request = action.get("payload", {}).get("request_items", {})
-            score += (self.resource_value(request) - self.resource_value(offer))
-            score += g.cooperation_weight + g.reputation_weight
         elif command == "FINALIZE":
             # Prefer to finalize (ship goods) if we can actually send the items
             actual = action.get("payload", {}).get("actual_items", {})
