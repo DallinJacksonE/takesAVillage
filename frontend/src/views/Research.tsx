@@ -7,7 +7,7 @@ import { ResearchGameDTO } from "../../../dtos";
 import { NewGameModal } from "../components/NewGameModal";
 const Research: React.FC = () => {
   const [presenter, setPresenter] = useState<ResearchPresenter | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [selectedGame, setSelectedGame] = useState<ResearchGameDTO | null>(
     null,
   );
