@@ -10,6 +10,26 @@ class GeneticBot(BaseBot):
     @staticmethod
     def from_json(genome_json):
         return GeneticBot(Genome(**genome_json))
+
+    def adjusted_resource_value(self, bundle, me):
+        resources = me.get("resources", {})
+
+        food_need = max(0, 5 - resources.get("food", 0))
+        wood_need = max(0, 5 - resources.get("wood", 0))
+        iron_need = max(0, 5 - resources.get("iron", 0))
+
+        g = self.genome
+
+        return (
+            bundle.get("food", 0)
+            * (g.food_weight + food_need * g.food_desperation_weight)
+            +
+            bundle.get("wood", 0)
+            * (g.wood_weight + wood_need * g.wood_desperation_weight)
+            +
+            bundle.get("iron", 0)
+            * (g.iron_weight + iron_need * g.iron_desperation_weight)
+        )
     
     def resource_value(self,bundle):
         return (
@@ -47,6 +67,20 @@ class GeneticBot(BaseBot):
                 if accept_action:
                     return self.format_network_payload(accept_action)
             elif game_state.get("phase") == "TRADE":
+
+                trade_responses = [
+                    a for a in actions
+                    if a["action_command"] in ["ACCEPT", "DENY"]
+                ]
+
+                if trade_responses:
+                    best_response = max(
+                        trade_responses,
+                        key=lambda a: self.score_action(a, game_state)
+                    )
+
+                    return self.format_network_payload(best_response)
+
                 finalize_action = next(
                     (
                         a for a in actions
@@ -295,9 +329,27 @@ class GeneticBot(BaseBot):
                     received = contract.get("offer_items", {})
 
                 score += (
+                    self.adjusted_resource_value(received, me)
+                    - self.adjusted_resource_value(given, me)
+                )
+        elif command == "DENY":
+
+            if contract and contract_type == "TRADE":
+
+                if contract["initiator_id"] == me["id"]:
+                    given = contract.get("offer_items", {})
+                    received = contract.get("request_items", {})
+                else:
+                    given = contract.get("request_items", {})
+                    received = contract.get("offer_items", {})
+
+                trade_value = (
                     self.resource_value(received)
                     - self.resource_value(given)
                 )
+
+                score += max(0, -trade_value)
+
         elif command == "TRADE" or command == "BARTER":
             # Evaluate draft trade proposals: prefer positive net resource value
             offer = action.get("payload", {}).get("offer_items", {})
