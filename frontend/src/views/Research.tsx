@@ -351,7 +351,6 @@ const Research: React.FC = () => {
         onSubmit={handleStartTraining}
         gameOptions={gameOptions}
         isTrainingMode={true}
-        availableGenomes={availableGenomes}
       />
     </div>
   );

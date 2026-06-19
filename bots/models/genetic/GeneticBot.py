@@ -54,55 +54,55 @@ class GeneticBot(BaseBot):
         if me.get("health") == "dead":
             return None
 
-        if me.get("finished_phase"):
-            if  game_state.get("phase") == "NIGHT":
-                accept_actions = [
-                    a for a in actions
-                    if a["action_command"] == "ACCEPT"
-                ]
-                if accept_actions:
-                    return self.format_network_payload(accept_actions[0])
-            elif game_state.get("phase") == "WORK":
+        if  game_state.get("phase") == "NIGHT":
+            accept_actions = [
+                a for a in actions
+                if a["action_command"] == "ACCEPT"
+            ]
+            if accept_actions:
+                return self.format_network_payload(accept_actions[0])
+        elif game_state.get("phase") == "WORK":
 
-                response_actions = [
-                    a for a in actions
-                    if a["action_command"] in ("ACCEPT", "DENY")
-                ]
+            response_actions = [
+                a for a in actions
+                if a["action_command"] in ("ACCEPT", "DENY")
+            ]
 
-                if response_actions:
-                    best = max(
-                        response_actions,
-                        key=lambda a: self.score_action(a, game_state)
-                    )
-                    return self.format_network_payload(best)
+            if response_actions:
+                best = max(
+                    response_actions,
+                    key=lambda a: self.score_action(a, game_state)
+                )
+                return self.format_network_payload(best)
 
-            elif game_state.get("phase") == "TRADE":
+        elif game_state.get("phase") == "TRADE":
 
-                trade_responses = [
-                    a for a in actions
-                    if a["action_command"] in ["ACCEPT", "DENY"]
-                ]
+            trade_responses = [
+                a for a in actions
+                if a["action_command"] in ["ACCEPT", "DENY"]
+            ]
 
-                if trade_responses:
-                    best_response = max(
-                        trade_responses,
-                        key=lambda a: self.score_action(a, game_state)
-                    )
-
-                    return self.format_network_payload(best_response)
-
-                finalize_action = next(
-                    (
-                        a for a in actions
-                        if a["action_command"] == "FINALIZE"
-                    ),
-                    None
+            if trade_responses:
+                best_response = max(
+                    trade_responses,
+                    key=lambda a: self.score_action(a, game_state)
                 )
 
-                if finalize_action:
-                    return self.format_network_payload(finalize_action)
+                return self.format_network_payload(best_response)
 
-            return None
+            finalize_action = next(
+                (
+                    a for a in actions
+                    if a["action_command"] == "FINALIZE"
+                ),
+                None
+            )
+
+            if finalize_action:
+                return self.format_network_payload(finalize_action)
+
+        if me.get("finished_phase"):
+            return
 
         print(f"available actions for bot: {actions}")
 
@@ -324,7 +324,7 @@ class GeneticBot(BaseBot):
                 dev = next(
                     (
                         d for d in game_state.get("developments", [])
-                        if d["id"] == contract.get("development_id")
+                        if d["id"] == contract.get("dev_id")
                     ),
                     None
                 )
@@ -346,7 +346,33 @@ class GeneticBot(BaseBot):
                 )
 
                 net_value = produced_value - wage_value
+                
+                # checks to only accept affordable trades
+                future_food = food
+                future_wood = wood
+                future_iron = iron
 
+                if produced_resource == "food":
+                    future_food += produced_amount
+                elif produced_resource == "wood":
+                    future_wood += produced_amount
+                elif produced_resource == "iron":
+                    future_iron += produced_amount
+                
+                can_afford = (
+                    (contract["wage_type"] == "food" and future_food >= contract["wage"])
+                    or
+                    (contract["wage_type"] == "wood" and future_wood >= contract["wage"])
+                    or
+                    (contract["wage_type"] == "iron" and future_iron >= contract["wage"])
+                )
+                
+                if not can_afford:
+                    if command == "ACCEPT":
+                        return -100000
+                    else:  # DENY
+                        return 100000
+                    
                 # symmetric decision scoring
                 if command == "ACCEPT":
                     score += net_value + 0.01
