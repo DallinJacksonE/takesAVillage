@@ -72,7 +72,8 @@ class BotSocket:
             self.logger.info(f"Connecting bot "
                              f"{self.user_id} to WebSocket {self.ws_url}")
             self.websocket = await websockets.connect(
-                self.ws_url, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=None
+                self.ws_url, ping_interval=20, ping_timeout=20,
+                close_timeout=10, max_size=None
             )
 
             await self._send("join_room", {
@@ -149,10 +150,12 @@ class BotSocket:
         await self._send("request_update", {})
 
     async def send_chat(self, content: str, to_id: str = "GLOBAL"):
-        await self._send("send_chat", {"content": content, "to_id": to_id})
+        await self._send("send_chat",
+                         {"content": content, "to_id": to_id})
 
     async def submit_action(self, payload: dict):
         await self._send("submit_action", payload)
 
     async def create_chat(self, name: str, member_ids: list[str]):
-        await self._send("create_chat", {"name": name, "memberIds": member_ids})
+        await self._send("create_chat",
+                         {"name": name, "memberIds": member_ids})
