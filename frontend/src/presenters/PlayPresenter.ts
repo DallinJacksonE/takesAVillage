@@ -66,12 +66,14 @@ export class PlayPresenter extends Presenter<PlayView> {
   public async startNewGame(
     ruleset: string,
     botCount: number,
-    botGenome: string = "random"
+    botGenome: string = "random",
+    botModel: string
   ) {
     const newGame = await this.userService.newGame(
       ruleset,
       botCount,
-      botGenome
+      botGenome,
+      botModel
     );
 
     if (newGame) {

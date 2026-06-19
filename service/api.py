@@ -109,21 +109,19 @@ async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
     ruleset = payload.get('ruleset', 'default')
     bot_count = int(payload.get('botCount', 0))
     bot_genome = payload.get('botGenome', 'random')
+    bot_model = payload.get('botModel', 'genetic')  # <-- Extract the model
     base_genome_data = None
 
     if bot_genome != "random":
         all_genomes = db.get_all_genomes()
-
         for g in all_genomes:
             if str(g["id"]) == str(bot_genome):
                 base_genome_data = g["genome_data"]
                 break
 
     game_id = create_game(user_session, ruleset, bot_count)
-
     await asyncio.sleep(1)
 
-    # 2. Trigger the Bot Service via HTTP (Fire and Forget)
     if bot_count > 0:
         bot_url = os.environ.get(
             "BOT_SERVICE_URL", "http://bots:8001/api/spawn_bots")
@@ -136,12 +134,11 @@ async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
                         "gameId": game_id,
                         "botCount": bot_count,
                         "botSecret": bot_secret,
-                        "baseGenome": base_genome_data
+                        "baseGenome": base_genome_data,
+                        "botModel": bot_model  # <-- Pass to Bot Server
                     }, timeout=5.0)
-                    api_logger.info(
-                        f"Successfully requested "
-                        f"{bot_count} bots for {game_id}"
-                    )
+                    api_logger.info(f"Successfully requested {bot_count} "
+                                    f"{bot_model} bots for {game_id}")
                 except Exception as e:
                     api_logger.error("Failed to reach Bot Service", exc=e)
 
@@ -220,27 +217,46 @@ async def bot_join_game(payload: BotJoinPayload):
 
 @api_router.get('/api/research/genomes')
 async def get_genomes():
-    """Fetch all saved genomes. Research endpoint, no auth required."""
-    # TODO get the available bot models from the bot server
+    """Fetch all saved genomes and dynamically available bot models."""
     genomes = db.get_all_genomes()
-    return {"genomes": genomes}
+    models = ["genetic"]  # Fallback model
+    bot_url = os.environ.get("BOT_SERVICE_URL", "http://bots:8001")
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(f"{bot_url}/api/models", timeout=3.0)
+            if response.status_code == 200:
+                data = response.json()
+                models = data.get("models", ["genetic"])
+                api_logger.info(f"Successfully fetched "
+                                f"{len(models)} bot models.")
+        except Exception as e:
+            api_logger.warning(
+                f"Failed to fetch models from Bot Server."
+                f"Falling back to default. \n{e}")
+
+    return {"genomes": genomes, "models": models}
 
 
 @api_router.post('/api/research/train')
 async def start_training(payload: dict):
     """Start a training loop. Research endpoint, no auth required."""
     ruleset = payload.get('ruleset', 'default')
-    bot_count = payload.get('botCount', 5)
-    generations = payload.get('generations', 1)
+    bot_count = int(payload.get('botCount', 5))
+    generations = int(payload.get('generations', 1))
     base_genome = payload.get('baseGenome', 'random')
+    bot_model = payload.get('botModel', 'genetic')  # <-- Extract the model
 
     api_logger.info(
         f"Received training request: Ruleset={ruleset}, Bots={bot_count}, "
-        f"Generations={generations}, BaseGenome={base_genome}"
+        f"Generations={generations}, "
+        f"BaseGenome={base_genome}, Model={bot_model}"
     )
 
     asyncio.create_task(
-        start_training_session(ruleset, bot_count, generations, base_genome)
+        # <-- Pass the model to the orchestrator
+        start_training_session(
+            ruleset, bot_count, generations, base_genome, bot_model)
     )
 
     return {"message": "Training sequence initiated"}

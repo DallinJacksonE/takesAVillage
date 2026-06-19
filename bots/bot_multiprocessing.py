@@ -1,7 +1,7 @@
 import asyncio
 import os
 import json
-from bots.models.goap_genetic import GOAPGenetic
+from models.goap_genetic import GOAPGenetic
 from models.genetic.Genome import Genome
 from models.genetic.GeneticBot import GeneticBot
 from models.genetic.fitness import calculate_fitness
@@ -16,12 +16,19 @@ training_data_queue = multiprocessing.Queue()
 # Instantiate a logger for the parent server process
 server_logger = Logger("SERVER_MANAGER")
 
+# Extract mapping to a constant so it can be dynamically read by the API
+AVAILABLE_BOT_MODELS = {
+    "genetic": GeneticBot,
+    "GOAPGenetic": GOAPGenetic
+}
+
 
 def get_bot(bot_name: str):
-    return {
-        "genetic": GeneticBot,
-        "GOAPGenetic": GOAPGenetic
-    }.get(bot_name, GeneticBot)
+    return AVAILABLE_BOT_MODELS.get(bot_name, GeneticBot)
+
+
+def get_available_models() -> list[str]:
+    return list(AVAILABLE_BOT_MODELS.keys())
 
 
 def run_bot_process(game_id: str,

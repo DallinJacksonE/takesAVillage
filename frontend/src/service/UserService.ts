@@ -38,7 +38,8 @@ export class UserService {
   async newGame(
     ruleset: string,
     botCount: number,
-    botGenome: string = "random"
+    botGenome: string = "random",
+    botModel: string
   ): Promise<NewGameDTO | null> {
     try {
       console.log(
@@ -52,7 +53,8 @@ export class UserService {
         body: JSON.stringify({
           ruleset,
           botCount,
-          botGenome
+          botGenome,
+          botModel
         })
       });
 

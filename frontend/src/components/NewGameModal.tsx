@@ -4,6 +4,7 @@ import { GenomeDTO } from "../../../dtos";
 export interface GameSetupOptions {
   ruleset: string;
   botCount: number;
+  botModel: string;
   generations?: number;
   baseGenome?: string;
   botGenome?: string;
@@ -27,6 +28,11 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
   const [selectedRuleset, setSelectedRuleset] = useState<string>("");
   const [hoveredRuleset, setHoveredRuleset] = useState<string | null>(null);
   const [botCount, setBotCount] = useState<number>(isTrainingMode ? 5 : 0);
+
+  // Model state
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [botModel, setBotModel] = useState<string>("genetic");
+
   const [generations, setGenerations] = useState<number>(10);
   const [baseGenome, setBaseGenome] = useState<string>("random");
   const [botGenome, setBotGenome] = useState<string>("random");
@@ -43,50 +49,46 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    const fetchGenomes = async () => {
+    const fetchGenomesAndModels = async () => {
       try {
         const genomeRes = await fetch("/api/research/genomes");
 
         if (!genomeRes.ok) {
-          throw new Error(
-            `Genome request failed: ${genomeRes.status}`
-          );
+          throw new Error(`Genome request failed: ${genomeRes.status}`);
         }
 
         const genomeData = await genomeRes.json();
 
-        console.log(
-          `[NewGameModal] Loaded ${
-            genomeData.genomes?.length || 0
-          } genomes`
-        );
+        console.log(`[NewGameModal] Loaded ${genomeData.genomes?.length || 0} genomes and ${genomeData.models?.length || 0} models`);
 
         setAvailableGenomes(genomeData.genomes || []);
+
+        // Populate the dynamic models from the Bot Server
+        const fetchedModels = genomeData.models || ["genetic"];
+        setAvailableModels(fetchedModels);
+        if (fetchedModels.length > 0) {
+          setBotModel(fetchedModels[0]);
+        }
+
       } catch (e) {
-        console.error("Failed to load genomes", e);
+        console.error("Failed to load genomes and models", e);
       }
     };
 
-    fetchGenomes();
+    fetchGenomesAndModels();
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = () => {
-    console.log("Submitting game options:", {
+    const payload = {
       ruleset: selectedRuleset,
       botCount,
-      ...(isTrainingMode
-        ? { generations, baseGenome }
-        : { botGenome }),
-    });
-    onSubmit({
-      ruleset: selectedRuleset,
-      botCount,
-      ...(isTrainingMode
-        ? { generations, baseGenome }
-        : { botGenome }),
-    });
+      botModel, // Include the selected architecture
+      ...(isTrainingMode ? { generations, baseGenome } : { botGenome }),
+    };
+    console.log("Submitting game options:", payload);
+    onSubmit(payload);
     onClose();
   };
 
@@ -98,7 +100,8 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
     }}>
       <div style={{
         backgroundColor: "white", padding: "30px", borderRadius: "8px",
-        width: "600px", maxWidth: "90%", boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+        width: "600px", maxWidth: "90%", boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+        maxHeight: "90vh", overflowY: "auto"
       }}>
         <h2 style={{ marginTop: 0 }}>{isTrainingMode ? "Configure Training Loop" : "Game Setup"}</h2>
 
@@ -140,38 +143,45 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
 
         {/* Dynamic Inputs based on Mode */}
         <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "15px" }}>
+
           <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
             <h4>Bots per Game:</h4>
             <input type="number" min={isTrainingMode ? "1" : "0"} max="10" value={botCount}
               onChange={(e) => setBotCount(Math.max(0, parseInt(e.target.value) || 0))}
               style={{ width: "60px", padding: "5px" }} />
           </div>
-          {!isTrainingMode && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "15px"
-              }}
-            >
-              <h4>Bot Genome:</h4>
 
-              <select
-                value={botGenome}
-                onChange={(e) => setBotGenome(e.target.value)}
-                style={{ padding: "5px", minWidth: "250px" }}
-              >
-                <option value="random">
-                  Random Genome
-                </option>
+          {/* ONLY show Bot Architecture and Genomes if bots are actually being spawned */}
+          {botCount > 0 && (
+            <>
+              {/* Architecture Selection */}
+              <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+                <h4>Bot Architecture:</h4>
+                <select
+                  value={botModel}
+                  onChange={(e) => setBotModel(e.target.value)}
+                  style={{ padding: "5px", minWidth: "250px" }}
+                >
+                  {availableModels.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
 
-                {availableGenomes.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.shorthand_name} - {g.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+              {!isTrainingMode && (
+                <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+                  <h4>Bot Genome:</h4>
+                  <select value={botGenome} onChange={(e) => setBotGenome(e.target.value)} style={{ padding: "5px", minWidth: "250px" }}>
+                    <option value="random">Random Genome</option>
+                    {availableGenomes.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.shorthand_name} - {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </>
           )}
 
           {isTrainingMode && (
@@ -182,9 +192,10 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                   onChange={(e) => setGenerations(Math.max(1, parseInt(e.target.value) || 1))}
                   style={{ width: "80px", padding: "5px" }} />
               </div>
+
               <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
                 <h4>Base Genome:</h4>
-                <select value={baseGenome} onChange={(e) => setBaseGenome(e.target.value)} style={{ padding: "5px" }}>
+                <select value={baseGenome} onChange={(e) => setBaseGenome(e.target.value)} style={{ padding: "5px", minWidth: "250px" }}>
                   <option value="random">Random (Fresh Gene Pool)</option>
                   {availableGenomes.map(g => (
                     <option key={g.id} value={g.id}>{g.shorthand_name} - {g.name}</option>

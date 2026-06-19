@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import Optional, Any
 from pathlib import Path
 import json
-from bot_multiprocessing import spawn_bot_processes
+from bot_multiprocessing import spawn_bot_processes, get_available_models
 from logger import Logger
 
 api_router = APIRouter()
@@ -77,6 +77,18 @@ async def get_best_genome(game_id: str):
         "best_fitness": best_entry.get("fitness"),
         "genome": best_entry.get("genome")
     }
+
+
+@api_router.get("/api/models")
+async def get_models():
+    api_logger.info("Fetching available bot models for Game Server")
+    try:
+        models = get_available_models()
+        return {"status": "success", "models": models}
+    except Exception as e:
+        api_logger.stdout_error(
+            "Failed to fetch available models", exception=e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @api_router.get("/api/genomes/{game_id}/all")

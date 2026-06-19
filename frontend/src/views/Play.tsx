@@ -60,7 +60,8 @@ const Play: React.FC = () => {
     presenter.startNewGame(
       options.ruleset,
       options.botCount,
-      options.botGenome
+      options.botGenome,
+      options.botModel // <-- Forward model selection
     );
   };
 

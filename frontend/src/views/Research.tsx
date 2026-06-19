@@ -87,7 +87,8 @@ const Research: React.FC = () => {
           ruleset: options.ruleset,
           botCount: options.botCount,
           generations: options.generations,
-          baseGenome: options.baseGenome
+          baseGenome: options.baseGenome,
+          botModel: options.botModel // <-- Pass dynamic model to orchestration pipeline
         })
       });
       alert("Training Sequence Initiated!");
@@ -95,6 +96,7 @@ const Research: React.FC = () => {
       console.error("Failed to start training", e);
     }
   };
+
   const getDays = () => {
     if (!selectedGame) return [];
 
@@ -157,7 +159,7 @@ const Research: React.FC = () => {
         <div style={{ display: "flex", gap: "10px" }}>
           <button
             className="btn"
-            onClick={() => {setShowTrainingSessions(!showTrainingSessions);}}
+            onClick={() => { setShowTrainingSessions(!showTrainingSessions); }}
             style={{ backgroundColor: "#2c3e50" }}
           >
             Active Training Loops
@@ -200,7 +202,7 @@ const Research: React.FC = () => {
 
               <tbody>
                 {trainingSessions.map((session) => (
-                  <tr style={{textAlign: "center"}} key={session.session_id}>
+                  <tr style={{ textAlign: "center" }} key={session.session_id}>
                     <td>{session.session_id.slice(0, 8)}</td>
                     <td>{session.current_game_id ?? "-"}</td>
                     <td>{session.generation}</td>

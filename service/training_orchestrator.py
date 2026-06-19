@@ -42,12 +42,12 @@ def _crossover_genomes(a: dict, b: dict) -> dict:
     return out
 
 
-async def start_training_session(ruleset: str, bot_count: int, generations: int, base_genome_id: str):
+async def start_training_session(ruleset: str, bot_count: int, generations: int, base_genome_id: str, bot_model: str = "genetic"):
     session_id = str(uuid.uuid4())
     orch_logger.info(f"Starting session {session_id[:8]} | "
                      f"Ruleset: {ruleset} | "
                      f"Bots: {bot_count} | Gens: {generations} | "
-                     f"Base: {base_genome_id}")
+                     f"Base: {base_genome_id} | Model: {bot_model}")
 
     base_genome_data = None
     if base_genome_id != "random":
@@ -71,13 +71,15 @@ async def start_training_session(ruleset: str, bot_count: int, generations: int,
         for _ in range(bot_count):
             population.append(_random_genome_dict())
 
+    # Add the bot_model to the session state
     active_training_sessions[session_id] = {
         "ruleset": ruleset, "bot_count": bot_count, "generations_left": generations-1,
         "population": population, "generation": 1, "elite_count": 2,
         "selection_size": min(3, bot_count), "mutation_strength": 0.25, "mutation_rate": 0.15,
+        "bot_model": bot_model
     }
 
-    orch_logger.info(f"Session built. Triggering generation 1...")
+    orch_logger.info("Session built. Triggering generation 1...")
     await _trigger_next_generation(session_id)
     return session_id
 
@@ -105,8 +107,12 @@ async def _trigger_next_generation(session_id: str):
     async with httpx.AsyncClient() as client:
         try:
             await client.post(bot_spawn_url, json={
-                "gameId": game_id, "botCount": session["bot_count"],
-                "botSecret": bot_secret, "baseGenome": session.get("population")
+                "gameId": game_id,
+                "botCount": session["bot_count"],
+                "botSecret": bot_secret,
+                "baseGenome": session.get("population"),
+                # <-- Pass to Bot Server
+                "botModel": session.get("bot_model", "genetic")
             }, timeout=10.0)
             orch_logger.info(f"Generation {gen_num} started for session "
                              f"{session_id[:6]} in game {game_id}")
@@ -144,7 +150,7 @@ async def handle_training_game_ended(game_id: str, training_session_id: str):
                                       f"{game_id}: {response.text}")
         except Exception as e:
             orch_logger.error(
-                f"Failed to reach Bot Service to fetch genomes", exc=e)
+                "Failed to reach Bot Service to fetch genomes", exc=e)
 
     best_genome = None
     if entries:
