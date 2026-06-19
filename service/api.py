@@ -124,13 +124,13 @@ async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
 
     if bot_count > 0:
         bot_url = os.environ.get(
-            "BOT_SERVICE_URL", "http://bots:8001/api/spawn_bots")
+            "BOT_SERVICE_URL", "http://bots:8001")
         bot_secret = os.environ.get("BOT_SECRET", "default_dev_secret")
 
         async def spawn_external_bots():
             async with httpx.AsyncClient() as client:
                 try:
-                    await client.post(bot_url, json={
+                    await client.post(f"{bot_url}/api/spawn_bots", json={
                         "gameId": game_id,
                         "botCount": bot_count,
                         "botSecret": bot_secret,

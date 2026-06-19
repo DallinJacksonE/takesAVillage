@@ -101,12 +101,12 @@ async def _trigger_next_generation(session_id: str):
     active_training_sessions[session_id]["current_game_id"] = game_id
 
     bot_spawn_url = os.environ.get(
-        "BOT_SERVICE_URL", "http://bots:8001/api/spawn_bots")
+        "BOT_SERVICE_URL", "http://bots:8001")
     bot_secret = os.environ.get("BOT_SECRET", "default_dev_secret")
 
     async with httpx.AsyncClient() as client:
         try:
-            await client.post(bot_spawn_url, json={
+            await client.post(f"{bot_spawn_url}/api/spawn_bots", json={
                 "gameId": game_id,
                 "botCount": session["bot_count"],
                 "botSecret": bot_secret,

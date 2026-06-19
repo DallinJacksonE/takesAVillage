@@ -152,37 +152,35 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
           </div>
 
           {/* ONLY show Bot Architecture and Genomes if bots are actually being spawned */}
-          {botCount > 0 && (
-            <>
-              {/* Architecture Selection */}
+          <>
+            {/* Architecture Selection */}
+            <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+              <h4>Bot Architecture:</h4>
+              <select
+                value={botModel}
+                onChange={(e) => setBotModel(e.target.value)}
+                style={{ padding: "5px", minWidth: "250px" }}
+              >
+                {availableModels.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+
+            {!isTrainingMode && (
               <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-                <h4>Bot Architecture:</h4>
-                <select
-                  value={botModel}
-                  onChange={(e) => setBotModel(e.target.value)}
-                  style={{ padding: "5px", minWidth: "250px" }}
-                >
-                  {availableModels.map((m) => (
-                    <option key={m} value={m}>{m}</option>
+                <h4>Bot Genome:</h4>
+                <select value={botGenome} onChange={(e) => setBotGenome(e.target.value)} style={{ padding: "5px", minWidth: "250px" }}>
+                  <option value="random">Random Genome</option>
+                  {availableGenomes.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.shorthand_name} - {g.name}
+                    </option>
                   ))}
                 </select>
               </div>
-
-              {!isTrainingMode && (
-                <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-                  <h4>Bot Genome:</h4>
-                  <select value={botGenome} onChange={(e) => setBotGenome(e.target.value)} style={{ padding: "5px", minWidth: "250px" }}>
-                    <option value="random">Random Genome</option>
-                    {availableGenomes.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.shorthand_name} - {g.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </>
-          )}
+            )}
+          </>
 
           {isTrainingMode && (
             <>

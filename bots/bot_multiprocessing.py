@@ -1,7 +1,7 @@
 import asyncio
 import os
 import json
-from models.goap_genetic import GOAPGenetic
+from models.goap_genetic.GOAPGenetic import GOAPGenetic
 from models.genetic.Genome import Genome
 from models.genetic.GeneticBot import GeneticBot
 from models.genetic.fitness import calculate_fitness
