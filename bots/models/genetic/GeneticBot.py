@@ -102,7 +102,7 @@ class GeneticBot(BaseBot):
                 return self.format_network_payload(best_response)
 
         if me.get("finished_phase"):
-            return
+            return None
 
         print(f"available actions for bot: {actions}")
 
