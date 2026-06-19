@@ -244,6 +244,7 @@ async def start_training(payload: dict):
 
     return {"message": "Training sequence initiated"}
 
+
 @api_router.get("/api/research/training-sessions")
 async def get_training_sessions():
     sessions = []

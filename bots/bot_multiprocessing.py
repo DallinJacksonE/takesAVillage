@@ -1,7 +1,7 @@
 import asyncio
 import os
 import json
-from socket import socket
+from bots.models.goap_genetic import GOAPGenetic
 from models.genetic.Genome import Genome
 from models.genetic.GeneticBot import GeneticBot
 from models.genetic.fitness import calculate_fitness
@@ -17,9 +17,17 @@ training_data_queue = multiprocessing.Queue()
 server_logger = Logger("SERVER_MANAGER")
 
 
+def get_bot(bot_name: str):
+    return {
+        "genetic": GeneticBot,
+        "GOAPGenetic": GOAPGenetic
+    }.get(bot_name, GeneticBot)
+
+
 def run_bot_process(game_id: str,
                     bot_secret: str,
                     result_queue: multiprocessing.Queue,
+                    bot_type: str,
                     assigned_genome_dict: dict | None = None):
 
     # Instantiate a unique logger for this specific child process using its PID
@@ -35,7 +43,7 @@ def run_bot_process(game_id: str,
         else:
             genome = Genome.random()
 
-        bot = GeneticBot(genome)
+        bot = get_bot(bot_type)(genome)
         # Pass the logger to the bot so it can log logic decisions (optional)
         bot.logger = bot_logger
 
@@ -160,7 +168,10 @@ async def reap_zombies():
         await asyncio.sleep(5)
 
 
-def spawn_bot_processes(game_id: str, bot_count: int, bot_secret: str, base_genome: dict | None = None):
+def spawn_bot_processes(game_id: str, bot_count: int,
+                        bot_secret: str,
+                        bot_model: str = "genetic",
+                        base_genome: dict | None = None):
     if isinstance(base_genome, list):
         genomes = base_genome
     else:
@@ -171,7 +182,10 @@ def spawn_bot_processes(game_id: str, bot_count: int, bot_secret: str, base_geno
         assigned_genome = g.__dict__ if hasattr(g, "__dict__") else g
         p = multiprocessing.Process(
             target=run_bot_process,
-            args=(game_id, bot_secret, training_data_queue, assigned_genome)
+            args=(game_id, bot_secret,
+                  training_data_queue,
+                  bot_model,
+                  assigned_genome)
         )
         p.start()
         active_bot_processes.append(p)

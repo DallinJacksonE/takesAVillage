@@ -16,8 +16,6 @@ class GOAPGenetic(BaseBot):
     def __init__(self, genome: Genome):
         super().__init__()
         self.genome = genome
-
-        # Instantiate the decoupled AI modules
         self.perception = Perception()
         self.thinker = Thinker(self.genome)
         self.actuator = Actuator()

@@ -14,6 +14,7 @@ class SpawnBotsRequest(BaseModel):
     gameId: str
     botCount: int
     botSecret: str
+    botModel: str
     baseGenome: Optional[Any] = None
 
 
@@ -32,6 +33,7 @@ async def spawn_bots(payload: SpawnBotsRequest):
             game_id=payload.gameId,
             bot_count=payload.botCount,
             bot_secret=payload.botSecret,
+            bot_model=payload.botModel,
             base_genome=payload.baseGenome
         )
         api_logger.info("Bot processes spawned successfully.")
@@ -60,7 +62,8 @@ async def get_best_genome(game_id: str):
                 continue
             if entry.get("game_id") != game_id:
                 continue
-            if best_entry is None or entry.get("fitness", 0) > best_entry.get("fitness", 0):
+            if best_entry is None or (entry.get("fitness", 0)
+                                      > best_entry.get("fitness", 0)):
                 best_entry = entry
 
     if not best_entry:
