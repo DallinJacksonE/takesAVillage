@@ -99,7 +99,7 @@ def run_bot_process(game_id: str,
                         await asyncio.sleep(5)
                     elif state.get("training"):
                         training = True
-                    if state.get("phase") in ["TRADE", "NIGHT"] and action["action_command"] == "CAMPFIRE":
+                    if state.get("phase") == "NIGHT" and action["action_command"] == "CAMPFIRE":
                         await socket.submit_action({
                             "action_command": "FINISH_PHASE",
                             "payload": {}

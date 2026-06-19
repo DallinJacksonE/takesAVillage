@@ -180,7 +180,7 @@ class ContestDevelopmentCommand(Command):
         player.committed_action = {
             "type": "CONTEST_ACTION",
             "dev_id": dev_id,
-            "side": 'CONTESTER' if side == 'INITIATOR' else side
+            "side": side
         }
 
         player.add_timeline_event(
