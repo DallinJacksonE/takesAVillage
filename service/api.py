@@ -221,6 +221,7 @@ async def bot_join_game(payload: BotJoinPayload):
 @api_router.get('/api/research/genomes')
 async def get_genomes():
     """Fetch all saved genomes. Research endpoint, no auth required."""
+    # TODO get the available bot models from the bot server
     genomes = db.get_all_genomes()
     return {"genomes": genomes}
 

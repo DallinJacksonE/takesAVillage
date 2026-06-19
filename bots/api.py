@@ -37,7 +37,8 @@ async def spawn_bots(payload: SpawnBotsRequest):
             base_genome=payload.baseGenome
         )
         api_logger.info("Bot processes spawned successfully.")
-        return {"status": "success", "message": f"Spawned {payload.botCount} bots"}
+        return {"status": "success",
+                "message": f"Spawned {payload.botCount} bots"}
     except Exception as e:
         api_logger.stdout_error("Failed to spawn bot processes", exception=e)
         raise HTTPException(status_code=500, detail="Internal server error")
