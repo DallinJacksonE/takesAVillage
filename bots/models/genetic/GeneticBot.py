@@ -77,6 +77,17 @@ class GeneticBot(BaseBot):
 
         elif game_state.get("phase") == "TRADE":
 
+            finalize_action = next(
+                (
+                    a for a in actions
+                    if a["action_command"] == "FINALIZE"
+                ),
+                None
+            )
+
+            if finalize_action:
+                return self.format_network_payload(finalize_action)
+
             trade_responses = [
                 a for a in actions
                 if a["action_command"] in ["ACCEPT", "DENY"]
@@ -89,17 +100,6 @@ class GeneticBot(BaseBot):
                 )
 
                 return self.format_network_payload(best_response)
-
-            finalize_action = next(
-                (
-                    a for a in actions
-                    if a["action_command"] == "FINALIZE"
-                ),
-                None
-            )
-
-            if finalize_action:
-                return self.format_network_payload(finalize_action)
 
         if me.get("finished_phase"):
             return
@@ -388,6 +388,17 @@ class GeneticBot(BaseBot):
                     given = contract.get("request_items", {})
                     received = contract.get("offer_items", {})
 
+                can_fulfill = all(
+                    resources.get(r, 0) >= qty
+                    for r, qty in given.items()
+                )
+                
+                if not can_fulfill:
+                    if command == "ACCEPT":
+                        return -100000
+                    elif command == "DENY":
+                        return 100000
+
                 utility = (
                     self.adjusted_resource_value(received, me)
                     - self.adjusted_resource_value(given, me)
@@ -398,7 +409,7 @@ class GeneticBot(BaseBot):
                 elif command == "DENY":
                     score -= utility
 
-        elif command == "FINALIZE":
+        if command == "FINALIZE":
             # Prefer to finalize (ship goods) if we can actually send the items
             actual = action.get("payload", {}).get("actual_items", {})
             feasible = {
