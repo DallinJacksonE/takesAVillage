@@ -3,46 +3,30 @@ import httpx
 import os
 import json
 import uuid
-import random
 from db import db
 from game_manager import create_game
 from logger import BackendLogger
+from training_genomes import (
+    mutate_genome_for_model,
+    normalize_genome_for_model,
+    random_genome_dict_for_model,
+)
+from training_population import (
+    build_generation_statistics,
+    build_next_population,
+)
+from training_updates import training_update_hub
 
 orch_logger = BackendLogger("orchestrator")
 active_training_sessions = {}
 
-GENOME_FIELDS = [
-    "food_weight", "wood_weight", "iron_weight", "food_desperation_weight",
-    "wood_desperation_weight", "iron_desperation_weight", "survival_weight",
-    "growth_weight", "reputation_weight", "aggression_weight", "cooperation_weight",
-    "risk_weight", "farm_preference", "woods_preference", "mine_preference",
-    "build_weight", "upgrade_weight", "maintain_weight", "contest_weight",
-    "work_weight", "fire_weight", "immediate_reward_weight", "future_reward_weight",
-]
 
-
-def _random_genome_dict():
-    return {f: random.uniform(0, 3) for f in GENOME_FIELDS}
-
-
-def _mutate_genome(genome: dict, mutation_strength=0.25, mutation_rate=0.15) -> dict:
-    out = {}
-    for k, v in genome.items():
-        if random.random() < mutation_rate:
-            out[k] = v + random.gauss(0, mutation_strength)
-        else:
-            out[k] = v
-    return out
-
-
-def _crossover_genomes(a: dict, b: dict) -> dict:
-    out = {}
-    for k in GENOME_FIELDS:
-        out[k] = random.choice([a.get(k, 0), b.get(k, 0)])
-    return out
-
-
-async def start_training_session(ruleset: str, bot_count: int, generations: int, base_genome_id: str, bot_model: str = "genetic"):
+async def start_training_session(ruleset: str, bot_count: int, generations: int,
+                                 base_genome_id: str,
+                                 bot_model: str = "genetic",
+                                 mutation_strength: float = 0.25,
+                                 mutation_rate: float = 0.15,
+                                 random_immigrant_count: int = 1):
     session_id = str(uuid.uuid4())
     orch_logger.info(f"Starting session {session_id[:8]} | "
                      f"Ruleset: {ruleset} | "
@@ -64,20 +48,23 @@ async def start_training_session(ruleset: str, bot_count: int, generations: int,
 
     population = []
     if base_genome_data:
-        population.append(base_genome_data)
+        population.append(normalize_genome_for_model(bot_model, base_genome_data))
         for _ in range(bot_count - 1):
-            population.append(_mutate_genome(base_genome_data))
+            population.append(mutate_genome_for_model(bot_model, base_genome_data))
     else:
         for _ in range(bot_count):
-            population.append(_random_genome_dict())
+            population.append(random_genome_dict_for_model(bot_model))
 
     # Add the bot_model to the session state
     active_training_sessions[session_id] = {
         "ruleset": ruleset, "bot_count": bot_count, "generations_left": generations-1,
         "population": population, "generation": 1, "elite_count": 2,
-        "selection_size": min(3, bot_count), "mutation_strength": 0.25, "mutation_rate": 0.15,
-        "bot_model": bot_model
+        "selection_size": min(3, bot_count), "mutation_strength": mutation_strength,
+        "mutation_rate": mutation_rate, "random_immigrant_count": random_immigrant_count,
+        "generation_statistics": [], "bot_model": bot_model
     }
+
+    await training_update_hub.broadcast_sessions(active_training_sessions)
 
     orch_logger.info("Session built. Triggering generation 1...")
     await _trigger_next_generation(session_id)
@@ -99,6 +86,7 @@ async def _trigger_next_generation(session_id: str):
         bots=session["bot_count"], training=True, training_session_id=session_id
     )
     active_training_sessions[session_id]["current_game_id"] = game_id
+    await training_update_hub.broadcast_sessions(active_training_sessions)
 
     bot_spawn_url = os.environ.get(
         "BOT_SERVICE_URL", "http://bots:8001")
@@ -156,38 +144,36 @@ async def handle_training_game_ended(game_id: str, training_session_id: str):
     if entries:
         entries_sorted = sorted(entries, key=lambda e: float(
             e.get("fitness", 0)), reverse=True)
-        best_genome = entries_sorted[0].get("genome")
+        bot_model = session.get("bot_model", "genetic")
+        best_genome = normalize_genome_for_model(
+            bot_model, entries_sorted[0].get("genome"))
         bot_count = session["bot_count"]
         elite_count = session.get("elite_count", 1)
         selection_size = session.get("selection_size", min(4, bot_count))
         mutation_strength = session.get("mutation_strength", 0.25)
         mutation_rate = session.get("mutation_rate", 0.15)
 
-        parents = [e.get("genome")
-                   for e in entries_sorted[:selection_size] if e.get("genome")]
-        next_population = []
-        for i in range(min(elite_count, len(parents))):
-            next_population.append(parents[i])
-
-        while len(next_population) < bot_count:
-            if len(parents) >= 2:
-                a, b = random.sample(parents, 2)
-                child = _crossover_genomes(a or {}, b or {})
-            elif len(parents) == 1:
-                child = dict(parents[0] or {})
-            else:
-                child = _random_genome_dict()
-            child = _mutate_genome(
-                child, mutation_strength=mutation_strength, mutation_rate=mutation_rate)
-            next_population.append(child)
-
-        session["population"] = next_population
+        generation_stats = build_generation_statistics(entries_sorted)
+        session.setdefault("generation_statistics", []).append({
+            "generation": session.get("generation", 1),
+            **generation_stats,
+        })
+        orch_logger.info(f"Generation stats: {generation_stats}")
+        session["population"] = build_next_population(
+            bot_model, entries_sorted, bot_count,
+            elite_count=elite_count,
+            selection_size=selection_size,
+            mutation_strength=mutation_strength,
+            mutation_rate=mutation_rate,
+            random_immigrant_count=session.get("random_immigrant_count", 1),
+        )
 
     if best_genome:
         session["base_genome"] = best_genome
 
     session["generations_left"] -= 1
     session["generation"] = session.get("generation", 1) + 1
+    await training_update_hub.broadcast_sessions(active_training_sessions)
 
     if session["generations_left"] > 0:
         orch_logger.info(f"Generation complete. "
@@ -209,3 +195,4 @@ async def handle_training_game_ended(game_id: str, training_session_id: str):
                                 f"session {training_session_id[:6]}")
 
         del active_training_sessions[training_session_id]
+        await training_update_hub.broadcast_sessions(active_training_sessions)

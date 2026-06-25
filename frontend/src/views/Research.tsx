@@ -3,7 +3,7 @@ import {
   ResearchPresenter,
   ResearchView,
 } from "../presenters/ResearchPresenter";
-import { ResearchGameDTO } from "../../../dtos";
+import { ResearchGameDTO, TrainingSessionDTO } from "../../../dtos";
 import { NewGameModal } from "../components/NewGameModal";
 const Research: React.FC = () => {
   const [presenter, setPresenter] = useState<ResearchPresenter | null>(null);
@@ -16,28 +16,11 @@ const Research: React.FC = () => {
   const [availableGenomes, setAvailableGenomes] = useState([]);
   const [gameOptions, setGameOptions] = useState({});
   const [showTrainingSessions, setShowTrainingSessions] = useState(false);
-  const [trainingSessions, setTrainingSessions] = useState<any[]>([]);
-  const loadTrainingSessions = async () => {
-    try {
-      const res = await fetch("/api/research/training-sessions");
-      const data = await res.json();
-      setTrainingSessions(data.sessions || []);
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  const [trainingSessions, setTrainingSessions] = useState<TrainingSessionDTO[]>([]);
 
   useEffect(() => {
-    if (!showTrainingSessions) return;
-
-    loadTrainingSessions();
-
-    const interval = setInterval(() => {
-      loadTrainingSessions();
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [showTrainingSessions]);
+    presenter?.setTrainingSessionsVisible(showTrainingSessions);
+  }, [presenter, showTrainingSessions]);
 
 
   const handleOpenTrainingMenu = async () => {
@@ -108,9 +91,12 @@ const Research: React.FC = () => {
       setIsLoggedIn,
       setSelectedGame,
       setGames,
+      setTrainingSessions,
     };
     const researchPresenter = new ResearchPresenter(view);
     setPresenter(researchPresenter);
+
+    return () => researchPresenter.dispose();
   }, []);
 
   if (!presenter) {

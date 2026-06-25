@@ -29,6 +29,7 @@ def build_player_state(game, session_id):
         "is_host": (session_id == getattr(game, 'host_id', None)),
         "me": me_dict,
         "day": game.day,
+        "game_length": game.game_length,
         "phase": game.phase,
         "time_remaining": game.get_time_remaining(),
         "player_list": player_list,

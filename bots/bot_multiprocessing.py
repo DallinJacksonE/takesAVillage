@@ -2,9 +2,10 @@ import asyncio
 import os
 import json
 from models.goap_genetic.GOAPGenetic import GOAPGenetic
+from models.goap_genetic.goap_genome import GOAPGenome
 from models.genetic.Genome import Genome
 from models.genetic.GeneticBot import GeneticBot
-from models.genetic.fitness import calculate_fitness
+from models.genetic.fitness import calculate_fitness_report
 from botsocket import BotSocket
 from training_seeder import seed_genomes
 import multiprocessing
@@ -23,12 +24,83 @@ AVAILABLE_BOT_MODELS = {
 }
 
 
+class ActionSubmissionGate:
+    """Suppress duplicate websocket action submissions for unchanged state."""
+
+    def __init__(self):
+        self._last_submission_key = None
+
+    def should_submit(self, state: dict, action: dict) -> bool:
+        submission_key = (
+            self._state_key(state),
+            json.dumps(action, sort_keys=True),
+        )
+        if submission_key == self._last_submission_key:
+            return False
+        self._last_submission_key = submission_key
+        return True
+
+    def _state_key(self, state: dict) -> str:
+        me = state.get("me", {})
+        observed_contracts = [
+            {
+                "id": action.get("id"),
+                "type": action.get("type"),
+                "status": action.get("status"),
+                "waiting_on_id": action.get("waiting_on_id"),
+                "initiator_finalized": action.get("initiator_finalized"),
+                "target_finalized": action.get("target_finalized"),
+            }
+            for action in me.get("actions", [])
+        ]
+        fingerprint = {
+            "day": state.get("day"),
+            "phase": state.get("phase"),
+            "status": state.get("status"),
+            "bot_id": me.get("id"),
+            "finished_phase": me.get("finished_phase", False),
+            "health": me.get("health"),
+            "resources": me.get("resources", {}),
+            "actions": observed_contracts,
+        }
+        return json.dumps(fingerprint, sort_keys=True)
+
+
 def get_bot(bot_name: str):
     return AVAILABLE_BOT_MODELS.get(bot_name, GeneticBot)
 
 
 def get_available_models() -> list[str]:
     return list(AVAILABLE_BOT_MODELS.keys())
+
+
+def create_genome_for_model(bot_type: str, genome_dict: dict | None = None):
+    if bot_type == "GOAPGenetic":
+        if genome_dict:
+            return GOAPGenome.from_dict(genome_dict)
+        return GOAPGenome.random()
+    if genome_dict:
+        return Genome(**genome_dict)
+    return Genome.random()
+
+
+def seed_genomes_for_model(bot_type: str,
+                           base_genome: dict | list | None,
+                           bot_count: int) -> list:
+    if isinstance(base_genome, list):
+        return [create_genome_for_model(bot_type, genome) for genome in base_genome]
+
+    if bot_type != "GOAPGenetic":
+        return seed_genomes(base_genome, bot_count)
+
+    if not base_genome:
+        return [GOAPGenome.random() for _ in range(bot_count)]
+
+    parent = GOAPGenome.from_dict(base_genome)
+    genomes = [parent]
+    for _ in range(bot_count - 1):
+        genomes.append(GOAPGenome.mutate(parent))
+    return genomes
 
 
 def run_bot_process(game_id: str,
@@ -45,10 +117,7 @@ def run_bot_process(game_id: str,
     training = False
 
     async def main():
-        if assigned_genome_dict:
-            genome = Genome(**assigned_genome_dict)
-        else:
-            genome = Genome.random()
+        genome = create_genome_for_model(bot_type, assigned_genome_dict)
 
         bot = get_bot(bot_type)(genome)
         # Pass the logger to the bot so it can log logic decisions (optional)
@@ -60,6 +129,7 @@ def run_bot_process(game_id: str,
 
         host_ready_event = asyncio.Event()
         game_ended = False
+        submission_gate = ActionSubmissionGate()
 
         # Pass the logger into the socket client
         socket = BotSocket(
@@ -85,13 +155,16 @@ def run_bot_process(game_id: str,
 
             me = state.get("me", {})
             if (me.get("health") == "dead" and not fitness_sent) or (state.get("status") == "ENDED" and not fitness_sent):
-                fitness_score = calculate_fitness(state)
+                fitness_report = calculate_fitness_report(state)
+                fitness_score = fitness_report.score
 
                 result_queue.put({
                     "game_id": game_id,
                     "Day": state.get("day"),
                     "bot_id": me.get("id"),
                     "fitness": fitness_score,
+                    "fitness_components": fitness_report.components,
+                    "stats": fitness_report.stats,
                     "genome": bot.genome.__dict__
                 })
                 fitness_sent = True
@@ -108,7 +181,7 @@ def run_bot_process(game_id: str,
 
             try:
                 action = bot.choose_action(state)
-                if action:
+                if action and submission_gate.should_submit(state, action):
                     await socket.submit_action(action)
                     if action["action_command"] == "EMPLOYMENT" and not state.get("training"):
                         await asyncio.sleep(5)
@@ -179,10 +252,7 @@ def spawn_bot_processes(game_id: str, bot_count: int,
                         bot_secret: str,
                         bot_model: str = "genetic",
                         base_genome: dict | None = None):
-    if isinstance(base_genome, list):
-        genomes = base_genome
-    else:
-        genomes = seed_genomes(base_genome, bot_count)
+    genomes = seed_genomes_for_model(bot_model, base_genome, bot_count)
 
     for i in range(bot_count):
         g = genomes[i]

@@ -1,5 +1,6 @@
 from BaseBot import BaseBot
-from models.genetic.Genome import Genome
+from models.goap_genetic.goap_genome import GOAPGenome
+from models.goap_genetic.memory import DecisionContext
 
 # We will build these modular files next
 from .perception import Perception
@@ -13,16 +14,19 @@ class GOAPGenetic(BaseBot):
     to evaluate broad goals, rather than scoring individual actions.
     """
 
-    def __init__(self, genome: Genome):
+    def __init__(self, genome: GOAPGenome | dict):
         super().__init__()
-        self.genome = genome
+        self.genome = (
+            genome if isinstance(genome, GOAPGenome)
+            else GOAPGenome.from_dict(genome)
+        )
         self.perception = Perception()
         self.thinker = Thinker(self.genome)
-        self.actuator = Actuator()
+        self.actuator = Actuator(self.genome)
 
     @staticmethod
     def from_json(genome_json: dict):
-        return GOAPGenetic(Genome(**genome_json))
+        return GOAPGenetic(GOAPGenome.from_dict(genome_json))
 
     def choose_action(self, game_state: dict) -> dict | None:
         """
@@ -35,6 +39,8 @@ class GOAPGenetic(BaseBot):
 
         me = game_state.get("me", {})
         if self.is_dead_player(me):
+            return None
+        if me.get("finished_phase"):
             return None
 
         # --- 1. SENSE (Perception) ---
@@ -55,13 +61,19 @@ class GOAPGenetic(BaseBot):
         # --- 3. ACT (Execution) ---
         # Retrieve technically valid actions from BaseBot
         available_actions = self.get_available_actions(game_state)
+        context = DecisionContext(memory=memory, legal_actions=available_actions)
 
         # If no actions are available, finish the phase
-        if not available_actions:
+        if not context.legal_actions:
             return self.format_network_payload(None)
 
         # Formulate a plan to achieve the winning goal and extract the next logical action
-        raw_action = self.actuator.act(winning_goal, available_actions, memory)
+        raw_action = self.actuator.act(
+            winning_goal, context.legal_actions, context.memory)
+        logger = getattr(self, "logger", None)
+        if raw_action and logger and self.actuator.last_debug_explanation:
+            logger.info(
+                f"GOAP action explanation: {self.actuator.last_debug_explanation}")
 
         # 4. Use BaseBot to clean and format the final DTO for the server
         return self.format_network_payload(raw_action)

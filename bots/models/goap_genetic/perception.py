@@ -1,42 +1,42 @@
+from .memory import Memory
+
+
 class Perception:
     """
-    The Sense module. Strictly a 'camera'. Parses the raw game_state JSON 
-    and translates it into a clean, objective 'Memory' state.
+    The Sense module. Strictly a 'camera'. Parses the raw game_state JSON
+    and translates it into a clean, objective Memory state.
     """
 
-    def __init__(self):
-        pass
-
-    def sense(self, game_state: dict) -> dict:
+    def sense(self, game_state: dict) -> Memory:
         """
-        Reads the world and returns a normalized memory state without judgments.
+        Reads the world and returns normalized factual memory without
+        preference-laden judgments.
         """
         me = game_state.get("me", {})
         my_id = me.get("id")
         resources = me.get("resources", {"wood": 0, "food": 0, "iron": 0})
+        actions = me.get("actions", [])
+        developments = game_state.get("developments", [])
+        map_tiles = self._map_tiles(game_state.get("map", {}))
+        development_costs = game_state.get("development_costs", {})
 
-        # --- 1. Action / Blocking States ---
         is_waiting = any(
             action.get("type") == "EMPLOYMENT"
             and action.get("is_application")
             and action.get("initiator_id") == my_id
             and action.get("status") == "PENDING"
-            for action in me.get("actions", [])
+            for action in actions
         )
 
         pending_contracts = [
-            a for a in me.get("actions", [])
-            if a.get("status") in ["PENDING", "ACCEPTED"]
+            action for action in actions
+            if action.get("status") in ["PENDING", "ACCEPTED"]
         ]
-
-        # --- 2. Development State Categorization ---
-        # Splitting developments into distinct categories makes it much easier
-        # for the GOAP planner to target the right lists later.
-        developments = game_state.get("developments", [])
 
         my_developments = []
         unowned_developments = []
-        other_player_developments = []  # This is crucial for your contesting logic
+        other_player_developments = []
+        contested_developments = []
 
         for dev in developments:
             owner_id = dev.get("owner_id")
@@ -47,27 +47,108 @@ class Perception:
             else:
                 other_player_developments.append(dev)
 
-        # --- 3. Construct the Factual Memory Object ---
+            if dev.get("is_contested"):
+                contested_developments.append(dev)
+
+        affordable_build_tiles = self._affordable_build_tiles(
+            map_tiles, development_costs, resources)
+        affordable_maintenance_developments = [
+            dev for dev in my_developments
+            if self._is_affordable(dev.get("maintenance_cost", {}), resources)
+        ]
+        affordable_upgrade_developments = [
+            dev for dev in my_developments
+            if self._is_affordable(dev.get("upgrade_cost", {}), resources)
+        ]
+        resource_production_by_dev = {
+            dev.get("id"): self._resource_for_development(dev.get("type"))
+            for dev in developments
+            if dev.get("id")
+        }
+
         memory = {
             # Core State
             "phase": game_state.get("phase"),
+            "day": game_state.get("day"),
+            "game_length": game_state.get("game_length"),
+            "time_remaining": game_state.get("time_remaining"),
+            "my_id": my_id,
             "health": me.get("health"),
             "sickness_chance": me.get("sickness_chance", 0.0),
+            "fire_status": me.get("fire_status", "COLD"),
+            "fire_guests": me.get("fire_guests", []),
+            "finished_phase": me.get("finished_phase", False),
             "is_waiting": is_waiting,
 
             # Pure resource counts
             "food": resources.get("food", 0),
             "wood": resources.get("wood", 0),
             "iron": resources.get("iron", 0),
+            "resource_total": sum(resources.get(res, 0) for res in ["food", "wood", "iron"]),
 
-            # World metrics
+            # World facts
+            "players": game_state.get("player_list", []),
+            "map": game_state.get("map", {}),
+            "development_costs": development_costs,
+            "campfire_cost": game_state.get("campfire_cost", {}),
+            "max_fire_seats": game_state.get("max_fire_seats", 0),
+            "cold_sickness_rate": game_state.get("cold_sickness_rate", 0.0),
+            "hunger_sickness_rate": game_state.get("hunger_sickness_rate", 0.0),
+            "recovery_rate": game_state.get("recovery_rate", 0.0),
             "pending_contracts": pending_contracts,
             "available_work": me.get("available_work", []),
 
-            # Development Data (Passing the full objects)
+            # Development facts
             "my_developments": my_developments,
             "unowned_developments": unowned_developments,
-            "other_player_developments": other_player_developments
+            "other_player_developments": other_player_developments,
+            "contested_developments": contested_developments,
+            "affordable_build_tiles": affordable_build_tiles,
+            "affordable_maintenance_developments": affordable_maintenance_developments,
+            "affordable_upgrade_developments": affordable_upgrade_developments,
+            "resource_production_by_dev": resource_production_by_dev,
+
+            # Trade facts
+            "candidate_trade_inventory": {
+                "food": resources.get("food", 0),
+                "wood": resources.get("wood", 0),
+                "iron": resources.get("iron", 0),
+            },
         }
 
-        return memory
+        return Memory(memory)
+
+    def _map_tiles(self, map_data: dict | list) -> list[dict]:
+        if isinstance(map_data, dict):
+            return list(map_data.values())
+        return map_data or []
+
+    def _affordable_build_tiles(
+        self,
+        map_tiles: list[dict],
+        development_costs: dict,
+        resources: dict,
+    ) -> list[dict]:
+        affordable = []
+        for tile in map_tiles:
+            if tile.get("development"):
+                continue
+            build_cost = development_costs.get(tile.get("type"), {}).get("build", {})
+            if self._is_affordable(build_cost, resources):
+                affordable.append(tile)
+        return affordable
+
+    def _is_affordable(self, cost: dict | None, resources: dict) -> bool:
+        return all(
+            resources.get(resource, 0) >= amount
+            for resource, amount in (cost or {}).items()
+        )
+
+    def _resource_for_development(self, development_type: str | None) -> str | None:
+        if development_type is None:
+            return None
+        return {
+            "Farm": "food",
+            "Woods": "wood",
+            "Mine": "iron",
+        }.get(development_type)

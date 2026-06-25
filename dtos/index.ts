@@ -323,6 +323,26 @@ export interface ResearchGameDTO {
   };
 }
 
+export interface TrainingSessionDTO {
+  session_id: string;
+  current_game_id?: string | null;
+  ruleset: string;
+  bot_count: number;
+  generation: number;
+  generations_left: number;
+  population_size: number;
+  elite_count?: number;
+  selection_size?: number;
+  mutation_strength?: number;
+  mutation_rate?: number;
+  random_immigrant_count?: number;
+  generation_statistics: any[];
+}
+
+export interface TrainingSessionsDTO {
+  sessions: TrainingSessionDTO[];
+}
+
 export interface NewGameDTO {
   gameId: string;
 }

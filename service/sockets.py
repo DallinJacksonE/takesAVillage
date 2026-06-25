@@ -142,10 +142,14 @@ async def process_game_event(event: str, payload: dict, game_id: str, user_id: s
         if game.status == "WAITING":
             return
 
+        action_cmd = payload.get('action_command', payload.get('actionId'))
+        player = game.players.get(user_id)
+        if action_cmd == 'FINISH_PHASE' and player and player.finished_phase:
+            return
+
         if game.handle_action(user_id, payload):
             await manager.broadcast_game_state(game_id, game)
         else:
-            action_cmd = payload.get('action_command', payload.get('actionId'))
             await manager.send_personal_message({
                 "event": "error",
                 "data": {"message": "Action rejected by game rules.", "action_command": action_cmd}

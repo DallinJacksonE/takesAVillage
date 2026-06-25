@@ -2,7 +2,7 @@ from training_orchestrator import start_training_session, active_training_sessio
 from pydantic import BaseModel
 import os
 import uuid
-from fastapi import APIRouter, Response, Cookie, HTTPException
+from fastapi import APIRouter, Response, Cookie, HTTPException, WebSocket, WebSocketDisconnect
 from typing import Optional
 import ast
 from pathlib import Path
@@ -11,6 +11,8 @@ from game_manager import active_games, create_game
 import httpx
 import asyncio
 from logger import BackendLogger
+from training_session_presenter import build_training_session_payload
+from training_updates import training_update_hub
 
 api_router = APIRouter()
 CONSTANTS_DIR = Path(__file__).parent / "constants"
@@ -120,7 +122,6 @@ async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
                 break
 
     game_id = create_game(user_session, ruleset, bot_count)
-    await asyncio.sleep(1)
 
     if bot_count > 0:
         bot_url = os.environ.get(
@@ -246,6 +247,9 @@ async def start_training(payload: dict):
     generations = int(payload.get('generations', 1))
     base_genome = payload.get('baseGenome', 'random')
     bot_model = payload.get('botModel', 'genetic')  # <-- Extract the model
+    mutation_strength = float(payload.get('mutationStrength', 0.25))
+    mutation_rate = float(payload.get('mutationRate', 0.15))
+    random_immigrant_count = int(payload.get('randomImmigrantCount', 1))
 
     api_logger.info(
         f"Received training request: Ruleset={ruleset}, Bots={bot_count}, "
@@ -256,7 +260,10 @@ async def start_training(payload: dict):
     asyncio.create_task(
         # <-- Pass the model to the orchestrator
         start_training_session(
-            ruleset, bot_count, generations, base_genome, bot_model)
+            ruleset, bot_count, generations, base_genome, bot_model,
+            mutation_strength=mutation_strength,
+            mutation_rate=mutation_rate,
+            random_immigrant_count=random_immigrant_count)
     )
 
     return {"message": "Training sequence initiated"}
@@ -264,22 +271,19 @@ async def start_training(payload: dict):
 
 @api_router.get("/api/research/training-sessions")
 async def get_training_sessions():
-    sessions = []
+    return build_training_session_payload(active_training_sessions)
 
-    for session_id, session in active_training_sessions.items():
-        api_logger.info(f"Session {session_id}: {session}")
-        sessions.append({
-            "session_id": session_id,
-            "current_game_id": session.get("current_game_id"),
-            "ruleset": session.get("ruleset"),
-            "bot_count": session.get("bot_count"),
-            "generation": session.get("generation"),
-            "generations_left": session.get("generations_left"),
-            "population_size": len(session.get("population", [])),
-            "elite_count": session.get("elite_count"),
-            "selection_size": session.get("selection_size"),
-            "mutation_strength": session.get("mutation_strength"),
-            "mutation_rate": session.get("mutation_rate")
-        })
 
-    return {"sessions": sessions}
+@api_router.websocket("/ws/research/training-sessions")
+async def training_sessions_websocket(websocket: WebSocket):
+    await training_update_hub.connect(websocket)
+    await training_update_hub.send_current_state(websocket, active_training_sessions)
+
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        training_update_hub.disconnect(websocket)
+    except Exception as e:
+        api_logger.error("Research training websocket failed", exc=e)
+        training_update_hub.disconnect(websocket)

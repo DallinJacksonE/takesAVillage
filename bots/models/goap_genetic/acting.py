@@ -1,45 +1,62 @@
-from .action_generator import ActionGenerator
+from .goals import GOAPGoal, GoalLibrary
+from .goap_actions import OneStepPlanner
+from .goap_genome import GOAPGenome
+from .memory import Memory
 
 
 class Actuator:
     """
-    The Act module. Takes the winning goal and asks the ActionGenerator 
-    to provide the best tactical move from the legally available actions.
+    The Act module. It uses explicit GOAP goals and one-step action templates
+    over the currently legal server actions. No plans are cached; every call
+    replans from current memory and current legal actions.
     """
 
-    def __init__(self):
-        self.generator = ActionGenerator()
+    def __init__(self, genome: GOAPGenome):
+        self.goal_library = GoalLibrary(genome)
+        self.planner = OneStepPlanner(genome)
+        self.last_debug_explanation = None
+        self.fallback_goal_order = [
+            "SURVIVE",
+            "SECURE_WARMTH",
+            "SECURE_FOOD",
+            "PRESERVE_ASSETS",
+            "IMPROVE_ASSETS",
+            "SECURE_INCOME",
+            "RESOLVE_OBLIGATIONS",
+            "COOPERATE",
+            "INCREASE_PRODUCTION",
+            "TRADE_TOWARD_SCARCITY",
+            "CONTEST_VALUE",
+        ]
 
-    def act(self, winning_goal: str, available_actions: list, memory: dict) -> dict | None:
+    def act(self, winning_goal: GOAPGoal | str, available_actions: list,
+            memory: Memory) -> dict | None:
         """
-        Routes the winning goal to the appropriate strategy generator.
+        Plans for the selected goal, then tries next viable explicit goals.
         """
-        chosen_action = None
+        goal_order = [self._goal_from(winning_goal)]
+        goal_order.extend(
+            self.goal_library.by_name(goal_name)
+            for goal_name in self.fallback_goal_order
+            if goal_name != goal_order[0].name
+        )
 
-        if winning_goal == "SURVIVE":
-            chosen_action = self.generator.get_survival_action(
-                available_actions, memory)
+        for goal in goal_order:
+            if goal.is_complete(memory):
+                continue
+            planned = self.planner.plan(goal, available_actions, memory)
+            if planned is not None:
+                self.last_debug_explanation = planned.explanation
+                return planned.server_action
 
-        elif winning_goal == "EXPAND_TERRITORY":
-            chosen_action = self.generator.get_expansion_action(
-                available_actions, memory)
+        self.last_debug_explanation = None
+        return None
 
-        elif winning_goal == "MAINTAIN_ASSETS":
-            chosen_action = self.generator.get_maintenance_action(
-                available_actions, memory)
-
-        elif winning_goal == "SECURE_INCOME":
-            chosen_action = self.generator.get_income_action(
-                available_actions, memory)
-
-        elif winning_goal == "COOPERATE":
-            chosen_action = self.generator.get_cooperation_action(
-                available_actions, memory)
-
-        # --- The Fallback Subsumption Architecture ---
-
-        if chosen_action is None:
-            chosen_action = self.generator.get_income_action(
-                available_actions, memory)
-
-        return chosen_action
+    def _goal_from(self, goal: GOAPGoal | str) -> GOAPGoal:
+        if isinstance(goal, GOAPGoal):
+            return goal
+        aliases = {
+            "EXPAND_TERRITORY": "INCREASE_PRODUCTION",
+            "MAINTAIN_ASSETS": "PRESERVE_ASSETS",
+        }
+        return self.goal_library.by_name(aliases.get(goal, goal))
