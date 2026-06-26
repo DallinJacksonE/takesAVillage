@@ -13,12 +13,33 @@ import asyncio
 from logger import BackendLogger
 from training_session_presenter import build_training_session_payload
 from training_updates import training_update_hub
+from research_visualizations.batch_commands import default_batch_visualization_commands
+from research_visualizations.game_commands import default_game_visualization_commands
+from research_visualizations.registry import VisualizationRegistry
+from research_visualizations.runner import VisualizationRunner
 
 api_router = APIRouter()
 CONSTANTS_DIR = Path(__file__).parent / "constants"
 
 # Initialize the API Logger
 api_logger = BackendLogger("api")
+
+
+def ensure_visualizations(scope_type: str, scope_id: str, context: dict):
+    existing = db.get_research_visualizations(scope_type, scope_id)
+    if existing:
+        return existing
+
+    commands = (default_game_visualization_commands()
+                if scope_type == "game"
+                else default_batch_visualization_commands())
+    try:
+        VisualizationRunner(db, VisualizationRegistry(commands)).run_all(
+            scope_type, scope_id, context)
+    except Exception as e:
+        api_logger.warning(
+            f"Failed to generate {scope_type} visualizations for {scope_id}: {e}")
+    return db.get_research_visualizations(scope_type, scope_id)
 
 
 def parse_ruleset_file(filepath: Path) -> dict:
@@ -98,9 +119,80 @@ async def get_active_games(user_session: Optional[str] = Cookie(None)):
 
 
 @api_router.get('/api/research/games')
-async def get_research_games():
+async def get_research_games(search: Optional[str] = None,
+                             sort: str = "time_desc"):
     game_history = db.get_all_games()
+    if search:
+        query = search.lower()
+        game_history = [
+            game for game in game_history
+            if query in str(game.get("game_id", "")).lower()
+            or query in str(game.get("game_type", "")).lower()
+            or query in str(game.get("training_batch_id", "")).lower()
+        ]
+    if sort == "name_asc":
+        game_history = sorted(game_history, key=lambda game: game.get("game_id", ""))
+    elif sort == "name_desc":
+        game_history = sorted(
+            game_history, key=lambda game: game.get("game_id", ""), reverse=True)
     return game_history
+
+
+@api_router.get('/api/research/games/{game_id}')
+async def get_research_game(game_id: str):
+    for game in db.get_all_games():
+        if game.get("game_id") == game_id:
+            return {
+                **game,
+                "visualizations": ensure_visualizations("game", game_id, game),
+            }
+    raise HTTPException(status_code=404, detail="Game not found")
+
+
+@api_router.get('/api/research/training-batches')
+async def get_training_batches():
+    persisted_batches = db.get_training_batches()
+    persisted_ids = {batch.get("batch_id") for batch in persisted_batches}
+    active_payload = build_training_session_payload(active_training_sessions)
+    active_batches = []
+    for session in active_payload.get("sessions", []):
+        if session.get("session_id") in persisted_ids:
+            continue
+        active_batches.append({
+            "batch_id": session.get("session_id"),
+            "status": "running",
+            "ruleset": session.get("ruleset"),
+            "bot_count": session.get("bot_count"),
+            "current_generation": session.get("generation"),
+            "current_game_id": session.get("current_game_id"),
+            "generation_statistics": session.get("generation_statistics", []),
+        })
+    return {"batches": active_batches + persisted_batches}
+
+
+@api_router.get('/api/research/training-batches/{batch_id}')
+async def get_training_batch(batch_id: str):
+    batch = db.get_training_batch(batch_id)
+    if not batch:
+        session = active_training_sessions.get(batch_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Training batch not found")
+        batch = {"batch_id": batch_id, "status": "running", **session}
+    return {
+        **batch,
+        "visualizations": ensure_visualizations("training_batch", batch_id, batch),
+    }
+
+
+@api_router.get('/api/research/visualizations/{visualization_id}')
+async def get_research_visualization(visualization_id: str):
+    visualization = db.get_research_visualization(visualization_id)
+    if not visualization:
+        raise HTTPException(status_code=404, detail="Visualization not found")
+    return Response(
+        content=visualization["image_bytes"],
+        media_type=visualization.get("mime_type", "image/png"),
+    )
 
 
 @api_router.post('/api/newGame')

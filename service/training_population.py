@@ -36,6 +36,7 @@ def build_generation_statistics(entries: list[dict]) -> dict:
 
     return {
         "best_fitness": max(fitnesses) if fitnesses else 0.0,
+        "average_fitness": mean(fitnesses) if fitnesses else 0.0,
         "median_fitness": median(fitnesses) if fitnesses else 0.0,
         "worst_fitness": min(fitnesses) if fitnesses else 0.0,
         "survival_rate": mean([

@@ -11,12 +11,14 @@ active_games = {}
 
 
 def create_game(user_cookie: str, ruleset: str, bots=0,
-                training=False, training_session_id="") -> str:
+                training=False, training_session_id="",
+                training_generation=None) -> str:
     """Creates a new game instance and adds it to the active pool."""
     game_id = "g_" + str(uuid.uuid4())[:4]
     active_games[game_id] = Game(
         game_id, user_cookie, ruleset_name=ruleset, bots=bots,
-        training=training, training_session_id=training_session_id)
+        training=training, training_session_id=training_session_id,
+        training_generation=training_generation)
     return game_id
 
 
@@ -43,14 +45,19 @@ async def game_loop(connection_manager):
                     "map": map_dict,
                     "players": player_dict,
                     "training": game.training,
-                    "training_session_id": game.training_session_id
+                    "training_session_id": game.training_session_id,
+                    "training_generation": game.training_generation
                 }
 
                 db.store_game_result(
                     game.id,
                     game.day,
                     game.phase,
-                    json.dumps(game_data)
+                    json.dumps(game_data),
+                    training_batch_id=game.training_session_id if game.training else None,
+                    training_generation=game.training_generation,
+                    game_type=("training" if game.training else
+                               "human_bot" if game.bot_count else "human")
                 )
 
                 if game.training:

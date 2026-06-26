@@ -18,7 +18,9 @@ from logger import BackendLogger
 
 
 class Game:
-    def __init__(self, game_id, host_id, ruleset_name="default", bots=0, training=False, training_session_id=None):
+    def __init__(self, game_id, host_id, ruleset_name="default", bots=0,
+                 training=False, training_session_id=None,
+                 training_generation=None):
         self.id = game_id
         self.host_id = host_id
         self.status = 'WAITING'
@@ -81,6 +83,7 @@ class Game:
         self.bot_count = bots
         self.training = training
         self.training_session_id = training_session_id
+        self.training_generation = training_generation
 
     def add_player(self, session_id):
         if session_id not in self.players:

@@ -63,6 +63,20 @@ async def start_training_session(ruleset: str, bot_count: int, generations: int,
         "mutation_rate": mutation_rate, "random_immigrant_count": random_immigrant_count,
         "generation_statistics": [], "bot_model": bot_model
     }
+    db.create_training_batch(session_id, {
+        "ruleset": ruleset,
+        "bot_model": bot_model,
+        "bot_count": bot_count,
+        "total_generations": generations,
+        "base_genome_id": base_genome_id,
+        "config": {
+            "mutation_strength": mutation_strength,
+            "mutation_rate": mutation_rate,
+            "random_immigrant_count": random_immigrant_count,
+            "elite_count": active_training_sessions[session_id]["elite_count"],
+            "selection_size": active_training_sessions[session_id]["selection_size"],
+        },
+    })
 
     await training_update_hub.broadcast_sessions(active_training_sessions)
 
@@ -83,9 +97,11 @@ async def _trigger_next_generation(session_id: str):
                      f"{gen_num} with ruleset: {ruleset}")
     game_id = create_game(
         user_cookie="TRAINING_ORCHESTRATOR", ruleset=ruleset,
-        bots=session["bot_count"], training=True, training_session_id=session_id
+        bots=session["bot_count"], training=True, training_session_id=session_id,
+        training_generation=gen_num
     )
     active_training_sessions[session_id]["current_game_id"] = game_id
+    db.mark_training_batch_game_started(session_id, game_id, gen_num)
     await training_update_hub.broadcast_sessions(active_training_sessions)
 
     bot_spawn_url = os.environ.get(
@@ -158,6 +174,9 @@ async def handle_training_game_ended(game_id: str, training_session_id: str):
             "generation": session.get("generation", 1),
             **generation_stats,
         })
+        db.append_training_batch_generation_stats(
+            training_session_id,
+            {"generation": session.get("generation", 1), **generation_stats})
         orch_logger.info(f"Generation stats: {generation_stats}")
         session["population"] = build_next_population(
             bot_model, entries_sorted, bot_count,
@@ -186,13 +205,16 @@ async def handle_training_game_ended(game_id: str, training_session_id: str):
 
         genome_to_save = best_genome if best_genome else (
             session.get("population") or [None])[0]
+        final_champion_genome_id = None
         if genome_to_save:
             db.store_genome(name, shorthand, json.dumps(genome_to_save))
+            final_champion_genome_id = name
             orch_logger.info(f"Stored final champion for session "
                              f"{training_session_id[:6]}")
         else:
             orch_logger.warning(f"No genome data available to save for "
                                 f"session {training_session_id[:6]}")
 
+        db.complete_training_batch(training_session_id, final_champion_genome_id)
         del active_training_sessions[training_session_id]
         await training_update_hub.broadcast_sessions(active_training_sessions)

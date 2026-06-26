@@ -14,6 +14,10 @@ httpx_stub = types.ModuleType("httpx")
 setattr(httpx_stub, "AsyncClient", object)
 sys.modules["httpx"] = httpx_stub
 
+fastapi_stub = types.ModuleType("fastapi")
+setattr(fastapi_stub, "WebSocket", object)
+sys.modules["fastapi"] = fastapi_stub
+
 db_stub = types.ModuleType("db")
 setattr(db_stub, "db", types.SimpleNamespace(get_all_genomes=lambda: [], store_genome=lambda *args, **kwargs: None))
 sys.modules["db"] = db_stub
@@ -121,6 +125,7 @@ class TrainingOrchestratorGOAPGenomeTests(unittest.TestCase):
         stats = training_population.build_generation_statistics(entries)
 
         self.assertEqual(stats["best_fitness"], 30.0)
+        self.assertEqual(stats["average_fitness"], 20.0)
         self.assertEqual(stats["median_fitness"], 20.0)
         self.assertEqual(stats["worst_fitness"], 10.0)
         self.assertAlmostEqual(stats["survival_rate"], 2 / 3)

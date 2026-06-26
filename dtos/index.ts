@@ -303,6 +303,10 @@ export interface ResearchGameDTO {
   day_num: number;
   phase: string;
   created_at: string;
+  game_type?: "human" | "human_bot" | "training";
+  training_batch_id?: string | null;
+  training_generation?: number | null;
+  visualizations?: ResearchVisualizationDTO[];
 
   data: {
     map: Record<
@@ -323,6 +327,67 @@ export interface ResearchGameDTO {
   };
 }
 
+export interface ResearchVisualizationDTO {
+  id: string;
+  scope_type: "game" | "training_batch";
+  scope_id: string;
+  name: string;
+  title: string;
+  mime_type: string;
+  url: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+}
+
+export interface ResearchGameListItemDTO {
+  game_id: string;
+  day_num: number;
+  phase: string;
+  created_at: string;
+  game_type: "human" | "human_bot" | "training";
+  training_batch_id?: string | null;
+  training_generation?: number | null;
+}
+
+export interface ResearchGameDetailDTO extends ResearchGameDTO {
+  visualizations: ResearchVisualizationDTO[];
+}
+
+export interface TrainingGenerationStatisticsDTO {
+  generation: number;
+  best_fitness: number;
+  average_fitness: number;
+  median_fitness?: number;
+  worst_fitness?: number;
+  survival_rate?: number;
+  average_resources?: number;
+  average_developments?: number;
+  illegal_action_count?: number;
+  gene_diversity?: Record<string, number>;
+}
+
+export interface TrainingBatchListItemDTO {
+  batch_id: string;
+  status: "running" | "completed" | "failed";
+  ruleset?: string;
+  bot_model?: string;
+  bot_count?: number;
+  total_generations?: number;
+  current_generation?: number;
+  current_game_id?: string | null;
+  started_at?: string;
+  completed_at?: string | null;
+  generation_statistics?: TrainingGenerationStatisticsDTO[];
+}
+
+export interface TrainingBatchDetailDTO extends TrainingBatchListItemDTO {
+  base_genome_id?: string | null;
+  final_champion_genome_id?: string | null;
+  config?: Record<string, any>;
+  games?: Array<{ game_id: string; generation: number }>;
+  visualizations: ResearchVisualizationDTO[];
+}
+
 export interface TrainingSessionDTO {
   session_id: string;
   current_game_id?: string | null;
@@ -336,7 +401,7 @@ export interface TrainingSessionDTO {
   mutation_strength?: number;
   mutation_rate?: number;
   random_immigrant_count?: number;
-  generation_statistics: any[];
+  generation_statistics: TrainingGenerationStatisticsDTO[];
 }
 
 export interface TrainingSessionsDTO {
