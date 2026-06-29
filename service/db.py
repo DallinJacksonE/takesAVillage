@@ -134,6 +134,16 @@ class InMemoryDB(DatabaseProvider):
     def initialize_database(self):
         db_logger.info(
             "InMemoryDB ready. (Note: Data wipes on container restart)")
+        
+    def delete_research_visualizations(self, scope_type: str, scope_id: str):
+        self.research_visualizations = {
+            key: value
+            for key, value in self.research_visualizations.items()
+            if not (
+                value["scope_type"] == scope_type
+                and value["scope_id"] == scope_id
+            )
+        }
 
     def store_game_result(self, game_id, day_num, phase, snapshot_json,
                           training_batch_id=None, training_generation=None,
@@ -218,7 +228,7 @@ class InMemoryDB(DatabaseProvider):
             "final_champion_genome_id": None,
             "config": config.get("config", {}),
             "generation_statistics": [],
-            "games": [],
+            "games": {},
         }
 
     def mark_training_batch_game_started(self, batch_id: str, game_id: str,
@@ -674,6 +684,26 @@ class MySQLDB(DatabaseProvider):
             conn.commit()
         except mysql.connector.Error as err:
             db_logger.error(f"Error storing night snapshot: {err}")
+        finally:
+            cursor.close()
+            conn.close()
+
+    def delete_research_visualizations(self, scope_type: str, scope_id: str):
+        conn = self.get_connection()
+        if not conn:
+            return
+
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                """
+                DELETE FROM research_visualizations
+                WHERE scope_type = %s
+                AND scope_id = %s
+                """,
+                (scope_type, scope_id),
+            )
+            conn.commit()
         finally:
             cursor.close()
             conn.close()

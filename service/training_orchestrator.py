@@ -61,7 +61,8 @@ async def start_training_session(ruleset: str, bot_count: int, generations: int,
         "population": population, "generation": 1, "elite_count": 2,
         "selection_size": min(3, bot_count), "mutation_strength": mutation_strength,
         "mutation_rate": mutation_rate, "random_immigrant_count": random_immigrant_count,
-        "generation_statistics": [], "bot_model": bot_model
+        "generation_statistics": [], "bot_model": bot_model,
+        'games': []
     }
     db.create_training_batch(session_id, {
         "ruleset": ruleset,
@@ -89,6 +90,12 @@ async def _trigger_next_generation(session_id: str):
     session = active_training_sessions.get(session_id)
     if not session:
         return
+    
+    if session.get("generation_in_progress"):
+        orch_logger.warning(f"Generation already in progress for {session_id}")
+        return
+
+    session["generation_in_progress"] = True
 
     gen_num = session.get("generation", 1)
     ruleset = session.get("ruleset", "default")
@@ -122,11 +129,16 @@ async def _trigger_next_generation(session_id: str):
                              f"{session_id[:6]} in game {game_id}")
         except Exception as e:
             orch_logger.error("Failed to reach Bot Service", exc=e)
+    session["generation_in_progress"] = False
 
 
 async def handle_training_game_ended(game_id: str, training_session_id: str):
     session = active_training_sessions.get(training_session_id)
     if not session:
+        return
+    
+    if session.get("generation_in_progress"):
+        orch_logger.warning("Duplicate game-ended ignored")
         return
 
     bot_url = os.environ.get("BOT_SERVICE_URL", "http://bots:8001")
@@ -191,7 +203,7 @@ async def handle_training_game_ended(game_id: str, training_session_id: str):
         session["base_genome"] = best_genome
 
     session["generations_left"] -= 1
-    session["generation"] = session.get("generation", 1) + 1
+    session["generation"] += 1
     await training_update_hub.broadcast_sessions(active_training_sessions)
 
     if session["generations_left"] > 0:
@@ -214,6 +226,26 @@ async def handle_training_game_ended(game_id: str, training_session_id: str):
         else:
             orch_logger.warning(f"No genome data available to save for "
                                 f"session {training_session_id[:6]}")
+            
+        game_stats = {
+            "game_id": game_id,
+            "trade_count": sum(
+                len(e.get("events", {}).get("trades", []))
+                for e in entries
+            ),
+            "contest_count": sum(
+                len(e.get("events", {}).get("contests", []))
+                for e in entries
+            ),
+        }
+
+        session.setdefault("games", {})
+
+        session["games"][game_id] = {
+            "game_id": game_id,
+            "trade_count": game_stats["trade_count"],
+            "contest_count": game_stats["contest_count"],
+        }
 
         db.complete_training_batch(training_session_id, final_champion_genome_id)
         del active_training_sessions[training_session_id]

@@ -26,19 +26,33 @@ api_logger = BackendLogger("api")
 
 
 def ensure_visualizations(scope_type: str, scope_id: str, context: dict):
-    existing = db.get_research_visualizations(scope_type, scope_id)
-    if existing:
-        return existing
+    # Only cache completed game visualizations.
+    if scope_type == "game":
+        existing = db.get_research_visualizations(scope_type, scope_id)
+        if existing:
+            return existing
 
-    commands = (default_game_visualization_commands()
-                if scope_type == "game"
-                else default_batch_visualization_commands())
+    # Delete old visualizations for training batches if your DB supports it.
+    if scope_type == "training_batch":
+        db.delete_research_visualizations(scope_type, scope_id)
+
+    commands = (
+        default_game_visualization_commands()
+        if scope_type == "game"
+        else default_batch_visualization_commands()
+    )
+
     try:
         VisualizationRunner(db, VisualizationRegistry(commands)).run_all(
-            scope_type, scope_id, context)
+            scope_type,
+            scope_id,
+            context,
+        )
     except Exception as e:
         api_logger.warning(
-            f"Failed to generate {scope_type} visualizations for {scope_id}: {e}")
+            f"Failed to generate {scope_type} visualizations for {scope_id}: {e}"
+        )
+
     return db.get_research_visualizations(scope_type, scope_id)
 
 
