@@ -39,7 +39,9 @@ def add_player_hist(game, session_id):
 
         'actions': _safe_serialize(
             list(player.actions.values())
-        )
+        ),
+        
+        'trade_count': player.trade_count
     }
 
     return True

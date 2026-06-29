@@ -57,7 +57,7 @@ async def start_training_session(ruleset: str, bot_count: int, generations: int,
 
     # Add the bot_model to the session state
     active_training_sessions[session_id] = {
-        "ruleset": ruleset, "bot_count": bot_count, "generations_left": generations-1,
+        "ruleset": ruleset, "bot_count": bot_count, "generations_left": generations,
         "population": population, "generation": 1, "elite_count": 2,
         "selection_size": min(3, bot_count), "mutation_strength": mutation_strength,
         "mutation_rate": mutation_rate, "random_immigrant_count": random_immigrant_count,

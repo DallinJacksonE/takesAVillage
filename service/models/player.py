@@ -24,6 +24,7 @@ class Player:
         self.finished_phase = False
         self.committed_action = None
         self.last_committed_action = None
+        self.trade_count = 0
 
     def add_timeline_event(self, event_type, data):
         """

@@ -97,4 +97,8 @@ class SocialResolvers:
         }
         initiator.trade_history.append(trade_record_for_initiator)
         target.trade_history.append(trade_record_for_target)
+
+        initiator.trade_count += 1
+        target.trade_count += 1
+        
         return True

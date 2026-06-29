@@ -97,7 +97,7 @@ class BaseBot(ABC):
             if phase == "TRADE":
                 self.trade_offers_made = 0
 
-        if phase == "WORK" and me.get("health") not in ["sick", "recovering", "dead"]:
+        if phase == "WORK" and me.get("health") != "dead":
             # --- 1. BUILD ACTIONS ---
             dev_costs = game_state.get("development_costs", {})
             map_data = game_state.get("map", {})
@@ -105,146 +105,148 @@ class BaseBot(ABC):
             # Handle map_data whether it arrives as a dict or a list
             tiles = map_data.values() if isinstance(
                 map_data, dict) else map_data
-
-            for tile in tiles:
-                if not tile.get("development"):
-                    tile_type = tile.get("type")
-                    build_cost = dev_costs.get(tile_type, {}).get("build", {})
-
-                    affordable = all(
-                        resources.get(res, 0) >= amount
-                        for res, amount in build_cost.items()
-                    )
-
-                    if affordable:
-                        actions.append({
-                            "action_command": "BUILD_DEV",
-                            "payload": {
-                                "tile_id": tile["id"],
-                                "_tile_type": tile_type
-                            }
-                        })
-            for dev in game_state.get("developments", []):
-                if dev["owner_id"] == me["id"] and dev["can_upgrade"]:
-                    upgrade_cost = self.get_upgrade_cost(dev, game_state)
-
-                    affordable = all(
-                        resources.get(res, 0) >= amount
-                        for res, amount in upgrade_cost.items()
-                    )
-
-                    if affordable:
-                        actions.append({
-                            "action_command": "UPGRADE_DEV",
-                            "payload": {
-                                "dev_id": dev["id"]
-                            }
-                        })
             
-                if dev["owner_id"] == me["id"]:
-                    affordable = all(
-                        resources.get(r, 0) >= amt
-                        for r, amt in self.get_maintenance_cost(dev, game_state).items()
-                    )
+            if me.get("health") not in ["sick", "recovering"]:
 
-                    if affordable:
-                        actions.append({
-                            "action_command": "MAINTAIN_DEV",
-                            "payload": {
-                                "dev_id": dev["id"]
-                            }
-                        })
-            
-                if dev["owner_id"] != me["id"]:
-                    actions.append({
-                        "action_command": "CONTEST_DEV",
-                        "payload": {
-                            "dev_id": dev["id"],
-                            "side": "INITIATOR"
-                        }
-                    })
+                for tile in tiles:
+                    if not tile.get("development"):
+                        tile_type = tile.get("type")
+                        build_cost = dev_costs.get(tile_type, {}).get("build", {})
 
-            # --- JOB APPLICATIONS ---
+                        affordable = all(
+                            resources.get(res, 0) >= amount
+                            for res, amount in build_cost.items()
+                        )
 
-            existing_apps = {
-                (a.get("dev_id"), a.get("target_id"))
-                for a in me.get("actions", [])
-                if a["type"] == "EMPLOYMENT"
-            }
+                        if affordable:
+                            actions.append({
+                                "action_command": "BUILD_DEV",
+                                "payload": {
+                                    "tile_id": tile["id"],
+                                    "_tile_type": tile_type
+                                }
+                            })
+                for dev in game_state.get("developments", []):
+                    if dev["owner_id"] == me["id"] and dev["can_upgrade"]:
+                        upgrade_cost = self.get_upgrade_cost(dev, game_state)
 
-            for dev in game_state.get("developments", []):
+                        affordable = all(
+                            resources.get(res, 0) >= amount
+                            for res, amount in upgrade_cost.items()
+                        )
 
-                owner = self.find_player(game_state, dev["owner_id"])
-
-                if (dev['id'], dev['owner_id']) in existing_apps:
-                    continue
-
-                if dev["is_contested"]:
-
+                        if affordable:
+                            actions.append({
+                                "action_command": "UPGRADE_DEV",
+                                "payload": {
+                                    "dev_id": dev["id"]
+                                }
+                            })
+                
                     if dev["owner_id"] == me["id"]:
-                        actions.append({
-                            "action_command": "CONTEST_DEV",
-                            "payload": {
-                            "dev_id": dev["id"],
-                            "side": "OWNER"
-                        }
-                    })
-                    
-                    elif dev.get("contest_initiator_id") == me["id"]:
+                        affordable = all(
+                            resources.get(r, 0) >= amt
+                            for r, amt in self.get_maintenance_cost(dev, game_state).items()
+                        )
+
+                        if affordable:
+                            actions.append({
+                                "action_command": "MAINTAIN_DEV",
+                                "payload": {
+                                    "dev_id": dev["id"]
+                                }
+                            })
+                
+                    if dev["owner_id"] != me["id"]:
                         actions.append({
                             "action_command": "CONTEST_DEV",
                             "payload": {
                                 "dev_id": dev["id"],
-                                "side": "CONTESTER"
+                                "side": "INITIATOR"
                             }
                         })
 
-                    else:
-                        actions.append({
-                            "action_command": "CONTEST_DEV",
-                            "payload": {
+                # --- JOB APPLICATIONS ---
+
+                existing_apps = {
+                    (a.get("dev_id"), a.get("target_id"))
+                    for a in me.get("actions", [])
+                    if a["type"] == "EMPLOYMENT"
+                }
+
+                for dev in game_state.get("developments", []):
+
+                    owner = self.find_player(game_state, dev["owner_id"])
+
+                    if (dev['id'], dev['owner_id']) in existing_apps:
+                        continue
+
+                    if dev["is_contested"]:
+
+                        if dev["owner_id"] == me["id"]:
+                            actions.append({
+                                "action_command": "CONTEST_DEV",
+                                "payload": {
                                 "dev_id": dev["id"],
                                 "side": "OWNER"
                             }
                         })
+                        
+                        elif dev.get("contest_initiator_id") == me["id"]:
+                            actions.append({
+                                "action_command": "CONTEST_DEV",
+                                "payload": {
+                                    "dev_id": dev["id"],
+                                    "side": "CONTESTER"
+                                }
+                            })
 
+                        else:
+                            actions.append({
+                                "action_command": "CONTEST_DEV",
+                                "payload": {
+                                    "dev_id": dev["id"],
+                                    "side": "OWNER"
+                                }
+                            })
+
+                            actions.append({
+                                "action_command": "CONTEST_DEV",
+                                "payload": {
+                                    "dev_id": dev["id"],
+                                    "side": "CONTESTER"
+                                }
+                            })
+
+                    if dev.get("worker_id"):
+                        continue
+                    if not self.is_dead_player(owner):
                         actions.append({
-                            "action_command": "CONTEST_DEV",
+                            "action_command": "EMPLOYMENT",
                             "payload": {
+                                "type": "EMPLOYMENT",
+                                "target_id": dev["owner_id"],
                                 "dev_id": dev["id"],
-                                "side": "CONTESTER"
+                                "wage": dev['level'],
+                                "wage_type": self.resource_map[dev['type']],
+                                "is_application": True
                             }
                         })
 
-                if dev.get("worker_id"):
-                    continue
-
-                actions.append({
-                    "action_command": "EMPLOYMENT",
-                    "payload": {
-                        "type": "EMPLOYMENT",
-                        "target_id": dev["owner_id"],
-                        "dev_id": dev["id"],
-                        "wage": dev['level'],
-                        "wage_type": self.resource_map[dev['type']],
-                        "is_application": True
-                    }
-                })
-
-            # --- 2. WORK ACTIONS ---
-            for job in me.get("available_work", []):
-                owner_id = job.get('development', {}).get('owner_id')
-                owner = self.find_player(game_state, owner_id)
-                if self.is_dead_player(owner):
-                    continue
-                if not job.get('development').get('is_contested'):
-                    actions.append({
-                        "action_command": "COMMIT_WORK",
-                        "payload": {"job": job}
-                    })
-            
+                # --- 2. WORK ACTIONS ---
+                for job in me.get("available_work", []):
+                    owner_id = job.get('development', {}).get('owner_id')
+                    owner = self.find_player(game_state, owner_id)
+                    if self.is_dead_player(owner):
+                        continue
+                    if not job.get('development').get('is_contested'):
+                        actions.append({
+                            "action_command": "COMMIT_WORK",
+                            "payload": {"job": job}
+                        })
+                
             for action in me.get("actions", []):
-                if (
+                 if (
                     action["type"] == "EMPLOYMENT"
                     and action["status"] == "PENDING"
                     and action["target_id"] == me["id"]
@@ -260,7 +262,7 @@ class BaseBot(ABC):
                         "payload": {
                             "action_id": action["id"]
                         }
-                    })
+                     })
 
         elif phase == "TRADE" and me.get("health") != "dead":
             for action in me.get("actions", []):

@@ -58,20 +58,40 @@ class BestPlayerInventoryOverTimeCommand(VisualizationCommand):
 class TradesPerPlayerCommand(VisualizationCommand):
     name = "trades_per_player"
     title = "Trades Per Player"
-    description = "Bar chart of trade history entries by player."
+    description = "Bar chart of completed trades by player."
 
     def render(self, context):
         plt = _load_pyplot()
         players_by_day = (context.get("data", {}) or {}).get("players", {}) or {}
-        trade_counts = {}
-        for day_players in players_by_day.values():
-            for player_id, snapshot in day_players.items():
-                trade_counts[player_id] = trade_counts.get(player_id, 0) + len(snapshot.get("trade_history", []) or [])
+
+        if not players_by_day:
+            figure, _ = plt.subplots(figsize=(8, 4))
+            return figure
+
+        days = sorted(
+            players_by_day.keys(),
+            key=lambda day: int(day) if str(day).isdigit() else str(day)
+        )
+
+        final_players = players_by_day[days[-1]]
+
+        print("Final players:", final_players.keys())
+
+        for player_id, snapshot in final_players.items():
+            print(player_id)
+            print(snapshot.keys())
+            print("trade_count =", snapshot.get("trade_count"))
+
+        trade_counts = {
+            player_id: int(snapshot.get("trade_count", 0) or 0)
+            for player_id, snapshot in final_players.items()
+        }
+
         figure, axes = plt.subplots(figsize=(8, 4))
         axes.bar(list(trade_counts.keys()), list(trade_counts.values()))
         axes.set_title(self.title)
         axes.set_xlabel("Player")
-        axes.set_ylabel("Trades")
+        axes.set_ylabel("Completed Trades")
         axes.tick_params(axis="x", rotation=30)
         figure.tight_layout()
         return figure
