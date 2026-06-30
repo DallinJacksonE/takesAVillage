@@ -238,15 +238,7 @@ async def handle_training_game_ended(game_id: str, training_session_id: str):
                 for e in entries
             ),
         }
-
-        session.setdefault("games", {})
-
-        session["games"][game_id] = {
-            "game_id": game_id,
-            "trade_count": game_stats["trade_count"],
-            "contest_count": game_stats["contest_count"],
-        }
-
+        
         db.complete_training_batch(training_session_id, final_champion_genome_id)
         del active_training_sessions[training_session_id]
         await training_update_hub.broadcast_sessions(active_training_sessions)

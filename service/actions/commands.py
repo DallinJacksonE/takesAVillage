@@ -165,7 +165,9 @@ class ContestDevelopmentCommand(Command):
                 }
             )
 
+            game_state.contest_count += 1
             return True
+        
         elif side == "CONTESTER":
             if not dev.is_contested:
                 return False

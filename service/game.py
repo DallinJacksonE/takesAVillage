@@ -64,7 +64,7 @@ class Game:
         self.developments = {}
         self.map_data = {}
         self.contract_factory = ContractFactory(
-            self.players, self.developments)
+            self.players, self.developments, self)
         self.chat_messages = []
         self.player_history = {}
         self.map_history = {}
@@ -76,6 +76,8 @@ class Game:
         self.day = 1
         self.phase = 'WORK'
         self.phase_end_time = 0
+        self.trade_count = 0
+        self.contest_count = 0
 
         self.add_player_hist = add_player_hist
         self.add_map_hist = add_map_hist

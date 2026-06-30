@@ -192,9 +192,15 @@ async def get_training_batch(batch_id: str):
         if not session:
             raise HTTPException(status_code=404, detail="Training batch not found")
         batch = {"batch_id": batch_id, "status": "running", **session}
+    batch["games"] = db.get_training_games(batch_id)
+
     return {
         **batch,
-        "visualizations": ensure_visualizations("training_batch", batch_id, batch),
+        "visualizations": ensure_visualizations(
+            "training_batch",
+            batch_id,
+            batch,
+        ),
     }
 
 

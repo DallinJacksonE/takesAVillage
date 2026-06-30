@@ -6,9 +6,10 @@ cf_logger = BackendLogger("contracts")
 
 
 class ContractFactory:
-    def __init__(self, players, developments):
+    def __init__(self, players, developments, game):
         self.players = players
         self.developments = developments
+        self.game = game
 
     def process_contract(self, user_id, data, action_command=None):
         contract_id = data.get('action_id') or data.get(
@@ -57,7 +58,7 @@ class ContractFactory:
 
         cf_logger.info(f"Executing Contract Action: {action_command}")
 
-        context = {'players': self.players, 'developments': self.developments}
+        context = {'players': self.players, 'developments': self.developments, 'game': self.game}
         status = contract_copy.process_action(
             action_command, user_id, data, context)
 
@@ -84,6 +85,7 @@ class ContractFactory:
 
         if contract_copy.initiator_finalized and contract_copy.target_finalized:
             contract_copy.status = 'COMPLETED'
+
 
     def _add_contract_to_players(self, contract_obj):
         initiator = self.players.get(contract_obj.initiator_id)

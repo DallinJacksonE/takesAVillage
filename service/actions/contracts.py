@@ -84,9 +84,12 @@ class TradeContract(Contract):
                 'actual_items', self.request_items)
             self.target_finalized = True
 
+        game = context['game']
+
         if self.initiator_finalized and self.target_finalized:
             self.status = 'COMPLETED'
             self.waiting_on_id = None
+            game.trade_count += 1
             return "UPDATED_COMPLETED"
         return f"UPDATED_{self.status}"
 

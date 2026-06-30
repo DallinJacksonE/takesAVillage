@@ -57,7 +57,9 @@ async def game_loop(connection_manager):
                     training_batch_id=game.training_session_id if game.training else None,
                     training_generation=game.training_generation,
                     game_type=("training" if game.training else
-                               "human_bot" if game.bot_count else "human")
+                               "human_bot" if game.bot_count else "human"),
+                    trade_count=game.trade_count,
+                    contest_count=game.contest_count
                 )
 
                 if game.training:
