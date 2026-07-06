@@ -1,0 +1,25 @@
+.code {
+  margin: 0;
+  padding: 12px;
+  max-height: 520px;
+  overflow: auto;
+  background: var(--surface-code);
+  color: var(--surface-muted);
+}
+
+.section {
+  margin-top: 18px;
+  border: 1px solid var(--border-muted);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.toggle {
+  width: 100%;
+  padding: 10px;
+  text-align: left;
+  border: 0;
+  background: var(--surface-muted);
+  cursor: pointer;
+  font-weight: 600;
+}

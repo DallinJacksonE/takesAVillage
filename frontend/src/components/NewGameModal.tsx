@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { GenomeDTO } from "../dtos";
 
+import styles from "./NewGameModal.module.css";
 export interface GameSetupOptions {
   ruleset: string;
   botCount: number;
@@ -93,73 +94,64 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
   };
 
   return (
-    <div style={{
-      position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: "rgba(0,0,0,0.5)", display: "flex",
-      alignItems: "center", justifyContent: "center", zIndex: 1000, color: "black"
-    }}>
-      <div style={{
-        backgroundColor: "white", padding: "30px", borderRadius: "8px",
-        width: "600px", maxWidth: "90%", boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-        maxHeight: "90vh", overflowY: "auto"
-      }}>
-        <h2 style={{ marginTop: 0 }}>{isTrainingMode ? "Configure Training Loop" : "Game Setup"}</h2>
+    <div className={styles.row8}>
+      <div className={styles.panel3}>
+        <h2 className={styles.header}>{isTrainingMode ? "Configure Training Loop" : "Game Setup"}</h2>
 
         {/* Ruleset Selection UI */}
-        <div style={{ display: "flex", gap: "20px", marginTop: "20px", height: "150px" }}>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <div className={styles.row7}>
+          <div className={styles.column3}>
             <h4>Ruleset</h4>
-            <div style={{ flex: 1, overflowY: "auto", border: "1px solid #ddd", borderRadius: "4px" }}>
+            <div className={styles.panel2}>
               {Object.keys(gameOptions).map((ruleset) => (
                 <div
                   key={ruleset}
+                  className={[
+                    styles.rulesetOption,
+                    selectedRuleset === ruleset ? styles.rulesetOptionSelected : "",
+                  ].filter(Boolean).join(" ")}
                   onClick={() => setSelectedRuleset(ruleset)}
                   onMouseEnter={() => setHoveredRuleset(ruleset)}
                   onMouseLeave={() => setHoveredRuleset(null)}
-                  style={{
-                    padding: "10px", cursor: "pointer", borderBottom: "1px solid #eee",
-                    backgroundColor: selectedRuleset === ruleset ? "#e3f2fd" : "transparent",
-                    borderLeft: selectedRuleset === ruleset ? "4px solid #1976d2" : "4px solid transparent",
-                  }}
                 >
                   {ruleset}
                 </div>
               ))}
             </div>
           </div>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+          <div className={styles.column2}>
             <h4>Rules Preview</h4>
-            <div style={{ flex: 1, padding: "10px", backgroundColor: "#f5f5f5", borderRadius: "4px", fontSize: "0.85rem", overflowY: "auto", border: "1px solid #ddd" }}>
+            <div className={styles.panel}>
               {hoveredRuleset || selectedRuleset ? (
-                <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+                <pre className={styles.code}>
                   {JSON.stringify(gameOptions[hoveredRuleset || selectedRuleset], null, 2)}
                 </pre>
               ) : (
-                <span style={{ color: "#888" }}>Hover to see configuration.</span>
+                <span className={styles.text}>Hover to see configuration.</span>
               )}
             </div>
           </div>
         </div>
 
         {/* Dynamic Inputs based on Mode */}
-        <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "15px" }}>
+        <div className={styles.column}>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+          <div className={styles.row6}>
             <h4>Bots per Game:</h4>
             <input type="number" min={isTrainingMode ? "1" : "0"} max="10" value={botCount}
               onChange={(e) => setBotCount(Math.max(0, parseInt(e.target.value) || 0))}
-              style={{ width: "60px", padding: "5px" }} />
+              className={styles.botCountInput} />
           </div>
 
           {/* ONLY show Bot Architecture and Genomes if bots are actually being spawned */}
           <>
             {/* Architecture Selection */}
-            <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+            <div className={styles.row5}>
               <h4>Bot Architecture:</h4>
               <select
                 value={botModel}
                 onChange={(e) => setBotModel(e.target.value)}
-                style={{ padding: "5px", minWidth: "250px" }}
+                className={styles.genomeSelect}
               >
                 {availableModels.map((m) => (
                   <option key={m} value={m}>{m}</option>
@@ -168,9 +160,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
             </div>
 
             {!isTrainingMode && (
-              <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+              <div className={styles.row4}>
                 <h4>Bot Genome:</h4>
-                <select value={botGenome} onChange={(e) => setBotGenome(e.target.value)} style={{ padding: "5px", minWidth: "250px" }}>
+                <select value={botGenome} onChange={(e) => setBotGenome(e.target.value)} className={styles.genomeSelect}>
                   <option value="random">Random Genome</option>
                   {availableGenomes.map((g) => (
                     <option key={g.id} value={g.id}>
@@ -184,16 +176,16 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
 
           {isTrainingMode && (
             <>
-              <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+              <div className={styles.row3}>
                 <h4>Generations:</h4>
                 <input type="number" min="1" max="1000" value={generations}
                   onChange={(e) => setGenerations(Math.max(1, parseInt(e.target.value) || 1))}
-                  style={{ width: "80px", padding: "5px" }} />
+                  className={styles.generationsInput} />
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+              <div className={styles.row2}>
                 <h4>Base Genome:</h4>
-                <select value={baseGenome} onChange={(e) => setBaseGenome(e.target.value)} style={{ padding: "5px", minWidth: "250px" }}>
+                <select value={baseGenome} onChange={(e) => setBaseGenome(e.target.value)} className={styles.genomeSelect}>
                   <option value="random">Random (Fresh Gene Pool)</option>
                   {availableGenomes.map(g => (
                     <option key={g.id} value={g.id}>{g.shorthand_name} - {g.name}</option>
@@ -205,8 +197,8 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
         </div>
 
         {/* Actions */}
-        <div style={{ marginTop: "30px", display: "flex", justifyContent: "flex-end", gap: "15px" }}>
-          <button className="btn" onClick={onClose} style={{ backgroundColor: "#ccc", color: "black" }}>Cancel</button>
+        <div className={styles.row}>
+          <button className={`btn ${styles.button}`} onClick={onClose} >Cancel</button>
           <button className="btn" onClick={handleSubmit} disabled={!selectedRuleset}>
             {isTrainingMode ? "Start Training" : "Start Game"}
           </button>

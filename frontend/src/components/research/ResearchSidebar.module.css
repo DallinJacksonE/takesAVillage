@@ -1,0 +1,34 @@
+.copy {
+  color: var(--text-muted);
+
+}
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+}
+.copy2 {
+  color: var(--text-muted);
+
+}
+.column2 {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+}
+.panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+
+}
+.card {
+  position: sticky;
+  top: 12px;
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+
+}

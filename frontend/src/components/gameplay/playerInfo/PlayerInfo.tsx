@@ -3,6 +3,7 @@ import { usePlayers } from "../../hooks/usePlayerName";
 import { usePlayerColors } from "../../hooks/usePlayerColor";
 import { usePlayerDevelopments } from "../../hooks/usePlayerDevelopments";
 import { useGameState } from "../../hooks/useGameState";
+import styles from "./PlayerInfo.module.css";
 interface Props {
   playerId: string;
 }
@@ -46,13 +47,13 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
   }
 
   if (!player) {
-    return <span style={{ color: "#999", fontStyle: "italic" }}>Unknown Player</span>;
+    return <span className={styles.text4}>Unknown Player</span>;
   }
 
   return (
     <span
       ref={containerRef}
-      style={{ position: "relative", display: "inline-block" }}
+      className={styles.text3}
     >
       {/* The Clickable Player Name */}
       <span
@@ -86,11 +87,7 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
       >
         {isUnderAttack && (
           <span
-            style={{
-              color: "#ff2222",
-              fontWeight: "bold",
-              marginRight: "4px",
-            }}
+            className={styles.text2}
           >
             ⚔️
           </span>
@@ -102,32 +99,17 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
       {/* The Floating Tooltip */}
       {isOpen && (
         <div
-          style={{
-            position: "absolute",
-            bottom: "120%", // Floats directly above the name
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "200px",
-            background: "white",
-            padding: "15px",
-            borderRadius: "8px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            zIndex: 100,
-            color: "#333",
-            fontSize: "0.85rem",
-            textAlign: "left",
-            cursor: "default",
-          }}
+          className={styles.panel3}
           onClick={(e) => e.stopPropagation()} // Prevents clicks inside the tooltip from closing it
         >
-          <h4 style={{ margin: "0 0 10px 0", borderBottom: "1px solid #eee", paddingBottom: "5px" }}>
+          <h4 className={styles.header}>
             {player.name}
           </h4>
 
           {/* Health Status */}
-          <div style={{ marginBottom: "10px" }}>
+          <div className={styles.panel2}>
             <strong>Health:</strong>{" "}
-            <span style={{ color: player.health === "healthy" ? "#2e7d32" : "#c62828" }}>
+            <span className={player.health === "healthy" ? styles.healthGood : styles.healthBad}>
               {player.health ? player.health.toUpperCase() : "UNKNOWN"}
             </span>
           </div>
@@ -136,11 +118,11 @@ const PlayerInfo: React.FC<Props> = ({ playerId }) => {
           <div>
             <strong>Developments:</strong>
             {!player.developments || player.developments.length === 0 ? (
-              <div style={{ color: "#888", fontStyle: "italic", marginTop: "4px" }}>
+              <div className={styles.panel}>
                 No developments yet.
               </div>
             ) : (
-              <ul style={{ margin: "4px 0 0 0", paddingLeft: "20px" }}>
+              <ul className={styles.list}>
                 {player.developments.map((devId: string) => {
                   const dev = state.developments.find(
                     (d) => d.id === devId

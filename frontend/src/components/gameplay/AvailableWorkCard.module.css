@@ -1,0 +1,148 @@
+.panel {
+  background: var(--surface-warning);
+  padding: 8px;
+  border-radius: 4px;
+  margin-top: 5px;
+  font-size: 0.85rem;
+  color: var(--medium_grey);
+
+}
+.label {
+  color: var(--warning);
+
+}
+.panel2 {
+  border-top: 1px solid var(--border-soft);
+  padding-top: 10px;
+
+}
+.panel3 {
+  background: var(--surface-neutral);
+  padding: 8px;
+  border-radius: 4px;
+  margin-top: 5px;
+  font-size: 0.85rem;
+  color: var(--medium_grey);
+
+}
+.label2 {
+  color: var(--slate);
+
+}
+.panel4 {
+  border-top: 1px solid var(--border-soft);
+  padding-top: 10px;
+  margin-bottom: 15px;
+
+}
+.row {
+  display: flex;
+  gap: 5px;
+
+}
+.row2 {
+  background: var(--surface-purple);
+  padding: 8px;
+  border-radius: 4px;
+  margin-top: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+
+}
+.label3 {
+  color: var(--purple-mid);
+
+}
+.panel5 {
+  margin-bottom: 15px;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 10px;
+
+}
+.row3 {
+  display: flex;
+  gap: 5px;
+
+}
+.row4 {
+  background: var(--surface-info);
+  padding: 8px;
+  border-radius: 4px;
+  margin-top: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+
+}
+.label4 {
+  color: var(--info);
+
+}
+.panel6 {
+  margin-bottom: 15px;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 10px;
+
+}
+.panel7 {
+  background: var(--surface-success);
+  padding: 8px;
+  border-radius: 4px;
+  margin-top: 5px;
+  font-size: 0.85rem;
+  color: var(--text-dark);
+
+}
+.label5 {
+  color: var(--success-light);
+
+}
+.panel8 {
+  margin-bottom: 15px;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 10px;
+
+}
+.row5 {
+  background: var(--surface-success);
+  padding: 8px;
+  border-radius: 4px;
+  margin-top: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+
+}
+.panel9 {
+  font-size: 0.85rem;
+  color: var(--medium_grey);
+  margin-top: 5px;
+  padding: 8px;
+  background: var(--surface-success);
+  border-radius: 4px;
+
+}
+.header {
+  margin-top: 0;
+  color: var(--success);
+
+}
+.panel10 {
+  margin-bottom: 15px;
+
+}
+.header2 {
+  margin-top: 0px;
+
+}
+.column {
+  min-height: 297px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+}

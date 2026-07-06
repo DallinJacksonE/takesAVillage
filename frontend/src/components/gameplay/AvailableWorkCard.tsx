@@ -3,6 +3,7 @@ import { EmploymentActionDTO, WorkActionDTO, CommitWorkPayload } from "../../dto
 import { usePlayerName } from "../hooks/usePlayerName";
 import { useGameState } from "../hooks/useGameState";
 
+import styles from "./AvailableWorkCard.module.css";
 interface Props {
   onCommitWork: (payload: CommitWorkPayload) => void;
   onAcceptOffer: (actionId: string) => void;
@@ -53,13 +54,13 @@ const AvailableWorkCard: React.FC<Props> = ({
   const disabled = me.finished_phase || me.health !== "healthy";
 
   return (
-    <div className="card" style={{ minHeight: "297px", flex: 1, display: "flex", flexDirection: "column" }}>
-      <h3 style={{ marginTop: 0 }}>Work Phase Dashboard</h3>      {/* --- Section 1: Ready to Commit (Inherent + Accepted Contracts) --- */}
-      <div style={{ marginBottom: "15px" }}>
-        <h3 style={{ marginTop: "0", color: "#2e7d32" }}>Available Work</h3>
+    <div className={`card ${styles.column}`} >
+      <h3 className={styles.header2}>Work Phase Dashboard</h3>      {/* --- Section 1: Ready to Commit (Inherent + Accepted Contracts) --- */}
+      <div className={styles.panel10}>
+        <h3 className={styles.header}>Available Work</h3>
 
         {(!me.available_work || me.available_work.length === 0) ? (
-          <div style={{ fontSize: "0.85rem", color: "#666", marginTop: "5px", padding: "8px", background: "#f1f8e9", borderRadius: "4px" }}>
+          <div className={styles.panel9}>
             No work available right now. Check back tomorrow or negotiate a contract!
           </div>
         ) : (
@@ -69,7 +70,7 @@ const AvailableWorkCard: React.FC<Props> = ({
             return (
               <div
                 key={itemKey}
-                style={{ background: "#e8f5e9", padding: "8px", borderRadius: "4px", marginTop: "5px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem" }}
+                className={styles.row5}
               >
                 <span>
                   <strong>{work.development?.type || 'Property'}</strong> - Wage: {work.wage} {work.wage_type}
@@ -90,13 +91,13 @@ const AvailableWorkCard: React.FC<Props> = ({
 
       {/* --- Section 2: Hired Workers (Visual Confirmation for Employer) --- */}
       {myEmployees.length > 0 && (
-        <div style={{ marginBottom: "15px", borderTop: "1px solid #eee", paddingTop: "10px" }}>
-          <strong style={{ color: "#4caf50" }}>Hired Workers</strong>
+        <div className={styles.panel8}>
+          <strong className={styles.label5}>Hired Workers</strong>
           {myEmployees.map((contract) => {
             // Find the worker's ID based on whether it was an application or an offer
             const workerId = contract.is_application ? contract.initiator_id : contract.target_id;
             return (
-              <div key={contract.id} style={{ background: "#e8f5e9", padding: "8px", borderRadius: "4px", marginTop: "5px", fontSize: "0.85rem", color: "#333" }}>
+              <div key={contract.id} className={styles.panel7}>
                 <span>{getPlayerName(workerId || "")} hired for {contract.wage} {contract.wage_type}.</span>
               </div>
             );
@@ -106,12 +107,12 @@ const AvailableWorkCard: React.FC<Props> = ({
 
       {/* --- Section 3: Job Offers Received --- */}
       {pendingOffers.length > 0 && (
-        <div style={{ marginBottom: "15px", borderTop: "1px solid #eee", paddingTop: "10px" }}>
-          <strong style={{ color: "#1976d2" }}>Job Offers Received</strong>
+        <div className={styles.panel6}>
+          <strong className={styles.label4}>Job Offers Received</strong>
           {pendingOffers.map((offer) => (
-            <div key={offer.id} style={{ background: "#e3f2fd", padding: "8px", borderRadius: "4px", marginTop: "5px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem" }}>
+            <div key={offer.id} className={styles.row4}>
               <span>{getPlayerName(offer.initiator_id)} offering {offer.wage} {offer.wage_type}.</span>
-              <div style={{ display: "flex", gap: "5px" }}>
+              <div className={styles.row3}>
                 <button className="btn-tooltip info" onClick={() => onAcceptOffer(offer.id)}>Accept</button>
                 <button className="btn-tooltip danger" onClick={() => onDenyOffer(offer.id)}>Reject</button>
               </div>
@@ -122,12 +123,12 @@ const AvailableWorkCard: React.FC<Props> = ({
 
       {/* --- Section 4: Applications Received --- */}
       {receivedApplications.length > 0 && (
-        <div style={{ marginBottom: "15px", borderTop: "1px solid #eee", paddingTop: "10px" }}>
-          <strong style={{ color: "#9c27b0" }}>Applications Received</strong>
+        <div className={styles.panel5}>
+          <strong className={styles.label3}>Applications Received</strong>
           {receivedApplications.map((app) => (
-            <div key={app.id} style={{ background: "#f3e5f5", padding: "8px", borderRadius: "4px", marginTop: "5px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem" }}>
+            <div key={app.id} className={styles.row2}>
               <span>{getPlayerName(app.initiator_id)} applying for {app.wage} {app.wage_type}.</span>
-              <div style={{ display: "flex", gap: "5px" }}>
+              <div className={styles.row}>
                 <button className="btn-tooltip info" onClick={() => onAcceptOffer(app.id)}>Hire</button>
                 <button className="btn-tooltip danger" onClick={() => onDenyOffer(app.id)}>Reject</button>
               </div>
@@ -138,10 +139,10 @@ const AvailableWorkCard: React.FC<Props> = ({
 
       {/* --- Section 5: Sent Offers --- */}
       {sentOffers.length > 0 && (
-        <div style={{ borderTop: "1px solid #eee", paddingTop: "10px", marginBottom: "15px" }}>
-          <strong style={{ color: "#607d8b" }}>Offers Sent</strong>
+        <div className={styles.panel4}>
+          <strong className={styles.label2}>Offers Sent</strong>
           {sentOffers.map((offer) => (
-            <div key={offer.id} style={{ background: "#eceff1", padding: "8px", borderRadius: "4px", marginTop: "5px", fontSize: "0.85rem", color: "#666" }}>
+            <div key={offer.id} className={styles.panel3}>
               Offered to {getPlayerName(offer.target_id || "")}
             </div>
           ))}
@@ -150,10 +151,10 @@ const AvailableWorkCard: React.FC<Props> = ({
 
       {/* --- Section 6: Pending Applications --- */}
       {pendingApplications.length > 0 && (
-        <div style={{ borderTop: "1px solid #eee", paddingTop: "10px" }}>
-          <strong style={{ color: "#f57c00" }}>Awaiting Reply</strong>
+        <div className={styles.panel2}>
+          <strong className={styles.label}>Awaiting Reply</strong>
           {pendingApplications.map((app) => (
-            <div key={app.id} style={{ background: "#fff3e0", padding: "8px", borderRadius: "4px", marginTop: "5px", fontSize: "0.85rem", color: "#666" }}>
+            <div key={app.id} className={styles.panel}>
               Applied to {getPlayerName(app.target_id || "")}
             </div>
           ))}

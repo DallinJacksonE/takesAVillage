@@ -1,0 +1,34 @@
+.container {
+  max-width: 90%;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.navHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.homeLink {
+  text-decoration: none;
+  color: inherit;
+}
+
+.navLink {
+  text-decoration: none;
+  color: var(--text-primary);
+  margin-left: 20px;
+  font-weight: 500;
+}
+
+.navLink:hover {
+  border-bottom: solid var(--medium_honey);
+}

@@ -11,6 +11,7 @@ import {
   faHouseFlag
 } from '@fortawesome/free-solid-svg-icons';
 import { usePlayerColors } from "../hooks/usePlayerColor";
+import styles from "./VillageMap.module.css";
 interface Props {
   mapData: MapTileDTO[];
   onBuild: (tileId: string) => void;
@@ -120,18 +121,8 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
   return (
     <div
       ref={containerRef}
-      className="card card-map_background"
-      style={{
-        padding: "10px",
-        width: "100%",
-        boxSizing: "border-box",
-        margin: "0 auto",
-        height: "400px",
-        position: "relative",
-        overflow: "hidden",
-        cursor: isDragging ? "grabbing" : "grab",
-        userSelect: "none",
-      }}
+      className={`card ${styles.mapCard} ${styles.card}`}
+      style={{"--card-cursor": isDragging ? "grabbing" : "grab"} as React.CSSProperties}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -189,7 +180,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
                   color: "#333",
                 }}
               >
-                <span style={{ fontSize: "0.8rem", fontWeight: "bold", color: "white" }}>
+                <span className={styles.field}>
                   {getTileContents(tile.type, tile.development?.owner_id || "")}</span>
               </div>
             </div>
@@ -216,33 +207,30 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
             }}
             onMouseDown={(e) => e.stopPropagation()}
           >
-            <h4 style={{ margin: "0 0 10px 0" }}>{selectedTile.type}</h4>
+            <h4 className={styles.field2}>{selectedTile.type}</h4>
 
             {selectedTile.development ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div className={styles.field3}>
                 <div>
-                  <strong style={{ fontSize: "0.8rem", color: "#666" }}>OWNER:</strong>
+                  <strong className={styles.field4}>OWNER:</strong>
                   <br />
                   <PlayerInfo playerId={selectedTile.development.owner_id} />
                 </div>
 
                 {selectedTile.development.owner_id === playerId && (
-                  <div style={{ fontSize: "0.6rem", color: "#2196F3", fontStyle: "italic" }}>
+                  <div className={styles.field5}>
                     This is your property.
                   </div>
                 )}
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "5px", fontSize: ".06rem" }}>
-                <div style={{ color: "#2e7d32", fontStyle: "italic", marginBottom: "5px", fontSize: "0.6rem" }}>
+              <div className={styles.field6}>
+                <div className={styles.field7}>
                   Available for Development
                 </div>
                 <button
-                  className="btn-tooltip success"
-                  style={{
-                    fontSize: "0.6rem",
-                    padding: "4px 6px"
-                  }}
+                  className={`btn-tooltip success ${styles.field8}`}
+                  
                   onClick={() => {
                     onBuild(selectedTile.id);
                     setSelectedTile(null);

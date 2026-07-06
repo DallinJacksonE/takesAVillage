@@ -2,6 +2,7 @@ import React from "react";
 import { useGameState } from "../../hooks/useGameState"; // Import the hook
 import InfoTooltip from "../../InfoTooltip";
 
+import styles from "./PlayerStatusCard.module.css";
 const PlayerStatusCard: React.FC = () => {
   const gameState = useGameState();
   const { me } = gameState;
@@ -31,31 +32,18 @@ const PlayerStatusCard: React.FC = () => {
   };
   return (
     <div
-      className='card bar'
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        flexWrap: "wrap",
-        gap: "1rem",
-        marginBottom: "20px",
-      }}
+      className={`card ${styles.statusBar} ${styles.row7}`}
+      
     >
       {/* Resources Section */}
-      <div style={{ flex: 2 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "left", gap: "8px", marginBottom: "1em" }}>
-          <h3 style={{ margin: 0 }}>My Resources</h3>
-          <span style={{ color: "var(--light_grey)" }}>
+      <div className={styles.panel3}>
+        <div className={styles.row6}>
+          <h3 className={styles.header2}>My Resources</h3>
+          <span className={styles.text2}>
             <InfoTooltip displayText={"ⓘ"} infoText={resourcesInfoText} />
           </span>
         </div>
-        <ul style={{
-          listStyle: "none",
-          padding: 0,
-          display: "flex",
-          gap: "1.5rem",
-          margin: 0
-        }}>
+        <ul className={styles.row5}>
           <li>
             🪵 <InfoTooltip
               displayText={"Wood: "}
@@ -80,33 +68,33 @@ const PlayerStatusCard: React.FC = () => {
       </div>
 
       {/* Vertical Divider */}
-      <div style={{ width: "1px", height: "60px", background: "#eee" }}></div>
+      <div className={styles.panel2}></div>
 
       {/* Health Section */}
-      <div style={{ flex: 1, minWidth: "200px", paddingLeft: "20px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "left", gap: "8px", marginBottom: "1em" }}>
-          <h3 style={{ margin: 0 }}>Health</h3>
-          <span style={{ color: "var(--light_grey)" }}>
+      <div className={styles.panel}>
+        <div className={styles.row4}>
+          <h3 className={styles.header}>Health</h3>
+          <span className={styles.text}>
             <InfoTooltip displayText={"ⓘ"} infoText={healthInfoText} />
           </span>
         </div>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <p style={{ margin: 0 }}>
+        <div className={styles.row3}>
+          <div className={styles.row2}>
+            <p className={styles.copy3}>
               <InfoTooltip
                 displayText={`State: `}
                 infoText={getHealthTooltipText(me.health)}
               />
 
-              <strong style={{ color: me.health === "healthy" ? "#2e7d32" : "#c62828" }}>
+              <strong className={[styles.label, me.health === "healthy" ? styles.healthGood : styles.healthBad].join(" ")}>
                 {me.health ? me.health.toUpperCase() : "UNKNOWN"}
               </strong>
             </p>
 
 
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <p style={{ margin: 0 }}>
+          <div className={styles.row}>
+            <p className={styles.copy2}>
               <InfoTooltip
                 displayText={`Sickness Chance: ${((me.sickness_chance || 0) * 100).toFixed(0)}%`}
                 infoText={sicknesschanceInfoText}
@@ -117,7 +105,7 @@ const PlayerStatusCard: React.FC = () => {
 
           </div>
 
-          <p style={{ margin: 0 }}>
+          <p className={styles.copy}>
           </p>
         </div>
       </div>

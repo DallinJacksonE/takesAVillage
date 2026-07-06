@@ -2,6 +2,7 @@ import React from "react";
 import { GameStateDTO, CampfireActionDTO } from "../../dtos/index";
 import { usePlayerName } from "../hooks/usePlayerName";
 
+import styles from "./CampfireRing.module.css";
 interface Props {
   state: GameStateDTO;
   onStartFire: () => void;
@@ -61,18 +62,18 @@ const CampfireRing: React.FC<Props> = ({
     me.fire_guests.length >= state.max_fire_seats;
 
   return (
-    <div className="card" style={{ minHeight: "297px", flex: 1, display: "flex", flexDirection: "column", gap: "20px" }}>
+    <div className={`card ${styles.column2}`} >
       <h3>Campfire</h3>
 
-      <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+      <div className={styles.row7}>
 
         {/* --- LEFT COLUMN --- */}
-        <div style={{ flex: 1, borderRight: "1px solid #eee", paddingRight: "15px", minWidth: "220px" }}>
+        <div className={styles.panel9}>
 
           {/* MY STATUS (moved to top) */}
-          <div style={{ marginBottom: "15px", paddingBottom: "10px", borderBottom: "1px solid #eee" }}>
+          <div className={styles.panel8}>
             <strong>My Status:</strong>{" "}
-            <span style={{ color: me.fire_status === "COLD" ? "#1976d2" : "#d32f2f", fontWeight: "bold" }}>
+            <span className={me.fire_status === "COLD" ? styles.statusCold : styles.statusWarm}>
               {me.fire_status} {me.fire_status === "HOST" && "🔥"}
             </span>
 
@@ -89,7 +90,7 @@ const CampfireRing: React.FC<Props> = ({
                 : "";
 
               return (
-                <div style={{ marginTop: "5px", fontSize: "0.85rem", color: "#666" }}>
+                <div className={styles.panel7}>
                   Warming by <strong>{getPlayerName(hostId)}</strong>'s fire
                 </div>
               );
@@ -97,20 +98,14 @@ const CampfireRing: React.FC<Props> = ({
           </div>
 
           {/* VILLAGE */}
-          <h4 style={{ marginTop: 0 }}>Village</h4>
+          <h4 className={styles.header5}>Village</h4>
 
           {player_list
             .filter(p => p.id !== me.id)
             .map(p => (
               <div
                 key={p.id}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "8px",
-                  fontSize: "0.85rem"
-                }}
+                className={styles.row6}
               >
                 <span>
                   {p.name}{" "}
@@ -125,7 +120,7 @@ const CampfireRing: React.FC<Props> = ({
                           : ""}
                 </span>
 
-                <div style={{ display: "flex", gap: "5px" }}>
+                <div className={styles.row5}>
 
                   {/* HOST → OFFER SEAT */}
                   {me.fire_status === "HOST" &&
@@ -156,19 +151,16 @@ const CampfireRing: React.FC<Props> = ({
             ))}
         </div>
         {/* --- RIGHT COLUMN --- */}
-        <div style={{ flex: 1, minWidth: "280px", display: "flex", flexDirection: "column", gap: "15px" }}>
+        <div className={styles.column}>
 
           {/* TOP RIGHT: FIRE CONTROLS */}
           <div>
 
-            <div style={{ marginBottom: "10px" }}>
+            <div className={styles.panel6}>
               {me.fire_status === "COLD" && (
                 <button
-                  className="btn-tooltip danger"
-                  style={{
-                    padding: "8px 14px",
-                    fontSize: "0.85rem",
-                  }}
+                  className={`btn-tooltip danger ${styles.button}`}
+                  
                   disabled={me.resources.wood < 1}
                   onClick={onStartFire}
                 >
@@ -179,12 +171,12 @@ const CampfireRing: React.FC<Props> = ({
 
             {/* AT FIRE */}
             {fireParticipantIds.length > 0 && (
-              <div style={{ marginTop: "15px", padding: "10px", background: "#fafafa", borderRadius: "8px", border: "1px solid #ddd" }}>
-                <h4 style={{ margin: "0 0 8px 0", fontSize: "0.9rem", color: "#444" }}>
+              <div className={styles.panel5}>
+                <h4 className={styles.header4}>
                   At the fire
                 </h4>
 
-                <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "0.85rem", color: "#666" }}>
+                <ul className={styles.list}>
                   {fireParticipantIds.map(id => (
                     <li key={id}>
                       <strong>{getPlayerName(id)}</strong>
@@ -198,19 +190,19 @@ const CampfireRing: React.FC<Props> = ({
           </div>
 
           {/* BOTTOM RIGHT: STATUS FEED */}
-          <div style={{ marginTop: "auto" }}>
+          <div className={styles.panel4}>
 
             {/* INVITES */}
             {incomingOffers.length > 0 && (
-              <div style={{ background: "#e3f2fd", padding: "10px", borderRadius: "6px", marginBottom: "10px" }}>
-                <h4 style={{ margin: "0 0 5px 0", color: "#1976d2", fontSize: "0.9rem" }}>
+              <div className={styles.panel3}>
+                <h4 className={styles.header3}>
                   Campfire Invites
                 </h4>
 
                 {incomingOffers.map(offer => (
-                  <div key={offer.id} style={{ display: "flex", justifyContent: "space-between" }}>
+                  <div key={offer.id} className={styles.row4}>
                     <span>From <strong>{getPlayerName(offer.initiator_id)}</strong></span>
-                    <div style={{ display: "flex", gap: "5px" }}>
+                    <div className={styles.row3}>
                       <button className="btn-tooltip success" onClick={() => onAccept(offer.id)}>Accept</button>
                       <button className="btn-tooltip danger" onClick={() => onDeny(offer.id)}>Decline</button>
                     </div>
@@ -221,15 +213,15 @@ const CampfireRing: React.FC<Props> = ({
 
             {/* REQUESTS */}
             {incomingRequests.length > 0 && (
-              <div style={{ background: "#ffebee", padding: "10px", borderRadius: "6px", marginBottom: "10px" }}>
-                <h4 style={{ margin: "0 0 5px 0", color: "#c62828", fontSize: "0.9rem" }}>
+              <div className={styles.panel2}>
+                <h4 className={styles.header2}>
                   Requests for warmth
                 </h4>
 
                 {incomingRequests.map(req => (
-                  <div key={req.id} style={{ display: "flex", justifyContent: "space-between" }}>
+                  <div key={req.id} className={styles.row2}>
                     <span><strong>{getPlayerName(req.initiator_id)}</strong></span>
-                    <div style={{ display: "flex", gap: "5px" }}>
+                    <div className={styles.row}>
                       <button className="btn-tooltip success" disabled={isAtCapacity} onClick={() => onAccept(req.id)}>Let In</button>
                       <button className="btn-tooltip danger" onClick={() => onDeny(req.id)}>Turn Away</button>
                     </div>
@@ -240,8 +232,8 @@ const CampfireRing: React.FC<Props> = ({
 
             {/* OUTGOING */}
             {(outgoingOffers.length > 0 || outgoingRequests.length > 0) && (
-              <div style={{ background: "#fafafa", padding: "10px", borderRadius: "6px", border: "1px dashed #ccc" }}>
-                <h4 style={{ margin: "0 0 5px 0", color: "#888", fontSize: "0.9rem" }}>
+              <div className={styles.panel}>
+                <h4 className={styles.header}>
                   Awaiting Reply
                 </h4>
 

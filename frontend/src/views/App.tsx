@@ -6,23 +6,24 @@ import Instructions from "./Instructions";
 import Research from "./Research";
 import Gameplay from "./Gameplay";
 import "./App.css";
+import styles from "./App.module.css";
 
 const App: React.FC = () => {
   return (
     <Router>
-      <div className='container'>
-        <header className='nav-header'>
-          <Link to='/' style={{ textDecoration: "none", color: "inherit" }}>
+      <div className={styles.container}>
+        <header className={styles.navHeader}>
+          <Link to='/' className={styles.homeLink}>
             <h2>Takes a Village</h2>
           </Link>
           <nav>
-            <Link to='/play' className='nav-link'>
+            <Link to='/play' className={styles.navLink}>
               Play
             </Link>
-            <Link to='/instructions' className='nav-link'>
+            <Link to='/instructions' className={styles.navLink}>
               Instructions
             </Link>
-            <Link to='/research' className='nav-link'>
+            <Link to='/research' className={styles.navLink}>
               Research
             </Link>
           </nav>

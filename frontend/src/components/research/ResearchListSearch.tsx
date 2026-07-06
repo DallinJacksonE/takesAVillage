@@ -1,6 +1,7 @@
 import React from "react";
 import { ResearchSortMode } from "../../service/ResearchService";
 
+import styles from "./ResearchListSearch.module.css";
 interface ResearchListSearchProps {
   searchQuery: string;
   sortMode: ResearchSortMode;
@@ -15,18 +16,18 @@ export const ResearchListSearch: React.FC<ResearchListSearchProps> = ({
   onSortChange,
 }) => {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "14px" }}>
+    <div className={styles.column}>
       <input
         type="search"
         placeholder="Search by id, type, ruleset, model..."
         value={searchQuery}
         onChange={(event) => onSearchChange(event.target.value)}
-        style={{ padding: "9px", border: "1px solid #ddd", borderRadius: "4px" }}
+        className={styles.input}
       />
       <select
         value={sortMode}
         onChange={(event) => onSortChange(event.target.value as ResearchSortMode)}
-        style={{ padding: "9px", border: "1px solid #ddd", borderRadius: "4px" }}
+        className={styles.input}
       >
         <option value="time_desc">Newest first</option>
         <option value="name_asc">Name A-Z</option>

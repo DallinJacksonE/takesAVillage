@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { createPortal } from "react-dom";
+import styles from "./InfoTooltip.module.css";
 
 interface Props {
   /** The text or element that the user will see and hover over */
@@ -32,13 +33,9 @@ const InfoTooltip: React.FC<Props> = ({ displayText, infoText, children }) => {
   return (
     <span
       ref={wrapperRef}
-      className="player-tooltip-wrapper"
+      className={[styles.wrapper, children ? styles.childWrapper : styles.inlineWrapper].join(" ")}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setIsHovered(false)}
-      style={{
-        display: children ? "inline-flex" : "inline",
-        flex: children ? 1 : "none",
-      }}
     >
       {children || displayText}
 
@@ -49,21 +46,18 @@ const InfoTooltip: React.FC<Props> = ({ displayText, infoText, children }) => {
             providing the exact parent-context your CSS file expects.
           */
           <div
-            className="player-tooltip-wrapper"
+            className={styles.portalFrame}
             style={{
-              position: "fixed",
               top: `${coords.top}px`,
               left: `${coords.left}px`,
               width: `${coords.width}px`,
               height: `${coords.height}px`,
-              zIndex: 99999,
-              pointerEvents: "none", // Ensures the ghost doesn't block you from actually clicking the button underneath
             }}
           >
             {/* The Bubble: Unmodified so your App.css takes complete control */}
-            <div className="player-tooltip-bubble" style={{ visibility: "visible", opacity: 1 }}>
+            <div className={styles.bubble}>
               {infoText}
-              <div className="player-tooltip-arrow" />
+              <div className={styles.arrow} />
             </div>
           </div>,
           document.body

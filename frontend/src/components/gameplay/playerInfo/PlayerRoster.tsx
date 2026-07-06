@@ -1,6 +1,7 @@
 import { usePlayers } from "../../hooks/usePlayerName";
 import PlayerInfo from "../playerInfo/PlayerInfo"
 import InfoTooltip from "../../InfoTooltip";
+import styles from "./PlayerRoster.module.css";
 const PlayerRoster = () => {
   const { players } = usePlayers();
 
@@ -12,15 +13,15 @@ const PlayerRoster = () => {
 
   return (
     <div className="card">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "left", gap: "8px", marginBottom: "1em" }}>
-        <h3 style={{ margin: 0 }}>Village Roster</h3>
-        <span style={{ color: '"var(--light_grey)"' }}>
+      <div className={styles.row}>
+        <h3 className={styles.header}>Village Roster</h3>
+        <span className={styles.text}>
           <InfoTooltip displayText={"ⓘ"} infoText={villageRosterInfoText} />
         </span>
       </div>
-      <ul style={{ listStyleType: 'none' }}>
+      <ul className={styles.list}>
         {players.map((player) => (
-          <li key={player.id} style={{ marginBottom: "8px" }}>
+          <li key={player.id} className={styles.item}>
             <PlayerInfo playerId={player.id} />
           </li>
         ))}

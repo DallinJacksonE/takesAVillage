@@ -1,0 +1,19 @@
+.row {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  min-height: 337px;
+  max-height: 337px;
+  padding: 0px;
+  overflow: hidden;
+
+}
+
+@media (max-width: 1020px) {
+  .row {
+    flex-direction: column;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+  }
+}

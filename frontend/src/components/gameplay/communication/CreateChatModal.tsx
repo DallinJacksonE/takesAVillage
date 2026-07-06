@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { PlayerDTO } from "../../../dtos/index";
 
+import styles from "./CreateChatModal.module.css";
 interface Props {
   players: PlayerDTO[];
   playerId: string;
@@ -45,25 +46,10 @@ const CreateChatModal: React.FC<Props> = ({
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.5)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: 1000,
-      }}
+      className={styles.row4}
     >
       <div
-        style={{
-          background: "white",
-          padding: "20px",
-          borderRadius: "8px",
-          width: "400px",
-          maxHeight: "80vh",
-          overflowY: "auto",
-        }}
+        className={styles.panel}
       >
         <h3>Create Chat</h3>
 
@@ -71,29 +57,17 @@ const CreateChatModal: React.FC<Props> = ({
           value={newChatName}
           onChange={(event) => setNewChatName(event.target.value)}
           placeholder="Chat name"
-          style={{
-            width: "100%",
-            marginBottom: "15px",
-          }}
+          className={styles.nameInput}
         />
 
         <div>
           {otherPlayers.map((player) => (
             <label
               key={player.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "5px",
-                color: "black",
-              }}
+              className={styles.row3}
             >
               <div
-                style={{
-                  width: "40px",
-                  display: "flex",
-                  justifyContent: "center",
-                }}
+                className={styles.row2}
               >
                 <input
                   type="checkbox"
@@ -108,11 +82,7 @@ const CreateChatModal: React.FC<Props> = ({
         </div>
 
         <div
-          style={{
-            display: "flex",
-            gap: "10px",
-            marginTop: "15px",
-          }}
+          className={styles.row}
         >
           <button
             className="btn"

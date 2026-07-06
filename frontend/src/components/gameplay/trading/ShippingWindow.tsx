@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { TradeActionDTO, Resource, ResourceBundle } from "../../../dtos/index";
 import { renderItems } from "./TradeCard";
+import styles from "./ShippingWindow.module.css";
 import ResourceStepper from "../ResourceStepper"; // <-- Import the stepper
 
 interface ShippingWindowProps {
@@ -32,28 +33,28 @@ const ShippingWindow: React.FC<ShippingWindowProps> = ({ trade, meId, onFinalize
 
   if (hasFinalized) {
     return (
-      <div style={{ background: "#e8f5e9", padding: "12px", borderRadius: "6px", marginBottom: "12px", border: "1px solid #a5d6a7" }}>
-        <strong style={{ color: "#2e7d32" }}>Goods Shipped!</strong>
-        <div style={{ fontSize: "0.85rem", marginTop: "5px" }}>Waiting for {getPlayerName(otherPersonId || "")} to send their goods...</div>
+      <div className={styles.panel4}>
+        <strong className={styles.label2}>Goods Shipped!</strong>
+        <div className={styles.panel3}>Waiting for {getPlayerName(otherPersonId || "")} to send their goods...</div>
       </div>
     );
   }
 
   return (
-    <div style={{ background: "#fff3e0", padding: "12px", borderRadius: "6px", marginBottom: "12px", border: "1px solid #ffcc80" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-        <strong style={{ fontSize: "1rem" }}>Ship to {getPlayerName(otherPersonId || "")}</strong>
-        <span style={{ fontSize: "0.8rem", color: "#666", background: "#ffe0b2", padding: "2px 8px", borderRadius: "12px" }}>
+    <div className={styles.panel2}>
+      <div className={styles.row3}>
+        <strong className={styles.label}>Ship to {getPlayerName(otherPersonId || "")}</strong>
+        <span className={styles.text}>
           Expected from them: {renderItems(expectedToReceive)}
         </span>
       </div>
 
-      <div style={{ fontSize: "0.85rem", color: "#d84315", marginBottom: "12px", fontWeight: "bold" }}>
+      <div className={styles.panel}>
         Agreed to send: {renderItems(expectedToSend)}
       </div>
 
-      <div style={{ display: "flex", gap: "15px", alignItems: "center", flexWrap: "wrap", background: "#fff", padding: "10px", borderRadius: "6px", border: "1px dashed #ffb74d" }}>
-        <div style={{ display: "flex", gap: "15px", flexWrap: "wrap", flex: 1 }}>
+      <div className={styles.row2}>
+        <div className={styles.row}>
           {(["food", "wood", "iron"] as Resource[]).map((res) => (
             <ResourceStepper
               key={`ship-${res}`}
@@ -65,8 +66,8 @@ const ShippingWindow: React.FC<ShippingWindowProps> = ({ trade, meId, onFinalize
         </div>
 
         <button
-          className="btn success"
-          style={{ padding: "8px 16px", fontWeight: "bold", whiteSpace: "nowrap" }}
+          className={`btn success ${styles.button}`}
+          
           onClick={handleShip}
         >
           Ship Goods

@@ -19,6 +19,7 @@ import CampfireRing from "../components/gameplay/CampfireRing";
 import { PlayerColorProvider } from "../components/hooks/usePlayerColor";
 import PlayerInfo from "../components/gameplay/playerInfo/PlayerInfo";
 import { GameStateProvider } from "../components/hooks/useGameState";
+import styles from "./Gameplay.module.css";
 
 
 const Gameplay: React.FC = () => {
@@ -341,30 +342,10 @@ const Gameplay: React.FC = () => {
 
                 {!gameState.me.finished_phase ? (
                   <div
-                    className="card card-finish_phase"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",       // Vertically centers the button inside the div
-                      justifyContent: "center",   // Horizontally centers the button
-                      height: "60px",             // Enforces strict 60px height
-                      padding: "0 12px",          // Removed vertical padding so it doesn't inflate past 60px
-                      boxSizing: "border-box",
-                      color: "white",
-                    }}
+                    className={`card ${styles.finishPhaseCard}`}
                   >
                     <button
-                      className="btn"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",     // Vertically centers the text inside the button
-                        justifyContent: "center", // Horizontally centers the text
-                        width: "90%",
-                        height: "70%",           // Stretches button to fill the wrapper's 60px height
-                        fontSize: "0.9rem",
-                        boxSizing: "border-box",
-                        margin: 0,
-                        padding: 0,               // Removed padding; flexbox handles the spacing now
-                      }}
+                      className={`btn ${styles.finishPhaseButton}`}
                       onClick={() => presenter.finishPhase()}
                     >
                       {gameState.phase === "NIGHT" ? "End Day" : "End Phase"}
@@ -372,17 +353,7 @@ const Gameplay: React.FC = () => {
                   </div>
                 ) : (
                   <div
-                    className="card card-waiting"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",       // Vertically centers the waiting text
-                      justifyContent: "center",   // Horizontally centers the text
-                      height: "60px",             // Matches the exact height of the active state
-                      padding: "0 12px",
-                      boxSizing: "border-box",
-                      fontSize: "0.9rem",
-                      textAlign: "center",
-                    }}
+                    className={`card ${styles.waitingCard}`}
                   >
                     {/* Assuming your waiting text goes here */}
                     Waiting...

@@ -1,0 +1,55 @@
+.wrapper {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+  font-weight: bold;
+  color: var(--medium_blue);
+}
+
+.inlineWrapper {
+  display: inline;
+  flex: none;
+}
+
+.childWrapper {
+  display: inline-flex;
+  flex: 1;
+}
+
+.portalFrame {
+  position: fixed;
+  z-index: 99999;
+  pointer-events: none;
+}
+
+.bubble {
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: max-content;
+  max-width: 220px;
+  padding: 10px;
+  background-color: var(--light_grey);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-soft);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: normal;
+  pointer-events: none;
+  white-space: normal;
+  text-align: center;
+  visibility: visible;
+  opacity: 1;
+}
+
+.arrow {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: var(--light_grey) transparent transparent transparent;
+}

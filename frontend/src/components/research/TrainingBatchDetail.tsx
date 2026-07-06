@@ -3,6 +3,7 @@ import { TrainingBatchDetailDTO } from "../../dtos";
 import { ExpandableJsonPanel } from "./ExpandableJsonPanel";
 import { VisualizationGallery } from "./VisualizationGallery";
 
+import styles from "./TrainingBatchDetail.module.css";
 interface TrainingBatchDetailProps {
   batch: TrainingBatchDetailDTO | null;
   onSelectGame(gameId: string): void;
@@ -10,13 +11,13 @@ interface TrainingBatchDetailProps {
 
 export const TrainingBatchDetail: React.FC<TrainingBatchDetailProps> = ({ batch, onSelectGame }) => {
   if (!batch) {
-    return <p style={{ color: "#888", fontStyle: "italic" }}>Select a training batch to inspect.</p>;
+    return <p className={styles.copy3}>Select a training batch to inspect.</p>;
   }
 
   return (
     <div>
       <h2>Training Batch {batch.batch_id}</h2>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "18px" }}>
+      <div className={styles.row}>
         <Meta label="Status" value={batch.status} />
         {batch.ruleset && <Meta label="Ruleset" value={batch.ruleset} />}
         {batch.bot_model && <Meta label="Model" value={batch.bot_model} />}
@@ -26,10 +27,10 @@ export const TrainingBatchDetail: React.FC<TrainingBatchDetailProps> = ({ batch,
       </div>
       <VisualizationGallery visualizations={batch.visualizations} />
 
-      <section style={{ marginTop: "18px" }}>
+      <section className={styles.section2}>
         <h3>Linked Games</h3>
         {batch.games?.length ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div className={styles.column}>
             {batch.games.map((game) => (
               <button key={`${game.game_id}-${game.generation}`} className="btn btn-secondary" onClick={() => onSelectGame(game.game_id)}>
                 Generation {game.generation}: {game.game_id}
@@ -37,16 +38,16 @@ export const TrainingBatchDetail: React.FC<TrainingBatchDetailProps> = ({ batch,
             ))}
           </div>
         ) : (
-          <p style={{ color: "#888" }}>No linked games recorded yet.</p>
+          <p className={styles.copy2}>No linked games recorded yet.</p>
         )}
       </section>
 
-      <section style={{ marginTop: "18px", overflowX: "auto" }}>
+      <section className={styles.section}>
         <h3>Generation Stats</h3>
         {batch.generation_statistics?.length ? (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table className={styles.table}>
             <thead>
-              <tr style={{ textAlign: "left", borderBottom: "2px solid #ddd" }}>
+              <tr className={styles.tr2}>
                 <th>Generation</th>
                 <th>Best</th>
                 <th>Average</th>
@@ -57,7 +58,7 @@ export const TrainingBatchDetail: React.FC<TrainingBatchDetailProps> = ({ batch,
             </thead>
             <tbody>
               {batch.generation_statistics.map((stats) => (
-                <tr key={stats.generation} style={{ borderBottom: "1px solid #eee" }}>
+                <tr key={stats.generation} className={styles.tr}>
                   <td>{stats.generation}</td>
                   <td>{stats.best_fitness}</td>
                   <td>{stats.average_fitness}</td>
@@ -69,7 +70,7 @@ export const TrainingBatchDetail: React.FC<TrainingBatchDetailProps> = ({ batch,
             </tbody>
           </table>
         ) : (
-          <p style={{ color: "#888" }}>No generation statistics yet.</p>
+          <p className={styles.copy}>No generation statistics yet.</p>
         )}
       </section>
 
@@ -79,7 +80,7 @@ export const TrainingBatchDetail: React.FC<TrainingBatchDetailProps> = ({ batch,
 };
 
 const Meta: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <span style={{ border: "1px solid #ddd", borderRadius: "999px", padding: "6px 10px", background: "#f8f8f8" }}>
+  <span className={styles.text}>
     <strong>{label}:</strong> {value}
   </span>
 );

@@ -3,6 +3,7 @@ import { usePlayers } from "../../hooks/usePlayerName";
 import { DevelopmentDTO } from "../../../dtos/index";
 import { useGameState } from "../../hooks/useGameState";
 
+import styles from "./PlayerDevelopmentsInfo.module.css";
 interface Props {
   playerId: string;
 }
@@ -24,7 +25,7 @@ const PlayerDevelopmentsInfo: React.FC<Props> = ({ playerId }) => {
           .filter((dev: DevelopmentDTO) => player.developments.includes(dev.id))
           // 2. Map over the remaining developments
           .map((dev: DevelopmentDTO) => (
-            <span key={dev.id} style={{ marginLeft: "5px", overflowY: "auto" }}>
+            <span key={dev.id} className={styles.text}>
               {dev.type} (L.{dev.level})
             </span>
           ))}

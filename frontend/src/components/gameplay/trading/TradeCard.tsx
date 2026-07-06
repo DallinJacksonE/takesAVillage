@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { TradeActionDTO, Resource, ResourceBundle } from "../../../dtos/index";
+import styles from "./TradeCard.module.css";
 import ResourceStepper from "../ResourceStepper"; // <-- Import the stepper
 
 export const renderItems = (items?: Partial<Record<Resource, number>>) => {
@@ -46,23 +47,23 @@ const TradeCard: React.FC<TradeCardProps> = ({ trade, meId, getPlayerName, onAcc
   };
 
   return (
-    <div style={{ background: "#fafafa", padding: "12px", borderRadius: "6px", border: "1px solid #ccc", marginBottom: "12px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+    <div className={styles.panel6}>
+      <div className={styles.row3}>
         <strong>{getPlayerName(otherPersonId || "")}</strong>
       </div>
-      <div style={{ fontSize: "0.85rem", marginBottom: "10px" }}>
+      <div className={styles.panel5}>
         <div>They Give: <strong>{renderItems(theyGive)}</strong></div>
         <div>They Want: <strong>{renderItems(theyWant)}</strong></div>
       </div>
 
       {isCountering ? (
-        <div style={{ background: "#fff", padding: "12px", borderRadius: "6px", border: "1px dashed #2196F3", marginTop: "10px" }}>
-          <div style={{ fontSize: "0.85rem", color: "#2196F3", marginBottom: "10px", fontWeight: "bold" }}>Counter Offer</div>
+        <div className={styles.panel4}>
+          <div className={styles.panel3}>Counter Offer</div>
 
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <div className={styles.row2}>
             {/* I GIVE */}
-            <div style={{ flex: 1, minWidth: "140px" }}>
-              <strong style={{ display: "block", marginBottom: "8px", fontSize: "0.8rem", color: "#1976d2" }}>I Give:</strong>
+            <div className={styles.panel2}>
+              <strong className={styles.label2}>I Give:</strong>
               {(["food", "wood", "iron"] as Resource[]).map((res) => (
                 <ResourceStepper
                   key={`give-${res}`}
@@ -74,8 +75,8 @@ const TradeCard: React.FC<TradeCardProps> = ({ trade, meId, getPlayerName, onAcc
             </div>
 
             {/* I WANT */}
-            <div style={{ flex: 1, minWidth: "140px" }}>
-              <strong style={{ display: "block", marginBottom: "8px", fontSize: "0.8rem", color: "#f57c00" }}>I Want:</strong>
+            <div className={styles.panel}>
+              <strong className={styles.label}>I Want:</strong>
               {(["food", "wood", "iron"] as Resource[]).map((res) => (
                 <ResourceStepper
                   key={`req-${res}`}
@@ -87,15 +88,15 @@ const TradeCard: React.FC<TradeCardProps> = ({ trade, meId, getPlayerName, onAcc
             </div>
           </div>
 
-          <button className="btn" style={{ background: "#2196F3", color: "white", padding: "6px 12px", borderRadius: "4px", width: "100%", marginTop: "12px", fontWeight: "bold" }} onClick={handleSubmitCounter}>
+          <button className={`btn ${styles.button4}`}  onClick={handleSubmitCounter}>
             Send Counter Offer
           </button>
         </div>
       ) : (
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button className="btn success" style={{ padding: "4px 10px", fontSize: "0.8rem" }} onClick={() => onAccept(trade.id)}>Accept</button>
-          <button className="btn info" style={{ padding: "4px 10px", fontSize: "0.8rem" }} onClick={handleOpenCounter}>Counter</button>
-          <button className="btn danger" style={{ padding: "4px 10px", fontSize: "0.8rem" }} onClick={() => onDeny(trade.id)}>Reject</button>
+        <div className={styles.row}>
+          <button className={`btn success ${styles.button3}`}  onClick={() => onAccept(trade.id)}>Accept</button>
+          <button className={`btn info ${styles.button2}`}  onClick={handleOpenCounter}>Counter</button>
+          <button className={`btn danger ${styles.button}`}  onClick={() => onDeny(trade.id)}>Reject</button>
         </div>
       )}
     </div>

@@ -5,6 +5,7 @@ import { ResearchSortMode } from "../../service/ResearchService";
 import { ResearchListSearch } from "./ResearchListSearch";
 import { TrainingProgressBadge } from "./TrainingProgressBadge";
 
+import styles from "./ResearchSidebar.module.css";
 interface ResearchSidebarProps {
   activeTab: ResearchTab;
   searchQuery: string;
@@ -37,8 +38,8 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
   const visibleBatches = filterAndSortBatches(trainingBatches, searchQuery, sortMode);
 
   return (
-    <div className="card" style={{ position: "sticky", top: "12px", maxHeight: "calc(100vh - 24px)", overflow: "auto" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "14px" }}>
+    <div className={`card ${styles.card}`} >
+      <div className={styles.panel}>
         <button className="btn" style={tabStyle(activeTab === "games")} onClick={() => onTabChange("games")}>Games</button>
         <button className="btn" style={tabStyle(activeTab === "training-batches")} onClick={() => onTabChange("training-batches")}>Training</button>
       </div>
@@ -49,8 +50,8 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
         onSortChange={onSortChange}
       />
       {activeTab === "games" ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {games.length === 0 && <p style={{ color: "#888" }}>No games found.</p>}
+        <div className={styles.column2}>
+          {games.length === 0 && <p className={styles.copy2}>No games found.</p>}
           {games.map((game) => (
             <button
               key={game.game_id}
@@ -65,8 +66,8 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
           ))}
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {visibleBatches.length === 0 && <p style={{ color: "#888" }}>No training batches found.</p>}
+        <div className={styles.column}>
+          {visibleBatches.length === 0 && <p className={styles.copy}>No training batches found.</p>}
           {visibleBatches.map((batch) => (
             <button
               key={batch.batch_id}

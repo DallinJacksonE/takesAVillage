@@ -1,0 +1,62 @@
+.card {
+  padding: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto;
+  height: 400px;
+  position: relative;
+  overflow: hidden;
+  cursor: var(--card-cursor);
+  user-select: none;
+
+}
+
+.field {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: var(--surface);
+}
+
+.field2 {
+  margin: 0 0 10px 0;
+}
+
+.field3 {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.field4 {
+  font-size: 0.8rem;
+  color: var(--medium_grey);
+}
+
+.field5 {
+  font-size: 0.6rem;
+  color: var(--info-light);
+  font-style: italic;
+}
+
+.field6 {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: .06rem;
+}
+
+.field7 {
+  color: var(--success);
+  font-style: italic;
+  margin-bottom: 5px;
+  font-size: 0.6rem;
+}
+
+.field8 {
+  font-size: 0.6rem;
+  padding: 4px 6px;
+}
+
+.mapCard {
+  background: var(--medium_blue);
+}

@@ -4,6 +4,7 @@ import { usePlayerName } from "../../hooks/usePlayerName";
 import ActiveChat from "./ActiveChat";
 import ChatTabsRail from "./ChatTabsRail";
 import CreateChatModal from "./CreateChatModal";
+import styles from "./TabbedCommunicator.module.css";
 import {
   GLOBAL_CHAT_ID,
   GLOBAL_RECIPIENT_ID,
@@ -118,16 +119,8 @@ const TabbedCommunicator: React.FC<Props> = ({
   return (
     <>
       <div
-        className="card"
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          height: "100%",
-          minHeight: "337px",
-          maxHeight: "337px",
-          padding: 0,
-          overflow: "hidden",
-        }}
+        className={`card ${styles.row}`}
+        
       >
         <ActiveChat
           activeChat={activeChat}

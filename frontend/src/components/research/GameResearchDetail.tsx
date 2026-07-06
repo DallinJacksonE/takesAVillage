@@ -3,19 +3,20 @@ import { ResearchGameDetailDTO } from "../../dtos";
 import { ExpandableJsonPanel } from "./ExpandableJsonPanel";
 import { VisualizationGallery } from "./VisualizationGallery";
 
+import styles from "./GameResearchDetail.module.css";
 interface GameResearchDetailProps {
   game: ResearchGameDetailDTO | null;
 }
 
 export const GameResearchDetail: React.FC<GameResearchDetailProps> = ({ game }) => {
   if (!game) {
-    return <p style={{ color: "#888", fontStyle: "italic" }}>Select a game to analyze.</p>;
+    return <p className={styles.copy}>Select a game to analyze.</p>;
   }
 
   return (
     <div>
       <h2>Game {game.game_id}</h2>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "18px" }}>
+      <div className={styles.row}>
         <Meta label="Type" value={game.game_type ?? "human"} />
         <Meta label="Created" value={new Date(game.created_at).toLocaleString()} />
         <Meta label="Day" value={String(game.day_num)} />
@@ -32,7 +33,7 @@ export const GameResearchDetail: React.FC<GameResearchDetailProps> = ({ game }) 
 };
 
 const Meta: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <span style={{ border: "1px solid #ddd", borderRadius: "999px", padding: "6px 10px", background: "#f8f8f8" }}>
+  <span className={styles.text}>
     <strong>{label}:</strong> {value}
   </span>
 );

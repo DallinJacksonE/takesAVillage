@@ -6,6 +6,7 @@ import { useGameState } from "../hooks/useGameState";
 import InfoTooltip from "../InfoTooltip";
 import { useEffect } from "react";
 
+import styles from "./DevelopmentsCard.module.css";
 interface Props {
   onMaintain: (devId: string) => void;
   onUpgrade: (devId: string) => void;
@@ -91,18 +92,18 @@ const DevelopmentsCard: React.FC<Props> = ({
   const villageDevelopmentsInfoText = "Other village developments, send an application to work there and request a wage, or contest ownsership to takes the development for yourself."
   const contestInfoText = "Start a contest for this dev. Spends your work action. Will need to break a tie with the owner so get people on your side to join the contest next work phase."
   return (
-    <div className="card" style={{ flex: 1, display: "flex", flexDirection: "column", gap: "20px" }}>
+    <div className={`card ${styles.column}`} >
 
       {/* --- SECTION 1: MY DEVELOPMENTS --- */}
       <div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "left", gap: "8px", marginBottom: "1em" }}>
-          <h3 style={{ margin: 0 }}>My Developments</h3>
-          <span style={{ color: "var(--light_grey)" }}>
+        <div className={styles.row}>
+          <h3 className={styles.header}>My Developments</h3>
+          <span className={styles.text}>
             <InfoTooltip displayText={"ⓘ"} infoText={propertiesInfoText} />
           </span>
         </div>
         {hydratedMe.developments.length === 0 ? (
-          <p style={{ fontSize: "0.85rem", color: "#666", marginTop: "5px", padding: "8px", background: "#f1f8e9", borderRadius: "4px" }}>You own no land, click a hex on the map to build!</p>
+          <p className={styles.copy}>You own no land, click a hex on the map to build!</p>
         ) : (
           hydratedMe.developments.map((dev) => {
             const pendingApplications = employmentActions.filter(
@@ -131,7 +132,7 @@ const DevelopmentsCard: React.FC<Props> = ({
                   style={{ padding: "10px", display: "flex", justifyContent: "space-between", cursor: "pointer", background: isExpanded ? "#eee" : "transparent" }}
                   onClick={() => toggleExpand(dev.id)}
                 >
-                  <strong style={{ fontSize: "1rem" }}>{dev.type} (Lvl {dev.level})</strong>
+                  <strong className={styles.field}>{dev.type} (Lvl {dev.level})</strong>
                   <span style={{ fontSize: "0.8rem", color: dev.maintenance_days < 2 ? "red" : "#666", fontWeight: "bold" }}>
                     {dev.is_contested ? "🔥 CONTESTED" : `Degrades in ${dev.maintenance_days}d`}
                   </span>
@@ -139,14 +140,14 @@ const DevelopmentsCard: React.FC<Props> = ({
 
                 {/* Accordion Body */}
                 {isExpanded && (
-                  <div style={{ padding: "10px", borderTop: "1px solid #ddd" }}>
+                  <div className={styles.field2}>
 
                     {/* Contextual Action Buttons */}
-                    <div style={{ display: "flex", gap: "10px" }}>
+                    <div className={styles.field3}>
                       {dev.is_contested ? (
                         <button
-                          className="btn danger"
-                          style={{ width: "100%" }}
+                          className={`btn danger ${styles.field4}`}
+                          
                           onClick={() => onContest(dev.id, "OWNER")}
                         >
                           Defend Property
@@ -156,8 +157,8 @@ const DevelopmentsCard: React.FC<Props> = ({
                           {/* Wrapped Maintenance Button */}
                           <InfoTooltip infoText={maintenanceInfoText}>
                             <button
-                              className="btn-tooltip"
-                              style={{ background: "#795548", color: "white", width: "100%" }}
+                              className={`btn-tooltip ${styles.field5}`}
+                              
                               onClick={() => onMaintain(dev.id)}
                             >
                               Maintenance: {
@@ -199,19 +200,9 @@ const DevelopmentsCard: React.FC<Props> = ({
                     </div>
                     {dev.is_contested && dev.owner_id === me.id && (
                       <div
-                        style={{
-                          marginTop: "10px",
-                          fontSize: "0.85rem",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "4px",
-                          padding: "8px",
-                          background: "#fff3f3",
-                          border: "1px solid #f0b4b4",
-                          borderRadius: "6px",
-                        }}
+                        className={styles.field6}
                       >
-                        <strong style={{ color: "#c62828" }}>⚔️ Your Property is Under Contest</strong>
+                        <strong className={styles.field7}>⚔️ Your Property is Under Contest</strong>
 
                         <span>
                           Initiator: {getPlayerName(dev.contest_initiator_id)}
@@ -229,12 +220,12 @@ const DevelopmentsCard: React.FC<Props> = ({
 
                     {/* Pending Applications */}
                     {pendingApplications.length > 0 && (
-                      <div style={{ marginTop: "15px", borderTop: "1px dashed #ccc", paddingTop: "10px" }}>
-                        <strong style={{ fontSize: "0.85rem", color: "#2e7d32" }}>Job Applications:</strong>
+                      <div className={styles.field8}>
+                        <strong className={styles.field9}>Job Applications:</strong>
                         {pendingApplications.map((app) => (
-                          <div key={app.id} style={{ display: "flex", justifyContent: "space-between", marginTop: "5px", fontSize: "0.85rem", alignItems: "center" }}>
+                          <div key={app.id} className={styles.field10}>
                             <span>{getPlayerName(app.initiator_id)} asking {app.wage} {app.wage_type}</span>
-                            <div style={{ display: "flex", gap: "5px" }}>
+                            <div className={styles.field11}>
                               <button className="btn-tooltip info" onClick={() => onAcceptApplicant(app.id)}>Hire</button>
                               <button className="btn-tooltip danger" onClick={() => onDenyApplicant(app.id)}>Reject</button>
                             </div>
@@ -252,14 +243,14 @@ const DevelopmentsCard: React.FC<Props> = ({
 
       {/* --- SECTION 2: VILLAGE DEVELOPMENTS --- */}
       <div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "left", gap: "8px", marginBottom: "1em" }}>
-          <h3 style={{ margin: 0 }}>Village Developments</h3>
-          <span style={{ color: "var(--light_grey)" }}>
+        <div className={styles.field12}>
+          <h3 className={styles.field13}>Village Developments</h3>
+          <span className={styles.field14}>
             <InfoTooltip displayText={"ⓘ"} infoText={villageDevelopmentsInfoText} />
           </span>
         </div>
         {villageDevelopments.length === 0 ? (
-          <p style={{ color: "#888", fontStyle: "italic", fontSize: "0.85rem" }}>Nobody else has developed land yet.</p>
+          <p className={styles.field15}>Nobody else has developed land yet.</p>
         ) : (
           villageDevelopments.map((dev) => {
             const isExpanded = expandedIds.has(dev.id);
@@ -289,23 +280,18 @@ const DevelopmentsCard: React.FC<Props> = ({
                   style={{ padding: "8px 10px", display: "flex", justifyContent: "space-between", cursor: "pointer", background: isExpanded ? "#eee" : "transparent" }}
                   onClick={() => toggleExpand(dev.id)}
                 >
-                  <strong style={{ fontSize: "0.9rem" }}>{dev.type} (Lvl {dev.level})</strong>
+                  <strong className={styles.field16}>{dev.type} (Lvl {dev.level})</strong>
                   <span style={{ fontSize: "0.8rem", color: getPlayerColor(dev.owner_id) }}>Owner: {getPlayerName(dev.owner_id)}</span>
                 </div>
 
                 {/* Accordion Body */}
                 {isExpanded && (
-                  <div style={{ padding: "10px", borderTop: "1px solid #ddd", display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <div className={styles.field17}>
 
                     {/* Apply for Job Form */}
                     {!dev.is_contested && (
                       <div
-                        style={{
-                          display: "flex",
-                          gap: "5px",
-                          alignItems: "center",
-                          fontSize: "0.85rem"
-                        }}
+                        className={styles.field18}
                       >
                         <span>Ask for:</span>
 
@@ -328,8 +314,8 @@ const DevelopmentsCard: React.FC<Props> = ({
                         </select>
 
                         <button
-                          className="btn-tooltip success"
-                          style={{ marginLeft: "auto" }}
+                          className={`btn-tooltip success ${styles.field19}`}
+                          
                           onClick={() =>
                             onApplyForJob(
                               dev.owner_id,
@@ -345,22 +331,15 @@ const DevelopmentsCard: React.FC<Props> = ({
                     )}
 
                     <div
-                      style={{
-                        marginTop: "15px",
-                        borderTop: "1px dashed #ccc",
-                        paddingTop: "10px",
-                        width: "90%",
-                        display: "flex",
-                        gap: "8px",
-                      }}
+                      className={styles.field20}
                     >
 
                       {/* NOT contested yet */}
                       {!dev.is_contested && dev.owner_id !== me.id && (
                         <InfoTooltip infoText={contestInfoText} >
                           <button
-                            className="btn-tooltip danger"
-                            style={{ width: "100%", padding: "6px" }}
+                            className={`btn-tooltip danger ${styles.field21}`}
+                            
                             onClick={() => onContest(dev.id, "INITIATOR")}
                           >
                             Contest Ownership
@@ -375,8 +354,8 @@ const DevelopmentsCard: React.FC<Props> = ({
                           {/* Support attackers */}
                           <InfoTooltip infoText={"Spend work phase supporting attackers"}>
                             <button
-                              className="btn-tooltip warning"
-                              style={{ flex: 1, padding: "6px" }}
+                              className={`btn-tooltip warning ${styles.field22}`}
+                              
                               onClick={() => onContest(dev.id, "CONTESTER")}
                             >
                               Support Contesters
@@ -386,8 +365,8 @@ const DevelopmentsCard: React.FC<Props> = ({
                           {/* Support owner */}
                           <InfoTooltip infoText={"Spend work phase supporting the owner"}>
                             <button
-                              className="btn-tooltip success"
-                              style={{ flex: 1, padding: "6px" }}
+                              className={`btn-tooltip success ${styles.field23}`}
+                              
                               onClick={() => onContest(dev.id, "OWNER")}
                             >
                               Support Owner
@@ -398,13 +377,7 @@ const DevelopmentsCard: React.FC<Props> = ({
                       )}
                       {dev.is_contested && (
                         <div
-                          style={{
-                            marginTop: "10px",
-                            fontSize: "0.8rem",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "4px",
-                          }}
+                          className={styles.field24}
                         >
                           <span>
                             ⚔️ Initiator: {getPlayerName(dev.contest_initiator_id)}

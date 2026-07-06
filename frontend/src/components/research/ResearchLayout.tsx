@@ -1,5 +1,6 @@
 import React from "react";
 
+import styles from "./ResearchLayout.module.css";
 interface ResearchLayoutProps {
   header: React.ReactNode;
   sidebar: React.ReactNode;
@@ -10,9 +11,9 @@ export const ResearchLayout: React.FC<ResearchLayoutProps> = ({ header, sidebar,
   return (
     <div>
       {header}
-      <div style={{ display: "grid", gridTemplateColumns: "360px minmax(0, 1fr)", gap: "20px", alignItems: "start" }}>
-        <aside style={{ minWidth: 0 }}>{sidebar}</aside>
-        <main style={{ minWidth: 0 }}>{detail}</main>
+      <div className={styles.panel}>
+        <aside className={styles.rail}>{sidebar}</aside>
+        <main className={styles.main}>{detail}</main>
       </div>
     </div>
   );
