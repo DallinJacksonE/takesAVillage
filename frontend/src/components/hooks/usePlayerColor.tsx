@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { PlayerDTO, GameStateDTO } from '../../../../dtos/index';
+import { PlayerDTO, GameStateDTO } from '../../dtos/index';
 
 // 1. Define a palette of distinct colors for your players
 const PLAYER_PALETTE: string[] = [

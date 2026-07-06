@@ -1,5 +1,5 @@
 import { useGameState } from "./useGameState";
-import { DevelopmentDTO } from "../../../../dtos/index";
+import { DevelopmentDTO } from "../../dtos/index";
 
 export const usePlayerDevelopments = (playerId: string | undefined): DevelopmentDTO[] => {
   const gameState = useGameState();

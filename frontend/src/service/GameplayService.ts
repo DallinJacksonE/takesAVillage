@@ -2,7 +2,7 @@ import {
   GameStateDTO,
   GameActionPayload,
   ChatMessageDTO
-} from "../../../dtos";
+} from "../dtos";
 
 export type ConnectionState = "CONNECTING" | "CONNECTED" | "DISCONNECTED" | "RECONNECTING";
 

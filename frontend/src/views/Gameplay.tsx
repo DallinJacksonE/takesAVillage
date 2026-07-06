@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import VillageMap from "../components/VillageMap";
-import { GameStateDTO, ChatMessageDTO } from "../../../dtos";
+import VillageMap from "../components/gameplay/VillageMap";
+import { GameStateDTO, ChatMessageDTO } from "../dtos";
 import { PlayerProvider } from "../components/hooks/usePlayerName";
 import {
   GameplayPresenter,
@@ -9,15 +9,15 @@ import {
 } from "../presenters/GameplayPresenter";
 import { ConnectionState } from "../service/GameplayService";
 import InfoTooltip from "../components/InfoTooltip"
-import PlayerStatusCard from "../components/PlayerStatusCard";
-import DevelopmentsCard from "../components/DevelopmentsCard";
-import AvailableWorkCard from "../components/AvailableWorkCard";
-import PlayerRoster from "../components/PlayerRoster";
-import TradeDesk from "../components/TradeDesk";
-import TabbedCommunicator from "../components/TabbedCommunicator";
-import CampfireRing from "../components/CampfireRing";
+import PlayerStatusCard from "../components/gameplay/playerInfo/PlayerStatusCard";
+import DevelopmentsCard from "../components/gameplay/DevelopmentsCard";
+import AvailableWorkCard from "../components/gameplay/AvailableWorkCard";
+import PlayerRoster from "../components/gameplay/playerInfo/PlayerRoster";
+import TradeDesk from "../components/gameplay/trading/TradeDesk";
+import TabbedCommunicator from "../components/gameplay/communication/TabbedCommunicator";
+import CampfireRing from "../components/gameplay/CampfireRing";
 import { PlayerColorProvider } from "../components/hooks/usePlayerColor";
-import PlayerInfo from "../components/PlayerInfo";
+import PlayerInfo from "../components/gameplay/playerInfo/PlayerInfo";
 import { GameStateProvider } from "../components/hooks/useGameState";
 
 
@@ -44,7 +44,7 @@ const Gameplay: React.FC = () => {
         return "";
     }
   };
-  
+
 
   useEffect(() => {
     if (!gameId) return;

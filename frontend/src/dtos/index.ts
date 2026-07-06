@@ -36,7 +36,8 @@ export interface ChatMessageDTO {
   // existing
   to_id?: string;
 
-  created_at: string;
+  created_at?: string;
+  timestamp?: number;
 }
 
 export interface ChatDTO {

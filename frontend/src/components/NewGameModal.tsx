@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { GenomeDTO } from "../../../dtos";
+import { GenomeDTO } from "../dtos";
 
 export interface GameSetupOptions {
   ruleset: string;

@@ -1,6 +1,6 @@
 import { Presenter } from "./Presenter";
 import { View } from "./View";
-import { JoinableGameDTO } from "../../../dtos";
+import { JoinableGameDTO } from "../dtos";
 import { UserService } from "../service/UserService";
 
 export interface PlayView extends View {

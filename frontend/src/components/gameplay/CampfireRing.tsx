@@ -1,6 +1,6 @@
 import React from "react";
-import { GameStateDTO, CampfireActionDTO } from "../../../dtos/index";
-import { usePlayerName } from "./hooks/usePlayerName";
+import { GameStateDTO, CampfireActionDTO } from "../../dtos/index";
+import { usePlayerName } from "../hooks/usePlayerName";
 
 interface Props {
   state: GameStateDTO;

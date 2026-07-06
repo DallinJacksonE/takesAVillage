@@ -1,6 +1,6 @@
 // components/hooks/useGameState.tsx
 import React, { createContext, useContext, ReactNode } from "react";
-import { GameStateDTO } from "../../../../dtos";
+import { GameStateDTO } from "../../dtos";
 
 // 1. Create the Context
 const GameStateContext = createContext<GameStateDTO | null>(null);

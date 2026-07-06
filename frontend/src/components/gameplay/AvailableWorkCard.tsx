@@ -1,7 +1,7 @@
 import React from "react";
-import { EmploymentActionDTO, WorkActionDTO, CommitWorkPayload } from "../../../dtos/index";
-import { usePlayerName } from "./hooks/usePlayerName";
-import { useGameState } from "./hooks/useGameState";
+import { EmploymentActionDTO, WorkActionDTO, CommitWorkPayload } from "../../dtos/index";
+import { usePlayerName } from "../hooks/usePlayerName";
+import { useGameState } from "../hooks/useGameState";
 
 interface Props {
   onCommitWork: (payload: CommitWorkPayload) => void;

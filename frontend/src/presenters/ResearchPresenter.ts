@@ -5,7 +5,7 @@ import {
 	TrainingBatchDetailDTO,
 	TrainingBatchListItemDTO,
 	TrainingSessionDTO,
-} from "../../../dtos";
+} from "../dtos";
 import { Presenter } from "./Presenter";
 import { View } from "./View";
 

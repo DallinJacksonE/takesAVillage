@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useEffect, useRef } from "react";
-import { MapTileDTO, DevelopmentCostsDict } from "../../../dtos/index";
-import { usePlayerName } from "./hooks/usePlayerName";
-import PlayerInfo from "./PlayerInfo";
+import { MapTileDTO, DevelopmentCostsDict } from "../../dtos/index";
+import { usePlayerName } from "../hooks/usePlayerName";
+import PlayerInfo from "./playerInfo/PlayerInfo";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faWheatAwn,
@@ -10,7 +10,7 @@ import {
   faMountain,
   faHouseFlag
 } from '@fortawesome/free-solid-svg-icons';
-import { usePlayerColors } from "./hooks/usePlayerColor";
+import { usePlayerColors } from "../hooks/usePlayerColor";
 interface Props {
   mapData: MapTileDTO[];
   onBuild: (tileId: string) => void;
@@ -56,20 +56,12 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
     return { x, y };
   };
 
-  const getPlayerName = (id: string) => {
-    if (id === playerId) return "Your";
-    const name = getPlayerNameFromHook(id);
-    return `${name}'s`;
-  };
-
   // --- Styling Helpers ---
 
-  const mapBackground: string = "#68503B";
   const woodsBackground: string = "#184E24";
   const farmBackground = "#AF9631";
   const mineBackground = "#4E5355";
   const openBorder = "#F7F3E3";
-  const opponentBorder = "#F58066";
   const myBorder = "#53CA6D";
 
   const getTypeColor = (type: string) => {

@@ -1,6 +1,6 @@
-import { usePlayers } from "./hooks/usePlayerName";
-import PlayerInfo from "./PlayerInfo"
-import InfoTooltip from "./InfoTooltip";
+import { usePlayers } from "../../hooks/usePlayerName";
+import PlayerInfo from "../playerInfo/PlayerInfo"
+import InfoTooltip from "../../InfoTooltip";
 const PlayerRoster = () => {
   const { players } = usePlayers();
 

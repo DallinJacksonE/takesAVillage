@@ -6,7 +6,7 @@ import {
   TrainingBatchDetailDTO,
   TrainingBatchListItemDTO,
   TrainingSessionsDTO,
-} from "../../dtos";
+} from "../src/dtos";
 
 function flushPromises() {
   return new Promise((resolve) => setTimeout(resolve, 0));

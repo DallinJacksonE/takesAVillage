@@ -1,6 +1,6 @@
 import React from "react";
-import { useGameState } from "./hooks/useGameState"; // Import the hook
-import InfoTooltip from "./InfoTooltip";
+import { useGameState } from "../../hooks/useGameState"; // Import the hook
+import InfoTooltip from "../../InfoTooltip";
 
 const PlayerStatusCard: React.FC = () => {
   const gameState = useGameState();

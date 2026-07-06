@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { TradeActionDTO, Resource, ResourceBundle } from "../../../dtos/index";
 import { renderItems } from "./TradeCard";
-import ResourceStepper from "./ResourceStepper"; // <-- Import the stepper
+import ResourceStepper from "../ResourceStepper"; // <-- Import the stepper
 
 interface ShippingWindowProps {
   trade: TradeActionDTO;

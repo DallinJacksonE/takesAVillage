@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { GameStateDTO, TradeActionDTO, Resource, ResourceBundle } from "../../../dtos/index";
-import { usePlayerName } from "./hooks/usePlayerName";
-import TradeCard, { renderItems } from "./TradeCard";
-import ShippingWindow from "./ShippingWindow";
-import ResourceStepper from "./ResourceStepper"; // <-- Import the new stepper
+import { usePlayerName } from "../../hooks/usePlayerName";
+import TradeCard, { renderItems } from "../trading/TradeCard";
+import ShippingWindow from "../trading/ShippingWindow";
+import ResourceStepper from "../ResourceStepper"; // <-- Import the new stepper
 
 interface Props {
   state: GameStateDTO;

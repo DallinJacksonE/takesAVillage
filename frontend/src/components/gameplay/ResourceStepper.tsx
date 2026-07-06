@@ -1,5 +1,5 @@
 import React from "react";
-import { Resource } from "../../../dtos/index";
+import { Resource } from "../../dtos/index";
 
 // Map your resources to emojis
 const RESOURCE_EMOJIS: Record<Resource, string> = {

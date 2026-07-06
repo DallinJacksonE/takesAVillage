@@ -4,7 +4,7 @@ import {
   JoinGameDTO,
   NewGameDTO,
   NewGameOptionsDTO
-} from "../../../dtos";
+} from "../dtos";
 
 export class UserService {
   async consent(): Promise<ConsentDTO | null> {

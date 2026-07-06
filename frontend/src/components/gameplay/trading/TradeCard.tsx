@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { TradeActionDTO, Resource, ResourceBundle } from "../../../dtos/index";
-import ResourceStepper from "./ResourceStepper"; // <-- Import the stepper
+import ResourceStepper from "../ResourceStepper"; // <-- Import the stepper
 
 export const renderItems = (items?: Partial<Record<Resource, number>>) => {
   if (!items || Object.keys(items).length === 0) return "Nothing";

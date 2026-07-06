@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { EmploymentActionDTO, Resource, DevelopmentDTO } from "../../../dtos/index";
-import { usePlayerName } from "./hooks/usePlayerName";
-import { usePlayerColors } from "./hooks/usePlayerColor";
-import { useGameState } from "./hooks/useGameState";
-import InfoTooltip from "./InfoTooltip";
+import { EmploymentActionDTO, Resource } from "../../dtos/index";
+import { usePlayerName } from "../hooks/usePlayerName";
+import { usePlayerColors } from "../hooks/usePlayerColor";
+import { useGameState } from "../hooks/useGameState";
+import InfoTooltip from "../InfoTooltip";
 import { useEffect } from "react";
 
 interface Props {
@@ -24,7 +24,7 @@ const DevelopmentsCard: React.FC<Props> = ({
   onDenyApplicant
 }) => {
   const gameState = useGameState();
-  const { me, player_list, developments } = gameState;
+  const { me, player_list } = gameState;
   const getPlayerName = usePlayerName();
   const { getPlayerColor } = usePlayerColors();
 
@@ -36,11 +36,10 @@ const DevelopmentsCard: React.FC<Props> = ({
     )
   };
 
-  // Hydrate the 'player_list' using the exact same filtering logic
   const hydratedPlayerList = player_list.map((p) => ({
     ...p,
     developments: gameState.developments.filter(
-      (dev) => dev.owner_id === p.id // Note: Use p.id here if your PlayerDTO uses 'id' instead of 'session_id' on the frontend
+      (dev) => dev.owner_id === p.id
     )
   }));  // -----------------------
 

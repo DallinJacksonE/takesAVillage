@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { VisualizationGallery } from "../src/components/research/VisualizationGallery";
-import { ResearchVisualizationDTO } from "../../dtos";
+import { ResearchVisualizationDTO } from "../src/dtos";
 
 const visualization: ResearchVisualizationDTO = {
   id: "42",

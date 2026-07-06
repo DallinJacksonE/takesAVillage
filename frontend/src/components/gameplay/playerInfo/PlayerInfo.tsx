@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { usePlayers } from "./hooks/usePlayerName";
-import { usePlayerColors } from "./hooks/usePlayerColor";
-import { usePlayerDevelopments } from "./hooks/usePlayerDevelopments";
-import { useGameState } from "./hooks/useGameState";
+import { usePlayers } from "../../hooks/usePlayerName";
+import { usePlayerColors } from "../../hooks/usePlayerColor";
+import { usePlayerDevelopments } from "../../hooks/usePlayerDevelopments";
+import { useGameState } from "../../hooks/useGameState";
 interface Props {
   playerId: string;
 }

@@ -5,7 +5,7 @@ import {
 	TrainingBatchDetailDTO,
 	TrainingBatchListItemDTO,
 	TrainingSessionsDTO,
-} from "../../../dtos";
+} from "../dtos";
 
 export type ResearchSortMode = "time_desc" | "name_asc" | "name_desc";
 export type TrainingSessionsHandler = (sessions: TrainingSessionsDTO) => void;
