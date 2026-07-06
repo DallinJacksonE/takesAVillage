@@ -35,6 +35,7 @@ const TabbedCommunicator: React.FC<Props> = ({
   const [chatInput, setChatInput] = useState("");
   const [readMessages, setReadMessages] = useState<Set<string>>(new Set());
   const [showCreateChat, setShowCreateChat] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const getPlayerName = usePlayerName();
 
   const chatIds = useMemo(() => new Set(chats.map((chat) => chat.id)), [chats]);
@@ -136,7 +137,9 @@ const TabbedCommunicator: React.FC<Props> = ({
           activeChatId={activeChatId}
           globalTab={globalTab}
           chatTabs={chatTabs}
+          isExpanded={isSidebarExpanded}
           onSelectChat={setActiveChatId}
+          onToggleExpanded={() => setIsSidebarExpanded((isExpanded) => !isExpanded)}
           onCreateChat={() => setShowCreateChat(true)}
         />
       </div>

@@ -6,7 +6,9 @@ interface Props {
   activeChatId: string;
   globalTab: ChatTabViewModel;
   chatTabs: ChatTabViewModel[];
+  isExpanded: boolean;
   onSelectChat: (chatId: string) => void;
+  onToggleExpanded: () => void;
   onCreateChat: () => void;
 }
 
@@ -14,7 +16,9 @@ const ChatTabsRail: React.FC<Props> = ({
   activeChatId,
   globalTab,
   chatTabs,
+  isExpanded,
   onSelectChat,
+  onToggleExpanded,
   onCreateChat,
 }) => {
   const renderTab = (tab: ChatTabViewModel) => {
@@ -44,13 +48,27 @@ const ChatTabsRail: React.FC<Props> = ({
 
   return (
     <aside
-      className={styles.column}
+      className={[
+        styles.column,
+        isExpanded ? styles.columnExpanded : styles.columnCollapsed,
+      ].join(" ")}
     >
+      <button
+        type="button"
+        onClick={onToggleExpanded}
+        className={styles.toggleButton}
+        aria-label={isExpanded ? "Collapse chat sidebar" : "Expand chat sidebar"}
+        aria-expanded={isExpanded}
+      >
+        <span aria-hidden="true">{isExpanded ? "→" : "←"}</span>
+      </button>
+
       <button
         onClick={onCreateChat}
         className={styles.button}
       >
-        + New Chat
+        <span className={styles.newChatIcon}>+</span>
+        <span className={styles.labelText}>New Chat</span>
       </button>
 
       <div className={styles.panel}>
