@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import copy
 
 
 class BaseBot(ABC):
@@ -15,6 +16,8 @@ class BaseBot(ABC):
         self.trade_offers_made = 0
         self.max_trade_offers_per_phase = 2
         self.resource_map = {"Woods": "wood", "Farm": "food", "Mine": "iron"}
+        # self.previous_state = None
+
     @abstractmethod
     def choose_action(self, game_state: dict) -> dict | None:
         """

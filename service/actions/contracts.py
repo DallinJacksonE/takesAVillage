@@ -14,6 +14,7 @@ class Contract:
         self.type = contract_type
         self.status = 'PENDING'
         self.created_at = datetime.now()
+        # self.just_completed = False
         self.command_map = {'DENY': self._handle_deny,
                             'CANCEL': self._handle_cancel}
 
@@ -90,13 +91,14 @@ class TradeContract(Contract):
             self.status = 'COMPLETED'
             self.waiting_on_id = None
             game.trade_count += 1
+            # self.just_completed = True
             return "UPDATED_COMPLETED"
         return f"UPDATED_{self.status}"
 
     def to_dict(self) -> dict:
         base = super().to_dict()
         base.update({"offer_items": getattr(self, 'offer_items', {}), "request_items": getattr(self, 'request_items', {}), "actual_offer_items": getattr(self, 'actual_offer_items', {}), "actual_request_items": getattr(
-            self, 'actual_request_items', {}), "initiator_finalized": getattr(self, 'initiator_finalized', False), "target_finalized": getattr(self, 'target_finalized', False)})
+            self, 'actual_request_items', {}), "initiator_finalized": getattr(self, 'initiator_finalized', False), "target_finalized": getattr(self, 'target_finalized', False)}) # "just_completed": getattr(self, 'just_completed', False)}
         return base
 
 

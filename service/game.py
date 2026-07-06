@@ -163,6 +163,7 @@ class Game:
                 elif self.phase == "TRADE":
                     snapshot = build_trade_snapshot(player, self)
                     db.store_trade_snapshot(snapshot)
+                    player.old_history = player.trade_history.copy()
                     player.trade_history = []
                 elif self.phase == "NIGHT":
                     snapshot = build_night_snapshot(player, self)

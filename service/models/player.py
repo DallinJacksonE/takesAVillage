@@ -16,6 +16,7 @@ class Player:
         self.actions = {}
         self.timeline = []  # Chronological log for research data extraction
         self.trade_history = []  # Log of trades for research and player reference
+        self.old_history = []
 
         # Phase specific states
         self.fire_status = "COLD"  # COLD, HOST, GUEST
@@ -160,7 +161,7 @@ class Player:
                 else self.committed_action
             ) if self.committed_action else None,
 
-            "trade_history": self.trade_history # Assuming trade_history is already a list of dicts or simple data     
+            "trade_history": self.trade_history, # Assuming trade_history is already a list of dicts or simple data
         }
 
 
