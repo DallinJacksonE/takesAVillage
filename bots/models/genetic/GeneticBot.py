@@ -1,6 +1,6 @@
 from BaseBot import BaseBot
 from models.genetic.Genome import Genome
-from Relationship import Relationship
+'''from Relationship import Relationship'''
 import copy
 
 
