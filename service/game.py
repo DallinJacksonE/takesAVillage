@@ -86,6 +86,8 @@ class Game:
         self.training = training
         self.training_session_id = training_session_id
         self.training_generation = training_generation
+        if self.training:
+            self.phase_length = 5
 
     def add_player(self, session_id):
         if session_id not in self.players:

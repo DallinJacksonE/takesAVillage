@@ -2,12 +2,43 @@ import random
 
 
 GENOME_FIELDS = [
-    "food_weight", "wood_weight", "iron_weight", "food_desperation_weight",
-    "wood_desperation_weight", "iron_desperation_weight", "survival_weight",
-    "growth_weight", "reputation_weight", "aggression_weight", "cooperation_weight",
-    "risk_weight", "farm_preference", "woods_preference", "mine_preference",
-    "build_weight", "upgrade_weight", "maintain_weight", "contest_weight",
-    "work_weight", "fire_weight", "immediate_reward_weight", "future_reward_weight",
+    "food_weight",
+    "wood_weight",
+    "iron_weight",
+    "food_desperation_weight",
+    "wood_desperation_weight",
+    "iron_desperation_weight",
+    "survival_weight",
+    "growth_weight",
+    "reputation_weight",
+    "aggression_weight",
+    "cooperation_weight",
+    "risk_weight",
+    "farm_preference",
+    "woods_preference",
+    "mine_preference",
+    "build_weight",
+    "upgrade_weight",
+    "maintain_weight",
+    "contest_weight",
+    "work_weight",
+    "fire_weight",
+    "immediate_reward_weight",
+    "future_reward_weight",
+
+    # Relationship genes
+    "initial_friendship",
+    "initial_generosity",
+    "initial_trust",
+    "initial_greed",
+
+    "friendship_sensitivity",
+    "generosity_sensitivity",
+    "trust_sensitivity",
+    "greed_sensitivity",
+
+    "honest_trust_increase",
+    "honest_friendship_increase",
 ]
 
 GOAP_GENOME_FIELDS = [

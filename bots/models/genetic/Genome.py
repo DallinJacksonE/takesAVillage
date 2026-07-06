@@ -43,10 +43,19 @@ class Genome:
     future_reward_weight: float
 
     # Relationship weights
-    '''trust_weight: float
-    friendship_weight: float
-    generosity_weight: float
-    greed_weight: float'''
+
+    initial_friendship: float
+    initial_generosity: float
+    initial_trust: float
+    initial_greed: float
+
+    friendship_sensitivity: float
+    generosity_sensitivity: float
+    trust_sensitivity: float
+    greed_sensitivity: float
+
+    honest_trust_increase: float
+    honest_friendship_increase: float
 
     @staticmethod
     def random():

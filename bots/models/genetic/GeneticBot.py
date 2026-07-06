@@ -1,89 +1,18 @@
 from BaseBot import BaseBot
+from models.genetic.Relationship_manager import RelationshipManager
 from models.genetic.Genome import Genome
-'''from Relationship import Relationship'''
-import copy
 
 
 class GeneticBot(BaseBot):
     def __init__(self, genome):
         self.genome = genome
         self.type_to_resource = {"woods": "wood", "farm": "food", "mine": "iron"}
-        self.relationships = {}
+        self.relationship_manager = RelationshipManager(self)
         super().__init__()
 
     @staticmethod
     def from_json(genome_json):
         return GeneticBot(Genome(**genome_json))
-    
-    '''def initialize_relationships(self, state):
-        me = state.get("me", {})
-        for player in state.get("player_list", []):
-            player_id = player.get("id")
-            if player_id == me.get("id"):
-                continue
-            if player_id not in self.relationships:
-                self.relationships[player_id] = Relationship(
-                    trust=self.genome.initial_trust,
-                    friendship=self.genome.initial_friendship,
-                    generosity=self.genome.initial_generosity,
-                    greed=self.genome.initial_greed
-                )
-    
-    def relationship(self, player_id):
-        return self.relationships[player_id]
-    
-    def update_relationship(
-        self,
-        player_id,
-        *,
-        trust=0,
-        friendship=0,
-        generosity=0,
-        greed=0
-    ):
-        r = self.relationships[player_id]
-
-        r.trust = max(-1, min(1, r.trust + trust))
-        r.friendship = max(-1, min(1, r.friendship + friendship))
-        r.generosity = max(-1, min(1, r.generosity + generosity))
-        r.greed = max(-1, min(1, r.greed + greed))
-
-    def process_finished_action(self, action, old_state, new_state):
-
-        if action["type"] != "TRADE":
-            return
-
-        me = old_state["me"]
-
-        other_id = (
-            action["receiver_id"]
-            if action["initiator_id"] == me["id"]
-            else action["initiator_id"]
-        )
-
-        self.update_relationship(
-            other_id,
-            trust=0.10,
-            friendship=0.02
-        )
-
-    def process_relationship_events(self, old_state, new_state):
-        old_actions = {
-            a["id"]: a
-            for a in old_state["me"].get("actions", [])
-        }
-
-        new_actions = {
-            a["id"]: a
-            for a in new_state["me"].get("actions", [])
-        }
-
-        for action_id, action in old_actions.items():
-
-            if action_id in new_actions:
-                continue
-
-            self.process_finished_action(action, old_state, new_state)'''
 
     def adjusted_resource_value(self, bundle, me):
         resources = me.get("resources", {})
@@ -127,15 +56,7 @@ class GeneticBot(BaseBot):
         if me.get("health") == "dead":
             return None
         
-        '''if self.previous_state is not None:
-            self.process_relationship_events(
-                self.previous_state,
-                game_state
-            )
-
-        self.previous_state = copy.deepcopy(game_state)
-
-        self.initialize_relationships(game_state)'''
+        self.relationship_manager.update_relationships(game_state)
 
         if  game_state.get("phase") == "NIGHT":
             accept_actions = [
@@ -467,11 +388,9 @@ class GeneticBot(BaseBot):
                 if contract["initiator_id"] == me["id"]:
                     given = contract.get("offer_items", {})
                     received = contract.get("request_items", {})
-                    '''r = self.relationships[contract["target_id"]]'''
                 else:
                     given = contract.get("request_items", {})
                     received = contract.get("offer_items", {})
-                    '''r = self.relationships[contract["initiator_id"]]'''
 
                 can_fulfill = all(
                     resources.get(r, 0) >= qty
@@ -486,10 +405,6 @@ class GeneticBot(BaseBot):
 
                 utility = (
                     self.adjusted_resource_value(received, me) - self.adjusted_resource_value(given, me))
-                '''+r.trust * g.trust_weight
-                    +r.friendship * g.friendship_weight
-                    -r.greed * g.greed_weight
-                    +r.generosity * g.generosity_weight'''
 
                 if command == "ACCEPT":
                     score += utility + g.cooperation_weight

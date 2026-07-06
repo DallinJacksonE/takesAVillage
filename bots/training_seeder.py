@@ -5,6 +5,7 @@ seeder_logger = Logger("GENETIC_SEEDER")
 
 
 def seed_genomes(base_genome_dict: dict | None, bot_count: int) -> list[Genome]:
+    print(repr(base_genome_dict), type(base_genome_dict), bool(base_genome_dict))
     genomes = []
 
     if not base_genome_dict:
