@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import copy
 from models.genetic.Relationship_manager import RelationshipManager
+from models.genetic.Genome import Genome
 
 
 class BaseBot(ABC):
@@ -9,7 +10,8 @@ class BaseBot(ABC):
     and formatting GameActionPayloads. Bot implementations only need to provide
     the decision-making logic.
     """
-    def __init__(self):
+    def __init__(self, genome: Genome):
+        self.genome = genome
         self.waiting = None
         # Track last seen phase to reset per-phase state
         self._last_phase = None
@@ -72,6 +74,37 @@ class BaseBot(ABC):
             ),
             None
         )
+    
+    def marginal_utility(self, resource: str, amount: int, me: dict):
+        resources = me.get("resources")
+        g = self.genome
+        current = resources.get(resource, 0)
+        total = 0
+        for i in range(amount):
+            inventory = current + i
+            if resource == "food":
+                val = g.food_weight + max(0, 5 - inventory) * g.food_desperation_weight
+            elif resource == "wood":
+                val = g.wood_weight + max(0, 5 - inventory) * g.wood_desperation_weight
+            elif resource == "iron":
+                val = g.iron_weight + max(0, 5 - inventory) * g.iron_desperation_weight
+            total += val
+        return total
+    
+    def marginal_cost(self, resource: str, amount: int, me: dict):
+        resources = me.get("resources")
+        g = self.genome
+        current = resources.get(resource, 0)
+        total = 0
+        for i in range(amount):
+            inventory = current - i
+            if resource == "food":
+                val = g.food_weight + max(0, 5 - inventory) * g.food_desperation_weight
+            elif resource == "wood":
+                val = g.wood_weight + max(0, 5 - inventory) * g.wood_desperation_weight
+            elif resource == "iron":
+                val = g.iron_weight + max(0, 5 - inventory) * g.iron_desperation_weight
+            total -= val
 
     def get_available_actions(self, game_state: dict) -> list[dict]:
         """
@@ -365,53 +398,66 @@ class BaseBot(ABC):
             # and requesting resources they lack.
             resources = me.get("resources", {"wood": 0, "food": 0, "iron": 0})
             # determine offer (most abundant) and request (least abundant)
-            sorted_res = sorted(resources.items(), key=lambda kv: kv[1])
-            if sorted_res:
-                request_res = sorted_res[0][0]
-                offer_res = sorted_res[-1][0]
-                offer_amt = max(1, resources.get(offer_res, 0) // 2)
+            costs = {r: self.marginal_cost(r, 1, me) for r in resources.keys() if resources.get(r, 0) > 0}
+            benefits = {
+                r: self.marginal_utility(r, 1, me) for r in resources
+            }
 
-                if resources.get(offer_res, 0) >= 1:
-                    # Don't create new offers if we already have an outstanding
-                    # outgoing trade (pending/negotiating/accepted).
-                    existing_outgoing_trade = any(
-                        a.get("type") == "TRADE" and a.get("initiator_id") == me.get("id")
-                        and a.get("status") in ["PENDING", "NEGOTIATING", "ACCEPTED"]
-                        for a in me.get("actions", [])
-                    )
+            best_requests = sorted(
+                benefits.items(),
+                key=lambda x: x[1],
+                reverse=True
+            )
 
-                    if existing_outgoing_trade:
-                        # Respect a single outstanding trade until it's resolved
-                        pass
-                    else:
-                        # Throttle number of trades per bot per TRADE phase
-                        if self.trade_offers_made < self.max_trade_offers_per_phase:
-                            for player in self.get_alive_players(game_state):
-                                if player.get("id") == me.get("id"):
-                                    continue
+            best_offers = sorted(
+                costs.items(),
+                key=lambda x: x[1]
+            )
 
-                                # Avoid creating duplicate pending trades to same target
-                                existing = any(
-                                    a.get("type") == "TRADE" and a.get("target_id") == player.get("id")
-                                    for a in me.get("actions", [])
-                                )
-                                if existing:
-                                    continue
+            offer_item = best_offers[0][0]
 
-                                actions.append({
-                                    "action_command": "TRADE",
-                                    "payload": {
-                                        "type": "TRADE",
-                                        "target_id": player.get("id"),
-                                        "offer_items": {offer_res: offer_amt},
-                                        "request_items": {request_res: 1}
-                                    }
-                                })
-                                # Count this draft so we don't spam the phase
-                                self.trade_offers_made += 1
-                                # Stop creating more offers once limit reached
-                                if self.trade_offers_made >= self.max_trade_offers_per_phase:
-                                    break
+            request_item= best_requests[0][0]             
+            
+            existing_outgoing_trade = any(
+                a.get("type") == "TRADE" and a.get("initiator_id") == me.get("id")
+                and a.get("status") in ["PENDING", "NEGOTIATING", "ACCEPTED"]
+                for a in me.get("actions", [])
+            )
+
+            if existing_outgoing_trade:
+                # Respect a single outstanding trade until it's resolved
+                pass
+            else:
+                # Throttle number of trades per bot per TRADE phase
+                if self.trade_offers_made < self.max_trade_offers_per_phase:
+                    for player in self.get_alive_players(game_state):
+                        if player.get("id") == me.get("id"):
+                            continue
+
+                        # Avoid creating duplicate pending trades to same target
+                        existing = any(
+                            a.get("type") == "TRADE" and a.get("target_id") == player.get("id")
+                            for a in me.get("actions", [])
+                        )
+                        if existing:
+                            continue
+
+                        ##           IMPLEMENT TRUSTING MECHANICS HERE                  ##
+
+                        actions.append({
+                                "action_command": "TRADE",
+                                "payload": {
+                                    "type": "TRADE",
+                                    "target_id": player.get("id"),
+                                    "offer_items": {offer_item: 1},
+                                    "request_items": {request_item: 1}
+                                }
+                            })
+                        # Count this draft so we don't spam the phase
+                        self.trade_offers_made += 1
+                        # Stop creating more offers once limit reached
+                        if self.trade_offers_made >= self.max_trade_offers_per_phase:
+                            break
                 
 
         elif phase == "NIGHT":

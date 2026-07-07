@@ -1,16 +1,48 @@
+import copy
+
 from BaseBot import BaseBot
 from models.genetic.Genome import Genome
 
 
 class GeneticBot(BaseBot):
     def __init__(self, genome):
-        self.genome = genome
         self.type_to_resource = {"woods": "wood", "farm": "food", "mine": "iron"}
-        super().__init__()
+        super().__init__(genome)
 
     @staticmethod
     def from_json(genome_json):
         return GeneticBot(Genome(**genome_json))
+    
+    def marginal_utility(self, resource: str, amount: int, me: dict):
+        resources = me.get("resources")
+        g = self.genome
+        current = resources.get(resource, 0)
+        total = 0
+        for i in range(amount):
+            inventory = current + i
+            if resource == "food":
+                val = g.food_weight + max(0, 5 - inventory) * g.food_desperation_weight
+            elif resource == "wood":
+                val = g.wood_weight + max(0, 5 - inventory) * g.wood_desperation_weight
+            elif resource == "iron":
+                val = g.iron_weight + max(0, 5 - inventory) * g.iron_desperation_weight
+            total += val
+        return total
+    
+    def marginal_cost(self, resource: str, amount: int, me: dict):
+        resources = me.get("resources")
+        g = self.genome
+        current = resources.get(resource, 0)
+        total = 0
+        for i in range(amount):
+            inventory = current - i
+            if resource == "food":
+                val = g.food_weight + max(0, 5 - inventory) * g.food_desperation_weight
+            elif resource == "wood":
+                val = g.wood_weight + max(0, 5 - inventory) * g.wood_desperation_weight
+            elif resource == "iron":
+                val = g.iron_weight + max(0, 5 - inventory) * g.iron_desperation_weight
+            total -= val
 
     def adjusted_resource_value(self, bundle, me):
         resources = me.get("resources", {})
@@ -346,14 +378,19 @@ class GeneticBot(BaseBot):
                 produced_resource = self.type_to_resource[dev["type"].lower()]
                 produced_amount = dev["level"]
 
-                produced_value = self.adjusted_resource_value(
-                    {produced_resource: produced_amount},
+                produced_value = self.marginal_utility(
+                    produced_resource,
+                    produced_amount,
                     me
                 )
 
-                wage_value = self.adjusted_resource_value(
-                    {contract["wage_type"]: contract["wage"]},
-                    me
+                copy = me.deepcopy()
+                copy['resources'][produced_resource] += produced_amount
+
+                wage_value = self.marginal_cost(
+                    contract["wage_type"],
+                    contract["wage"],
+                    copy
                 )
 
                 net_value = produced_value - wage_value
@@ -386,7 +423,7 @@ class GeneticBot(BaseBot):
                     
                 # symmetric decision scoring
                 if command == "ACCEPT":
-                    score += net_value + 0.01
+                    score += net_value + 0.01   # tie breaker for now
                 elif command == "DENY":
                     score -= net_value
 
@@ -410,12 +447,29 @@ class GeneticBot(BaseBot):
                     elif command == "DENY":
                         return 100000
 
-                utility = (
-                    self.adjusted_resource_value(received, me) - self.adjusted_resource_value(given, me))
+                future_me = {
+                    **me,
+                    "resources": resources.copy()
+                }
+
+                received_value = 0
+                given_cost = 0
+
+                # Gain utility and update simulated inventory
+                for resource, amount in received.items():
+                    received_value += self.marginal_utility(resource, amount, future_me)
+                    future_me["resources"][resource] += amount
+
+                # Cost is evaluated after receiving the goods
+                for resource, amount in given.items():
+                    given_cost += self.marginal_cost(resource, amount, future_me)
+                    future_me["resources"][resource] -= amount
+
+                utility = received_value - given_cost
 
                 if command == "ACCEPT":
                     score += utility + g.cooperation_weight
-                elif command == "DENY":
+                else:
                     score -= utility
 
         if command == "FINALIZE":
