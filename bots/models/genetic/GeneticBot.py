@@ -1,5 +1,4 @@
 from BaseBot import BaseBot
-from models.genetic.Relationship_manager import RelationshipManager
 from models.genetic.Genome import Genome
 
 
@@ -7,7 +6,6 @@ class GeneticBot(BaseBot):
     def __init__(self, genome):
         self.genome = genome
         self.type_to_resource = {"woods": "wood", "farm": "food", "mine": "iron"}
-        self.relationship_manager = RelationshipManager(self)
         super().__init__()
 
     @staticmethod
@@ -98,6 +96,15 @@ class GeneticBot(BaseBot):
             ]
 
             if trade_responses:
+                for action in trade_responses:
+                    if action["action_command"] != "ACCEPT":
+                        continue
+                    trade_id = action["payload"].get("action_id")
+                    if trade_id in self.trade_intentions:
+                        if not self.trade_intentions[trade_id]:
+                            return self.format_network_payload(action)
+                        
+                # Return the best response if not planning to lie
                 best_response = max(
                     trade_responses,
                     key=lambda a: self.score_action(a, game_state)

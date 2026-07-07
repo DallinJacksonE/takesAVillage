@@ -88,7 +88,7 @@ def _survival_score(stats: dict) -> float:
     game_length = max(days_survived, stats["game_length"])
     score = days_survived * 100.0
     if stats["survived"]:
-        score += game_length * 100.0
+        score += (19 - days_survived) * 100.0 + 200
     return score
 
 

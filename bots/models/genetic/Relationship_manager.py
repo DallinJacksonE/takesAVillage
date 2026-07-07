@@ -1,3 +1,4 @@
+from random import random
 from models.genetic.Relationship import Relationship
 from models.genetic.Relationship import Relationship
 
@@ -24,6 +25,9 @@ class RelationshipManager:
             if trade_id in self.processed_action_ids:
                 continue
             self._process_trade(trade, state)
+        
+        for relationship in self.relationships.values():
+            self.normalize(relationship)
         
         print(f"Processed relationships for bot {me.get('session_id')}")
         print(self.relationships)
@@ -64,9 +68,9 @@ class RelationshipManager:
 
         relationship = self.relationships[player_id]
         relationship.trust -= amount * self.genome.trust_sensitivity
-        relationship.friendship -= amount * self.genome.friendship_sensitivity/2
+        relationship.friendship -= amount * self.genome.friendship_sensitivity
         relationship.greed += amount * self.genome.greed_sensitivity
-    
+
     def _honest_update(self, player_id):
         if player_id not in self.relationships:
             self.relationships[player_id] = Relationship(
@@ -79,3 +83,39 @@ class RelationshipManager:
         relationship = self.relationships[player_id]
         relationship.trust += self.genome.honest_trust_increase
         relationship.friendship += self.genome.honest_friendship_increase
+    
+    def normalize(self, relationship):
+        relationship.trust = max(-1, min(1, relationship.trust))
+        relationship.friendship = max(-1, min(1, relationship.friendship))
+        relationship.greed = max(0, min(1, relationship.greed))
+        relationship.generosity = max(0, min(1, relationship.generosity))
+
+    def get_relationship(self, player_id):
+        if player_id not in self.relationships:
+            self.relationships[player_id] = Relationship(
+                trust=self.genome.initial_trust,
+                friendship=self.genome.initial_friendship,
+                generosity=self.genome.initial_generosity,
+                greed=self.genome.initial_greed,
+            )
+        return self.relationships[player_id]
+    
+    def will_honor_trade(self, player_id):
+        relationship = self.get_relationship(player_id)
+        score = (
+        relationship.trust * self.genome.trust_weight +
+        relationship.friendship * self.genome.friendship_weight +
+        relationship.generosity * self.genome.generosity_weight -
+        relationship.greed * self.genome.greed_weight
+        )
+        max_score = (
+            self.genome.trust_weight +
+            self.genome.friendship_weight +
+            self.genome.generosity_weight +
+            self.genome.greed_weight
+        )
+
+        probability = (score + max_score) / (2 * max_score)
+        probability = max(0.0, min(1.0, probability))
+        will_honor = random() <= probability
+        return will_honor

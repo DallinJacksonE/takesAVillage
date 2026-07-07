@@ -27,6 +27,10 @@ GENOME_FIELDS = [
     "future_reward_weight",
 
     # Relationship genes
+    "greed_weight",
+    "friendship_weight",
+    "trust_weight",
+    "generosity_weight",
     "initial_friendship",
     "initial_generosity",
     "initial_trust",

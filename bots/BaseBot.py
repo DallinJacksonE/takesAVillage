@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import copy
+from models.genetic.Relationship_manager import RelationshipManager
 
 
 class BaseBot(ABC):
@@ -17,6 +18,9 @@ class BaseBot(ABC):
         self.max_trade_offers_per_phase = 2
         self.resource_map = {"Woods": "wood", "Farm": "food", "Mine": "iron"}
         # self.previous_state = None
+        self.trade_intentions = {}
+        self.relationship_manager = RelationshipManager(self)
+        self.trade_lies_count = 0
 
     @abstractmethod
     def choose_action(self, game_state: dict) -> dict | None:
@@ -99,6 +103,7 @@ class BaseBot(ABC):
             self._last_phase = phase
             if phase == "TRADE":
                 self.trade_offers_made = 0
+                self.trade_intentions.clear()
 
         if phase == "WORK" and me.get("health") != "dead":
             # --- 1. BUILD ACTIONS ---
@@ -273,10 +278,27 @@ class BaseBot(ABC):
                     action["type"] == "TRADE"
                     and action["waiting_on_id"] == me["id"]
                 ):
+                    trade_id = action["id"]
+
+                    if trade_id not in self.trade_intentions:
+
+                        other_player = (
+                            action["initiator_id"]
+                            if action["initiator_id"] != me["id"]
+                            else action["target_id"]
+                        )
+
+                        will_honor = self.relationship_manager.will_honor_trade(other_player)
+
+                        self.trade_intentions[trade_id] = will_honor
+
+                        if not will_honor:
+                            self.trade_lies_count += 1
+
                     actions.append({
                         "action_command": "ACCEPT",
                         "payload": {
-                            "action_id": action["id"]
+                            "action_id": trade_id
                         }
                     })
                     actions.append({
@@ -318,14 +340,26 @@ class BaseBot(ABC):
 
                         if send_amt > 0:
                             feasible[r] = send_amt
+                    
+                    will_honor = self.trade_intentions.get(action["id"], True)
 
-                    actions.append({
-                        "action_command": "FINALIZE",
-                        "payload": {
-                            "action_id": action["id"],
-                            "actual_items": feasible
-                        }
-                    })
+                    if will_honor:
+
+                        actions.append({
+                            "action_command": "FINALIZE",
+                            "payload": {
+                                "action_id": action["id"],
+                                "actual_items": feasible
+                            }
+                        })
+                    else:
+                        actions.append({
+                            'action_command': 'FINALIZE',
+                            'payload': {
+                                'action_id': action["id"],
+                                'actual_items': {}
+                            }
+                        })
             # --- 1. Draft simple trades ---
             # Bots may propose trades to other players offering surplus
             # and requesting resources they lack.
