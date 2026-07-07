@@ -228,7 +228,7 @@ class InMemoryDB(DatabaseProvider):
             "final_champion_genome_id": None,
             "config": config.get("config", {}),
             "generation_statistics": [],
-            "games": {},
+            "games": [],
         }
 
     def mark_training_batch_game_started(self, batch_id: str, game_id: str,
@@ -239,7 +239,9 @@ class InMemoryDB(DatabaseProvider):
         batch["status"] = "running"
         batch["current_game_id"] = game_id
         batch["current_generation"] = generation
-        batch.setdefault("games", []).append({
+        if not isinstance(batch.get("games"), list):
+            batch["games"] = []
+        batch["games"].append({
             "game_id": game_id,
             "generation": generation,
         })
