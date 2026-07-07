@@ -52,10 +52,11 @@ class ActionTemplate:
 
 
 class OneStepPlanner:
-    """Scores one-step plans from the current legal action list."""
+    """Scores legal actions, with optional shallow repeated-effect lookahead."""
 
-    def __init__(self, genome: GOAPGenome):
+    def __init__(self, genome: GOAPGenome, planning_depth: int = 1):
         self.genome = genome
+        self.planning_depth = max(1, min(3, int(planning_depth)))
         self.templates = self._build_templates()
         self.feature_calculator = ActionFeatureCalculator()
         self.feature_scorer = ActionUtilityScorer(genome)
@@ -73,7 +74,8 @@ class OneStepPlanner:
             features.update(candidate.effects)
             feature_evaluation = self.feature_scorer.score(features)
             goal_progress = goal.progress(memory, features)
-            score = goal_progress + feature_evaluation.score
+            lookahead_score = self._lookahead_score(goal, memory, features)
+            score = goal_progress + feature_evaluation.score + lookahead_score
             if score < 0:
                 continue
             scored.append(PlannedAction(
@@ -89,6 +91,8 @@ class OneStepPlanner:
                     "score": score,
                     "goal_progress": goal_progress,
                     "feature_utility": feature_evaluation.score,
+                    "lookahead_score": lookahead_score,
+                    "planning_depth": self.planning_depth,
                     "cost": candidate.cost,
                     "features": features,
                     "weights": feature_evaluation.weights,
@@ -100,6 +104,27 @@ class OneStepPlanner:
         if not scored:
             return None
         return max(scored, key=lambda action: action.score)
+
+    def _lookahead_score(self, goal: GOAPGoal, memory: Memory,
+                         features: dict[str, float]) -> float:
+        """Approximate a depth-limited action tree without simulating server state.
+
+        The bot currently only receives legal actions for the current state.
+        Until the service exposes a transition model, the safest tree is a
+        bounded repeated-effect projection: after selecting an action, estimate
+        how the same factual effects would continue to advance the selected
+        goal over the next two plies. This gives evolution a hook to prefer
+        actions with compounding value while keeping server legality intact.
+        """
+        if self.planning_depth <= 1 or self.genome.planning_depth_weight == 0:
+            return 0.0
+
+        total = 0.0
+        discount = 0.5 * GOAPGenome.positive_multiplier(
+            self.genome.planning_depth_weight)
+        for depth in range(2, self.planning_depth + 1):
+            total += goal.progress(memory, features) * (discount ** (depth - 1))
+        return total
 
     def _build_templates(self) -> list[ActionTemplate]:
         return [

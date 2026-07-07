@@ -27,6 +27,11 @@ class Memory(Mapping[str, Any]):
     def as_dict(self) -> dict[str, Any]:
         return dict(self.facts)
 
+    def with_fact(self, key: str, value: Any) -> "Memory":
+        updated = self.as_dict()
+        updated[key] = value
+        return Memory(updated)
+
 
 @dataclass(frozen=True)
 class DecisionContext:

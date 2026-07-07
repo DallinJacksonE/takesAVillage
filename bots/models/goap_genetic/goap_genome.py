@@ -69,6 +69,20 @@ class GOAPGenome:
     tie_break_weight: float = 0.0
     action_cost_weight: float = 0.0
 
+    # Social memory / sentiment preferences
+    trust_weight: float = 0.0
+    fairness_weight: float = 0.0
+    generosity_weight: float = 0.0
+    hostility_aversion_weight: float = 0.0
+    reciprocity_weight: float = 0.0
+    gift_gratitude_weight: float = 0.0
+    betrayal_sensitivity_weight: float = 0.0
+    forgiveness_weight: float = 0.0
+    retaliation_weight: float = 0.0
+
+    # Shallow tree-search planning preference
+    planning_depth_weight: float = 0.0
+
     @classmethod
     def field_names(cls) -> set[str]:
         return {field.name for field in fields(cls)}

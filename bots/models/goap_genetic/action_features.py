@@ -46,9 +46,13 @@ class ActionFeatureCalculator:
             self._add_wage_features(features, payload)
             features["contract_obligation"] = 1.0
             features["social_exposure"] = 1.0
+            self._add_counterparty_sentiment(
+                features, payload.get("target_id"), memory)
         elif command == Command.COMMIT_WORK:
             self._add_wage_features(features, payload.get("job", {}))
             features["helps_self"] = 1.0
+            self._add_counterparty_sentiment(
+                features, payload.get("job", {}).get("employer_id"), memory)
         elif command == Command.BUILD_DEV:
             tile_type = payload.get("_tile_type")
             self._add_resource_cost(features, self._build_cost(tile_type, memory))
@@ -87,6 +91,8 @@ class ActionFeatureCalculator:
             features["helps_self"] = 1.0
         elif command == Command.CAMPFIRE:
             features["fire_risk_delta"] = self._fire_risk_delta(memory)
+            self._add_counterparty_sentiment(
+                features, payload.get("target_id"), memory)
             if payload.get("is_request"):
                 features["helps_self"] = 1.0
             else:
@@ -103,6 +109,8 @@ class ActionFeatureCalculator:
                 received=payload.get("request_items", {}),
             )
             features["social_exposure"] = 1.0
+            self._add_counterparty_sentiment(
+                features, payload.get("target_id"), memory)
 
         return {key: float(value) for key, value in features.items() if value != 0.0}
 
@@ -191,6 +199,8 @@ class ActionFeatureCalculator:
 
         if contract_type == "TRADE":
             my_id = memory.get("my_id")
+            counterparty_id = self._counterparty_for_contract(contract, my_id)
+            self._add_counterparty_sentiment(features, counterparty_id, memory)
             if contract.get("initiator_id") == my_id:
                 given = contract.get("offer_items", {})
                 received = contract.get("request_items", {})
@@ -199,11 +209,54 @@ class ActionFeatureCalculator:
                 received = contract.get("offer_items", {})
             self._add_trade_bundle_features(features, given=given, received=received)
         elif contract_type == "EMPLOYMENT":
+            self._add_counterparty_sentiment(
+                features,
+                self._counterparty_for_contract(contract, memory.get("my_id")),
+                memory,
+            )
             self._add_wage_features(features, contract)
             features["helps_other"] = 1.0
         elif contract_type == "CAMPFIRE":
+            self._add_counterparty_sentiment(
+                features,
+                self._counterparty_for_contract(contract, memory.get("my_id")),
+                memory,
+            )
             features["fire_risk_delta"] = self._fire_risk_delta(memory)
             features["helps_self"] = 1.0
+
+    def _counterparty_for_contract(self, contract: dict, my_id: str | None) -> str | None:
+        if contract.get("initiator_id") == my_id:
+            return contract.get("target_id")
+        if contract.get("target_id") == my_id:
+            return contract.get("initiator_id")
+        return contract.get("target_id") or contract.get("initiator_id")
+
+    def _add_counterparty_sentiment(
+        self,
+        features: dict[str, float],
+        counterparty_id: str | None,
+        memory: Memory,
+    ) -> None:
+        if not counterparty_id:
+            return
+        relationship = (memory.get("relationships", {}) or {}).get(counterparty_id)
+        if not relationship:
+            return
+        confidence = float(relationship.get("confidence", 0.0) or 0.0)
+        trust = float(relationship.get("trust", 0.0) or 0.0)
+        fairness = float(relationship.get("fairness", 0.0) or 0.0)
+        generosity = float(relationship.get("generosity", 0.0) or 0.0)
+        hostility = float(relationship.get("hostility", 0.0) or 0.0)
+        reciprocity = float(relationship.get("reciprocity", 0.0) or 0.0)
+
+        features["counterparty_trust"] = trust * confidence
+        features["counterparty_fairness"] = fairness * confidence
+        features["counterparty_generosity"] = generosity * confidence
+        features["counterparty_hostility"] = hostility * confidence
+        features["counterparty_reciprocity"] = reciprocity * confidence
+        features["counterparty_confidence"] = confidence
+        features["expected_cheat_risk"] = max(0.0, -trust) * confidence
 
     def _add_trade_bundle_features(
         self,
@@ -263,4 +316,11 @@ class ActionUtilityScorer:
             "helps_other": self.genome.cooperation_weight,
             "harms_other": self.genome.aggression_weight - self.genome.cooperation_weight,
             "social_exposure": self.genome.reputation_weight + self.genome.cooperation_weight,
+            "counterparty_trust": self.genome.trust_weight,
+            "counterparty_fairness": self.genome.fairness_weight,
+            "counterparty_generosity": self.genome.generosity_weight + self.genome.gift_gratitude_weight,
+            "counterparty_hostility": -self.genome.hostility_aversion_weight,
+            "counterparty_reciprocity": self.genome.reciprocity_weight,
+            "counterparty_confidence": self.genome.forgiveness_weight,
+            "expected_cheat_risk": -self.genome.betrayal_sensitivity_weight,
         }
