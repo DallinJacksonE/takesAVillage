@@ -13,7 +13,7 @@ class Actuator:
 
     def __init__(self, genome: GOAPGenome):
         self.goal_library = GoalLibrary(genome)
-        self.planner = OneStepPlanner(genome)
+        self.planner = OneStepPlanner(genome, planning_depth=3)
         self.last_debug_explanation = None
         self.fallback_goal_order = [
             "SURVIVE",
