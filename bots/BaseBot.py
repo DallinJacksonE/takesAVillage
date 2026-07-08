@@ -105,6 +105,7 @@ class BaseBot(ABC):
             elif resource == "iron":
                 val = g.iron_weight + max(0, 5 - inventory) * g.iron_desperation_weight
             total -= val
+        return total
 
     def get_available_actions(self, game_state: dict) -> list[dict]:
         """
@@ -413,6 +414,12 @@ class BaseBot(ABC):
                 costs.items(),
                 key=lambda x: x[1]
             )
+
+            if not best_offers:
+                return {
+                    "action_command": "FINISH_PHASE",
+                    "payload": {}
+                }
 
             offer_item = best_offers[0][0]
 

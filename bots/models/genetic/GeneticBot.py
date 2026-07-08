@@ -12,37 +12,6 @@ class GeneticBot(BaseBot):
     @staticmethod
     def from_json(genome_json):
         return GeneticBot(Genome(**genome_json))
-    
-    def marginal_utility(self, resource: str, amount: int, me: dict):
-        resources = me.get("resources")
-        g = self.genome
-        current = resources.get(resource, 0)
-        total = 0
-        for i in range(amount):
-            inventory = current + i
-            if resource == "food":
-                val = g.food_weight + max(0, 5 - inventory) * g.food_desperation_weight
-            elif resource == "wood":
-                val = g.wood_weight + max(0, 5 - inventory) * g.wood_desperation_weight
-            elif resource == "iron":
-                val = g.iron_weight + max(0, 5 - inventory) * g.iron_desperation_weight
-            total += val
-        return total
-    
-    def marginal_cost(self, resource: str, amount: int, me: dict):
-        resources = me.get("resources")
-        g = self.genome
-        current = resources.get(resource, 0)
-        total = 0
-        for i in range(amount):
-            inventory = current - i
-            if resource == "food":
-                val = g.food_weight + max(0, 5 - inventory) * g.food_desperation_weight
-            elif resource == "wood":
-                val = g.wood_weight + max(0, 5 - inventory) * g.wood_desperation_weight
-            elif resource == "iron":
-                val = g.iron_weight + max(0, 5 - inventory) * g.iron_desperation_weight
-            total -= val
 
     def adjusted_resource_value(self, bundle, me):
         resources = me.get("resources", {})
@@ -384,16 +353,16 @@ class GeneticBot(BaseBot):
                     me
                 )
 
-                copy = me.deepcopy()
-                copy['resources'][produced_resource] += produced_amount
+                me_copy = copy.deepcopy(me)
+                me_copy['resources'][produced_resource] += produced_amount
 
                 wage_value = self.marginal_cost(
                     contract["wage_type"],
                     contract["wage"],
-                    copy
+                    me_copy
                 )
 
-                net_value = produced_value - wage_value
+                net_value = produced_value + wage_value
                 
                 # checks to only accept affordable trades
                 future_food = food
