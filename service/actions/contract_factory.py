@@ -14,10 +14,25 @@ class ContractFactory:
     def process_contract(self, user_id, data, action_command=None):
         contract_id = data.get('action_id') or data.get(
             'id') or data.get('contractId') or data.get('actionId')
-        if contract_id and self.find_contract(contract_id):
-            return self._update_contract(user_id, contract_id, data, action_command)
-        else:
-            return self._create_contract(user_id, data)
+        existing_contract = self.find_contract(contract_id) if contract_id else None
+
+# ACCEPT/DENY/FINALIZE must always update existing contracts
+        if action_command in ["ACCEPT", "DENY", "FINALIZE"]:
+            if not existing_contract:
+                cf_logger.error(
+                    f"Cannot update missing contract {contract_id}: {data}"
+                )
+                return "NOT_FOUND", None
+
+            return self._update_contract(
+                user_id,
+                contract_id,
+                data,
+                action_command
+            )
+
+        # Only creation actions come here
+        return self._create_contract(user_id, data)
 
     def _create_contract(self, user_id, data):
         try:
@@ -34,6 +49,12 @@ class ContractFactory:
         initiator_id = user_id
         target_id = data.get('target_id') or data.get('to_id')
         initiator = self.players.get(initiator_id)
+
+        if not contract_type:
+            cf_logger.error(
+                f"Missing contract type. user={user_id}, data={data}"
+            )
+            raise ValueError("Missing contract type")
 
         if contract_type == 'EMPLOYMENT':
             return EmploymentContract(initiator_id, target_id, data.get('dev_id'), data.get('wage'), data.get('wage_type'), data.get('is_application', False))

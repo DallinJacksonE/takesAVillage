@@ -56,13 +56,16 @@ async def start_training_session(ruleset: str, bot_count: int, generations: int,
             population.append(random_genome_dict_for_model(bot_model))
 
     # Add the bot_model to the session state
+    
+
     active_training_sessions[session_id] = {
         "ruleset": ruleset, "bot_count": bot_count, "generations_left": generations,
         "population": population, "generation": 1, "elite_count": 2,
         "selection_size": min(3, bot_count), "mutation_strength": mutation_strength,
         "mutation_rate": mutation_rate, "random_immigrant_count": random_immigrant_count,
-        "generation_statistics": [], "bot_model": bot_model,
-        'games': []
+        "generation_statistics": [], "bot_model": bot_model, 'games_per_generation': 5,
+        'games_completed': 0, 'fitness_entries': [],
+        'games': [], "all_fitness_entries": []
     }
     db.create_training_batch(session_id, {
         "ruleset": ruleset,
@@ -82,11 +85,11 @@ async def start_training_session(ruleset: str, bot_count: int, generations: int,
     await training_update_hub.broadcast_sessions(active_training_sessions)
 
     orch_logger.info("Session built. Triggering generation 1...")
-    await _trigger_next_generation(session_id)
+    await _trigger_next_game(session_id)
     return session_id
 
 
-async def _trigger_next_generation(session_id: str):
+async def _trigger_next_game(session_id: str):
     session = active_training_sessions.get(session_id)
     if not session:
         return
@@ -108,6 +111,7 @@ async def _trigger_next_generation(session_id: str):
         training_generation=gen_num
     )
     active_training_sessions[session_id]["current_game_id"] = game_id
+    session["games"].append(game_id)
     db.mark_training_batch_game_started(session_id, game_id, gen_num)
     await training_update_hub.broadcast_sessions(active_training_sessions)
 
@@ -125,8 +129,7 @@ async def _trigger_next_generation(session_id: str):
                 # <-- Pass to Bot Server
                 "botModel": session.get("bot_model", "genetic")
             }, timeout=10.0)
-            orch_logger.info(f"Generation {gen_num} started for session "
-                             f"{session_id[:6]} in game {game_id}")
+            orch_logger.info(f"Game {session['games_completed'] + 1}/{session['games_per_generation']} started for generation {gen_num} in game {game_id}")
         except Exception as e:
             orch_logger.error("Failed to reach Bot Service", exc=e)
     session["generation_in_progress"] = False
@@ -137,9 +140,11 @@ async def handle_training_game_ended(game_id: str, training_session_id: str):
     if not session:
         return
     
-    if session.get("generation_in_progress"):
+    if session.get("processing_game_end"):
         orch_logger.warning("Duplicate game-ended ignored")
         return
+    
+    session["processing_game_end"] = True
 
     bot_url = os.environ.get("BOT_SERVICE_URL", "http://bots:8001")
     entries = None
@@ -167,11 +172,54 @@ async def handle_training_game_ended(game_id: str, training_session_id: str):
         except Exception as e:
             orch_logger.error(
                 "Failed to reach Bot Service to fetch genomes", exc=e)
+            
+    session['fitness_entries'].extend(entries)
+    session["all_fitness_entries"].extend(entries)
+    session["games_completed"] += 1
+
+    if session["games_completed"] < session["games_per_generation"]:
+            orch_logger.info(
+                f"Generation {session['generation']} "
+                f"Game {session['games_completed']}/"
+                f"{session['games_per_generation']} complete."
+            )
+
+            session["processing_game_end"] = False
+
+            await _trigger_next_game(training_session_id)
+            return
+
+    entries = session["fitness_entries"]
+
+    combined = {}
+
+    for entry in entries:
+
+        key = json.dumps(entry["genome"], sort_keys=True)
+
+        if key not in combined:
+            combined[key] = entry.copy()
+            combined[key]["fitness"] = 0.0
+            combined[key]["games"] = 0
+
+        combined[key]["fitness"] += float(entry.get("fitness", 0))
+        combined[key]["games"] += 1
+
+    entries_sorted = []
+
+    for entry in combined.values():
+        entry["fitness"] /= entry["games"]
+        del entry["games"]
+        entries_sorted.append(entry)
+
+    entries_sorted.sort(
+        key=lambda e: e["fitness"],
+        reverse=True
+    )
+
 
     best_genome = None
-    if entries:
-        entries_sorted = sorted(entries, key=lambda e: float(
-            e.get("fitness", 0)), reverse=True)
+    if entries_sorted:
         bot_model = session.get("bot_model", "genetic")
         best_genome = normalize_genome_for_model(
             bot_model, entries_sorted[0].get("genome"))
@@ -190,6 +238,15 @@ async def handle_training_game_ended(game_id: str, training_session_id: str):
             training_session_id,
             {"generation": session.get("generation", 1), **generation_stats})
         orch_logger.info(f"Generation stats: {generation_stats}")
+
+        slots_available = bot_count - session.get("random_immigrant_count", 1) - 2
+
+        crossover_child_count = 0
+        mutation_child_count = 0
+
+        crossover_child_count = slots_available // 2
+        mutation_child_count = slots_available - crossover_child_count
+
         session["population"] = build_next_population(
             bot_model, entries_sorted, bot_count,
             elite_count=elite_count,
@@ -197,19 +254,25 @@ async def handle_training_game_ended(game_id: str, training_session_id: str):
             mutation_strength=mutation_strength,
             mutation_rate=mutation_rate,
             random_immigrant_count=session.get("random_immigrant_count", 1),
+            crossover_child_count = crossover_child_count,
+            mutation_child_count = mutation_child_count
         )
+        session["fitness_entries"] = []
+        session["games_completed"] = 0
 
     if best_genome:
         session["base_genome"] = best_genome
 
     session["generations_left"] -= 1
-    session["generation"] += 1
+
     await training_update_hub.broadcast_sessions(active_training_sessions)
 
     if session["generations_left"] > 0:
+        session["generation"] += 1
         orch_logger.info(f"Generation complete. "
                          f"{session['generations_left']} remaining.")
-        await _trigger_next_generation(training_session_id)
+        session["processing_game_end"] = False
+        await _trigger_next_game(training_session_id)
     else:
         orch_logger.info(f"Training Loop {training_session_id[:6]} Finished!")
         shorthand = "G" + str(uuid.uuid4())[:3].upper()
@@ -227,17 +290,7 @@ async def handle_training_game_ended(game_id: str, training_session_id: str):
             orch_logger.warning(f"No genome data available to save for "
                                 f"session {training_session_id[:6]}")
             
-        game_stats = {
-            "game_id": game_id,
-            "trade_count": sum(
-                len(e.get("events", {}).get("trades", []))
-                for e in entries
-            ),
-            "contest_count": sum(
-                len(e.get("events", {}).get("contests", []))
-                for e in entries
-            ),
-        }
+        session["processing_game_end"] = False
         
         db.complete_training_batch(training_session_id, final_champion_genome_id)
         del active_training_sessions[training_session_id]

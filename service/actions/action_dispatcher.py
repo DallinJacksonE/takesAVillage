@@ -44,9 +44,10 @@ class ActionDispatcher:
         if not player:
             return False
 
-        dispatch_logger.info(f"userId: {data.get('userId')} | action: "
+        dispatch_logger.info(f"user_id: {user_id} | action: "
                              f"{data.get('action_command')} | "
                              f"payload: {data.get('payload')}")
+        
         action_command = data.get('action_command')
         payload = data.get('payload', data)
 
@@ -66,7 +67,7 @@ class ActionDispatcher:
         status, contract_obj = game_state.contract_factory.process_contract(
             user_id, payload, action_command)
 
-        if status not in ["ERROR", "ILLEGAL"]:
+        if status not in ["ERROR", "ILLEGAL"] and contract_obj is not None:
             if status == "UPDATED_COMPLETED" and contract_obj.type == "TRADE":
                 SocialResolvers.execute_trade(game_state, contract_obj)
             elif status == "UPDATED_ACCEPTED" and contract_obj.type == "CAMPFIRE":

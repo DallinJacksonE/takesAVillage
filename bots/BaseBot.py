@@ -416,12 +416,16 @@ class BaseBot(ABC):
             )
 
             if not best_offers:
-                return {
+                return [{
                     "action_command": "FINISH_PHASE",
                     "payload": {}
-                }
+                }]
 
             offer_item = best_offers[0][0]
+
+            best_requests = [
+                (r, value) for r, value in best_requests if r != offer_item
+            ]
 
             request_item= best_requests[0][0]             
             

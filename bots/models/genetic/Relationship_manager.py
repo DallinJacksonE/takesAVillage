@@ -114,8 +114,10 @@ class RelationshipManager:
             self.genome.generosity_weight +
             self.genome.greed_weight
         )
-
-        probability = (score + max_score) / (2 * max_score)
-        probability = max(0.0, min(1.0, probability))
+        if max_score != 0:
+            probability = (score + max_score) / (2 * max_score)
+            probability = max(0.0, min(1.0, probability))
+        else:
+            probability = 0.5
         will_honor = random() <= probability
         return will_honor

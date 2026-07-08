@@ -54,7 +54,9 @@ def build_next_population(bot_model: str, entries: list[dict], bot_count: int,
                           elite_count: int, selection_size: int,
                           mutation_strength: float,
                           mutation_rate: float,
-                          random_immigrant_count: int = 1) -> list[dict]:
+                          random_immigrant_count: int = 1,
+                          crossover_child_count: int = 0,
+                          mutation_child_count: int = 0) -> list[dict]:
     entries_sorted = sorted(
         entries,
         key=lambda entry: float(entry.get("fitness", 0) or 0),
@@ -76,19 +78,25 @@ def build_next_population(bot_model: str, entries: list[dict], bot_count: int,
         max(0, random_immigrant_count),
         max(0, bot_count - len(next_population)),
     )
-    while len(next_population) < bot_count - immigrant_slots:
+    for i in range(crossover_child_count):
         if len(parents) >= 2:
             parent_a, parent_b = random.sample(parents, 2)
             child = crossover_genomes_for_model(bot_model, parent_a, parent_b)
         else:
             child = dict(parents[0])
-        next_population.append(mutate_genome_for_model(
-            bot_model, child,
-            mutation_strength=mutation_strength,
-            mutation_rate=mutation_rate,
-        ))
+        next_population.append(child)
 
-    for _ in range(bot_count - len(next_population)):
+    for i in range(mutation_child_count):
+        if len(parents) >= 2:
+            if i % 2 == 0:
+                child = mutate_genome_for_model(bot_model, parents[0], mutation_strength=mutation_strength, mutation_rate=mutation_rate)
+            else:
+                child = mutate_genome_for_model(bot_model, parents[1], mutation_strength=mutation_strength, mutation_rate=mutation_rate)
+        else:
+            child = mutate_genome_for_model(bot_model, parents[0], mutation_strength=mutation_strength, mutation_rate=mutation_rate)
+        next_population.append(child)
+
+    for _ in range(immigrant_slots):
         next_population.append(random_genome_dict_for_model(bot_model))
 
     return next_population[:bot_count]
