@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from bots.models.utility_genetic.Relationship_manager import RelationshipManager
-
 
 class BaseBot(ABC):
     """
