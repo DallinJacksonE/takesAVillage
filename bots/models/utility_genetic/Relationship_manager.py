@@ -1,6 +1,5 @@
 from random import random
-from bots.models.utility_genetic.utility_genetic.Relationship import Relationship
-from bots.models.utility_genetic.utility_genetic.Relationship import Relationship
+from utility_genetic.Relationship import Relationship
 
 
 class RelationshipManager:
