@@ -59,7 +59,8 @@ async def game_loop(connection_manager):
                     game_type=("training" if game.training else
                                "human_bot" if game.bot_count else "human"),
                     trade_count=game.trade_count,
-                    contest_count=game.contest_count
+                    contest_count=game.contest_count,
+                    lie_count=sum(game.lie_count.values())
                 )
 
                 if game.training:

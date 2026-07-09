@@ -466,6 +466,7 @@ class MySQLDB(DatabaseProvider):
                 `training_generation` INT,
                 `trade_count` INT NOT NULL DEFAULT 0,
                 `contest_count` INT NOT NULL DEFAULT 0,
+                `lie_count` INT NOT NULL DEFAULT 0,
                 `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_created_at (created_at),
                 INDEX idx_training_batch_id (training_batch_id)
@@ -516,7 +517,8 @@ class MySQLDB(DatabaseProvider):
             "training_batch_id": "VARCHAR(64)",
             "training_generation": "INT",
             "trade_count": "INT NOT NULL DEFAULT 0",
-            "contest_count": "INT NOT NULL DEFAULT 0"
+            "contest_count": "INT NOT NULL DEFAULT 0",
+            "lie_count": "INT NOT NULL DEFAULT 0"
         }
         for column_name, column_definition in columns.items():
             if not self._column_exists(cursor, "games", column_name):
@@ -539,7 +541,7 @@ class MySQLDB(DatabaseProvider):
 
     def store_game_result(self, game_id, day_num, phase, snapshot_json,
                           training_batch_id=None, training_generation=None,
-                          game_type=None, trade_count=None, contest_count=None):
+                          game_type=None, trade_count=None, contest_count=None, lie_count=None):
         conn = self.get_connection()
         if not conn:
             return
@@ -547,15 +549,15 @@ class MySQLDB(DatabaseProvider):
         cursor = conn.cursor()
         query = """
             INSERT INTO games
-            (game_id, day_num, phase, data, game_type, training_batch_id, training_generation, trade_count, contest_count)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            (game_id, day_num, phase, data, game_type, training_batch_id, training_generation, trade_count, contest_count, lie_count)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
 
         try:
             cursor.execute(query, (
                 game_id, day_num, phase, snapshot_json,
                 game_type or ("training" if training_batch_id else "human"),
-                training_batch_id, training_generation, trade_count, contest_count))
+                training_batch_id, training_generation, trade_count, contest_count, lie_count))
             conn.commit()
         except mysql.connector.Error as err:
             db_logger.error(f"Error storing game result: {err}")
@@ -764,6 +766,7 @@ class MySQLDB(DatabaseProvider):
                     training_generation,
                     trade_count,
                     contest_count
+                    lie_count
                 FROM games
                 WHERE training_batch_id = %s
                 ORDER BY training_generation, created_at

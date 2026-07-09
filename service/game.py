@@ -78,6 +78,7 @@ class Game:
         self.phase_end_time = 0
         self.trade_count = 0
         self.contest_count = 0
+        self.lie_count = {}
 
         self.add_player_hist = add_player_hist
         self.add_map_hist = add_map_hist

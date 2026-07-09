@@ -168,8 +168,6 @@ def run_bot_process(game_id: str,
                     "genome": bot.genome.__dict__
                 })
                 fitness_sent = True
-                bot_logger.info(
-                    f"Bot died/Game ended. Fitness: {fitness_score} sent to parent. Lies: {bot.trade_lies_count}")
 
             if state.get("status") == "ENDED":
                 game_ended = True
