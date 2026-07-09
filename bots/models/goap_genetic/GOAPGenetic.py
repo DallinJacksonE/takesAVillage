@@ -16,11 +16,11 @@ class GOAPGenetic(BaseBot):
     """
 
     def __init__(self, genome: GOAPGenome | dict):
-        super().__init__()
-        self.genome = (
+        normalized_genome = (
             genome if isinstance(genome, GOAPGenome)
             else GOAPGenome.from_dict(genome)
         )
+        super().__init__(normalized_genome)
         self.perception = Perception()
         self.thinker = Thinker(self.genome)
         self.actuator = Actuator(self.genome)

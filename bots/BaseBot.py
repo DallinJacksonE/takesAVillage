@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-import copy
+from typing import Any
+
 from models.genetic.Relationship_manager import RelationshipManager
-from models.genetic.Genome import Genome
 
 
 class BaseBot(ABC):
@@ -10,7 +10,8 @@ class BaseBot(ABC):
     and formatting GameActionPayloads. Bot implementations only need to provide
     the decision-making logic.
     """
-    def __init__(self, genome: Genome):
+
+    def __init__(self, genome: Any):
         self.genome = genome
         self.waiting = None
         # Track last seen phase to reset per-phase state
@@ -41,7 +42,7 @@ class BaseBot(ABC):
             opposite: dev.get("level", 0) * 2 + 1,
             "iron": dev.get("level", 0)
         }
-    
+
     def get_maintenance_cost(self, dev, game_state: dict):
         if dev.get("type") not in game_state.get("RESOURCE_COSTS", {}):
             return {
