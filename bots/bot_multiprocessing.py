@@ -3,9 +3,9 @@ import os
 import json
 from models.goap_genetic.GOAPGenetic import GOAPGenetic
 from models.goap_genetic.goap_genome import GOAPGenome
-from bots.models.utility_genetic.Genome import Genome
-from bots.models.utility_genetic.GeneticBot import GeneticBot
-from bots.fitness import calculate_fitness_report
+from models.utility_genetic.Genome import Genome
+from models.utility_genetic.GeneticBot import GeneticBot
+from fitness import calculate_fitness_report
 from botsocket import BotSocket
 from training_seeder import seed_genomes
 import multiprocessing

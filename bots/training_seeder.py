@@ -1,4 +1,4 @@
-from bots.models.utility_genetic.Genome import Genome
+from models.utility_genetic.Genome import Genome
 from logger import Logger
 
 seeder_logger = Logger("GENETIC_SEEDER")

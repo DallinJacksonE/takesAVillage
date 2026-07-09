@@ -1,5 +1,5 @@
 from random import random
-from utility_genetic.Relationship import Relationship
+from .Relationship import Relationship
 
 
 class RelationshipManager:

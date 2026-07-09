@@ -1,8 +1,8 @@
 import copy
 
 from BaseBot import BaseBot
-from utility_genetic.Relationship_manager import RelationshipManager
-from utility_genetic.Genome import Genome
+from .Relationship_manager import RelationshipManager
+from .Genome import Genome
 
 
 class GeneticBot(BaseBot):
