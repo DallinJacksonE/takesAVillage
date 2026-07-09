@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from models.genetic.Relationship_manager import RelationshipManager
+from bots.models.utility_genetic.Relationship_manager import RelationshipManager
 
 
 class BaseBot(ABC):

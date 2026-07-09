@@ -8,7 +8,7 @@ for path in (BOTS_DIR, ROOT_DIR):
     if path not in sys.path:
         sys.path.insert(0, path)
 
-from models.genetic.fitness import calculate_fitness, calculate_fitness_report
+from bots.fitness import calculate_fitness, calculate_fitness_report
 
 
 class FitnessSurvivalPriorityTests(unittest.TestCase):
