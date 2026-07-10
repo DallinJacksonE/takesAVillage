@@ -118,6 +118,10 @@ describe("ResearchPresenter", () => {
         bot_count: 4,
         generation: 2,
         generations_left: 3,
+        games_per_generation: 5,
+        games_completed: 2,
+        games_failed: 1,
+        current_generation_game_index: 3,
         population_size: 4,
         generation_statistics: [{ generation: 1, best_fitness: 10, average_fitness: 7 }],
       }],
@@ -131,8 +135,42 @@ describe("ResearchPresenter", () => {
       bot_count: 4,
       current_generation: 2,
       total_generations: 5,
+      games_per_generation: 5,
+      games_completed: 2,
+      games_failed: 1,
+      current_generation_game_index: 3,
       generation_statistics: [{ generation: 1, best_fitness: 10, average_fitness: 7 }],
-      progress_tooltip: "Generation 2 • 3 remaining • Game g_1 • Best fitness 10",
+      progress_tooltip: "Generation 2 • 3 remaining • Game 3/5 • 1 failed • Game g_1 • Best fitness 10",
     }]);
+  });
+
+  it("passes explicit games-per-generation settings when starting training", async () => {
+    jest.spyOn(ResearchService, "fetchGameList").mockResolvedValue([]);
+    jest.spyOn(ResearchService, "fetchTrainingBatchList").mockResolvedValue([]);
+    jest.spyOn(ResearchService, "subscribeToTrainingSessions").mockReturnValue(() => undefined);
+    const startTraining = jest.spyOn(ResearchService, "startTrainingLoop").mockResolvedValue();
+
+    const view = createView();
+    const presenter = new ResearchPresenter(view);
+    await flushPromises();
+
+    await presenter.handleStartTraining({
+      ruleset: "default",
+      botCount: 5,
+      generations: 10,
+      gamesPerGeneration: 5,
+      baseGenome: "random",
+      botModel: "GOAPGenetic",
+      mutationStrength: 0.25,
+      mutationRate: 0.15,
+      randomImmigrantCount: 1,
+    });
+
+    expect(startTraining).toHaveBeenCalledWith(expect.objectContaining({
+      gamesPerGeneration: 5,
+      mutationStrength: 0.25,
+      mutationRate: 0.15,
+      randomImmigrantCount: 1,
+    }));
   });
 });

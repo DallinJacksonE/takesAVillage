@@ -39,6 +39,7 @@ snapshots_stub = types.ModuleType("serializers.snapshots")
 setattr(snapshots_stub, "_safe_serialize", lambda value: value)
 sys.modules["serializers.snapshots"] = snapshots_stub
 
+sys.modules.pop("db", None)
 research_db = importlib.import_module("db")
 
 
@@ -74,6 +75,149 @@ class ResearchPersistenceTests(unittest.TestCase):
         self.assertEqual(detail["current_generation"], 1)
         self.assertEqual(detail["generation_statistics"][0]["average_fitness"], 7.5)
         self.assertEqual(detail["final_champion_genome_id"], "genome-1")
+
+    def test_in_memory_training_games_include_status_and_counts(self):
+        database = research_db.InMemoryDB()
+        database.create_training_batch(
+            "batch-1",
+            {
+                "ruleset": "default",
+                "bot_model": "GOAPGenetic",
+                "bot_count": 4,
+                "total_generations": 2,
+                "base_genome_id": "random",
+                "config": {"games_per_generation": 5},
+            },
+        )
+
+        database.mark_training_batch_game_started("batch-1", "game-1", 1)
+        database.mark_training_batch_game_failed("batch-1", "game-1", "bot spawn timeout")
+
+        games = database.get_training_games("batch-1")
+        batch = database.get_training_batch("batch-1")
+
+        self.assertEqual(games, [{
+            "game_id": "game-1",
+            "generation": 1,
+            "attempt": None,
+            "status": "failed",
+            "error_message": "bot spawn timeout",
+            "genome_count": 0,
+            "best_fitness": None,
+            "average_fitness": None,
+        }])
+        self.assertEqual(batch["games_completed"], 1)
+        self.assertEqual(batch["games_failed"], 1)
+
+    def test_in_memory_training_game_attempt_moves_from_spawning_to_running(self):
+        database = research_db.InMemoryDB()
+        database.create_training_batch(
+            "batch-1",
+            {
+                "ruleset": "default",
+                "bot_model": "GOAPGenetic",
+                "bot_count": 4,
+                "total_generations": 2,
+                "base_genome_id": "random",
+                "config": {"games_per_generation": 5},
+            },
+        )
+
+        database.mark_training_batch_game_started("batch-1", "game-1", 1)
+        self.assertEqual(database.get_training_games("batch-1")[0]["status"], "spawning")
+
+        database.mark_training_batch_game_running("batch-1", "game-1")
+
+        self.assertEqual(database.get_training_games("batch-1")[0]["status"], "running")
+
+    def test_in_memory_training_game_attempt_records_attempt_index(self):
+        database = research_db.InMemoryDB()
+        database.create_training_batch(
+            "batch-1",
+            {
+                "ruleset": "default",
+                "bot_model": "GOAPGenetic",
+                "bot_count": 4,
+                "total_generations": 2,
+                "base_genome_id": "random",
+                "config": {"games_per_generation": 5},
+            },
+        )
+
+        database.mark_training_batch_game_started(
+            "batch-1", "game-3", 1, attempt=3)
+
+        games = database.get_training_games("batch-1")
+
+        self.assertEqual(games[0]["attempt"], 3)
+
+    def test_in_memory_training_game_attempt_can_be_completed_with_fitness_summary(self):
+        database = research_db.InMemoryDB()
+        database.create_training_batch(
+            "batch-1",
+            {
+                "ruleset": "default",
+                "bot_model": "GOAPGenetic",
+                "bot_count": 4,
+                "total_generations": 2,
+                "base_genome_id": "random",
+                "config": {"games_per_generation": 5},
+            },
+        )
+
+        database.mark_training_batch_game_started("batch-1", "game-1", 1)
+        database.mark_training_batch_game_completed(
+            "batch-1",
+            "game-1",
+            genome_count=3,
+            fitness_summary={"best_fitness": 12.0, "average_fitness": 8.5},
+        )
+
+        games = database.get_training_games("batch-1")
+        batch = database.get_training_batch("batch-1")
+
+        self.assertEqual(games[0]["status"], "completed")
+        self.assertEqual(games[0]["genome_count"], 3)
+        self.assertEqual(games[0]["best_fitness"], 12.0)
+        self.assertEqual(games[0]["average_fitness"], 8.5)
+        self.assertIsNone(games[0]["error_message"])
+        self.assertEqual(batch["games_completed"], 1)
+        self.assertEqual(batch["games_failed"], 0)
+
+    def test_in_memory_training_batch_records_heartbeat_and_stalled_status(self):
+        database = research_db.InMemoryDB()
+        database.create_training_batch(
+            "batch-1",
+            {
+                "ruleset": "default",
+                "bot_model": "GOAPGenetic",
+                "bot_count": 4,
+                "total_generations": 2,
+                "base_genome_id": "random",
+                "config": {"games_per_generation": 5},
+            },
+        )
+
+        database.record_training_batch_heartbeat(
+            "batch-1",
+            phase="spawning",
+            current_generation=2,
+            current_game_id="game-2",
+        )
+        database.update_training_batch_status(
+            "batch-1",
+            "stalled",
+            "No heartbeat received before timeout",
+        )
+
+        batch = database.get_training_batch("batch-1")
+
+        self.assertEqual(batch["status"], "stalled")
+        self.assertEqual(batch["phase"], "spawning")
+        self.assertEqual(batch["current_generation"], 2)
+        self.assertEqual(batch["current_game_id"], "game-2")
+        self.assertEqual(batch["last_error"], "No heartbeat received before timeout")
+        self.assertIsNotNone(batch["last_heartbeat_at"])
 
     def test_game_result_can_be_linked_to_training_batch(self):
         database = research_db.InMemoryDB()
@@ -124,6 +268,13 @@ class ResearchPersistenceTests(unittest.TestCase):
 
         self.assertNotIn("ADD COLUMN IF NOT EXISTS", schema)
         self.assertIn("CREATE TABLE IF NOT EXISTS `research_visualizations`", schema)
+
+    def test_mysql_training_games_query_selects_contest_and_lie_counts_separately(self):
+        source_path = os.path.join(SERVICE_DIR, "db.py")
+        with open(source_path, "r", encoding="utf-8") as source_file:
+            source = source_file.read()
+
+        self.assertIn("contest_count,\n                    lie_count", source)
 
 
 if __name__ == "__main__":

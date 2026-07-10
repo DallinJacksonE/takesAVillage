@@ -117,6 +117,7 @@ export class ResearchPresenter extends Presenter<ResearchView> {
 				generations: options.generations,
 				baseGenome: options.baseGenome,
 				botModel: options.botModel,
+				gamesPerGeneration: options.gamesPerGeneration,
 				mutationStrength: options.mutationStrength,
 				mutationRate: options.mutationRate,
 				randomImmigrantCount: options.randomImmigrantCount,
@@ -190,6 +191,12 @@ export class ResearchPresenter extends Presenter<ResearchView> {
 		const latestStats = session.generation_statistics.at(-1);
 		const bestFitness = latestStats?.best_fitness;
 		const totalGenerations = session.generation + session.generations_left;
+		const gameProgress = session.games_per_generation
+			? `Game ${session.current_generation_game_index || session.games_completed || 0}/${session.games_per_generation}`
+			: null;
+		const failureProgress = session.games_failed
+			? `${session.games_failed} failed`
+			: null;
 		return {
 			batch_id: session.session_id,
 			status: "running",
@@ -198,10 +205,16 @@ export class ResearchPresenter extends Presenter<ResearchView> {
 			bot_count: session.bot_count,
 			current_generation: session.generation,
 			total_generations: totalGenerations,
+			games_per_generation: session.games_per_generation,
+			games_completed: session.games_completed,
+			games_failed: session.games_failed,
+			current_generation_game_index: session.current_generation_game_index,
 			generation_statistics: session.generation_statistics,
 			progress_tooltip: [
 				`Generation ${session.generation}`,
 				`${session.generations_left} remaining`,
+				gameProgress,
+				failureProgress,
 				session.current_game_id ? `Game ${session.current_game_id}` : null,
 				bestFitness !== undefined ? `Best fitness ${bestFitness}` : null,
 			].filter(Boolean).join(" • "),

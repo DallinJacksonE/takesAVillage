@@ -1,4 +1,6 @@
 import importlib
+import asyncio
+from datetime import datetime, timedelta
 import os
 import sys
 import types
@@ -164,6 +166,387 @@ class TrainingOrchestratorGOAPGenomeTests(unittest.TestCase):
             any(genome["food_weight"] != 1.0 for genome in population[1:]),
             population,
         )
+
+
+class TrainingOrchestratorRobustnessTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        training_orchestrator.active_training_sessions.clear()
+        self.db_calls = []
+
+        def record(name):
+            def _recorder(*args, **kwargs):
+                self.db_calls.append((name, args, kwargs))
+            return _recorder
+
+        training_orchestrator.db.create_training_batch = record("create_training_batch")
+        training_orchestrator.db.mark_training_batch_game_started = record("mark_training_batch_game_started")
+        training_orchestrator.db.mark_training_batch_game_running = record("mark_training_batch_game_running")
+        training_orchestrator.db.append_training_batch_generation_stats = record("append_training_batch_generation_stats")
+        training_orchestrator.db.complete_training_batch = record("complete_training_batch")
+        training_orchestrator.db.mark_training_batch_game_failed = record("mark_training_batch_game_failed")
+        training_orchestrator.db.mark_training_batch_game_completed = record("mark_training_batch_game_completed")
+        training_orchestrator.db.record_training_batch_heartbeat = record("record_training_batch_heartbeat")
+        training_orchestrator.db.update_training_batch_status = record("update_training_batch_status")
+        training_orchestrator.db.store_genome = record("store_genome")
+
+    async def test_start_training_session_accepts_games_per_generation(self):
+        posts = []
+
+        class FakeClient:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return False
+
+            async def post(self, url, json, timeout):
+                posts.append((url, json, timeout))
+
+        original_client = training_orchestrator.httpx.AsyncClient
+        original_create_game = training_orchestrator.create_game
+        training_orchestrator.httpx.AsyncClient = FakeClient
+        training_orchestrator.create_game = lambda **_kwargs: "game-1"
+        try:
+            session_id = await training_orchestrator.start_training_session(
+                "default",
+                bot_count=3,
+                generations=2,
+                base_genome_id="random",
+                bot_model="GOAPGenetic",
+                games_per_generation=3,
+            )
+        finally:
+            training_orchestrator.httpx.AsyncClient = original_client
+            training_orchestrator.create_game = original_create_game
+
+        session = training_orchestrator.active_training_sessions[session_id]
+        self.assertEqual(session["games_per_generation"], 3)
+        self.assertEqual(session["current_generation_game_index"], 3)
+        self.assertEqual(len(posts), 3)
+        self.assertEqual(posts[0][1]["botCount"], 3)
+        create_call = [call for call in self.db_calls if call[0] == "create_training_batch"][0]
+        self.assertEqual(create_call[1][1]["config"]["games_per_generation"], 3)
+        running_calls = [call for call in self.db_calls if call[0] == "mark_training_batch_game_running"]
+        self.assertEqual(len(running_calls), 3)
+
+    async def test_failed_genome_fetch_counts_failed_game_without_serial_trigger(self):
+        triggered = []
+
+        class FakeResponse:
+            status_code = 500
+            text = "no genomes yet"
+
+            def json(self):
+                return {}
+
+        class FakeClient:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return False
+
+            async def get(self, *_args, **_kwargs):
+                return FakeResponse()
+
+        async def fake_trigger(session_id):
+            triggered.append(session_id)
+
+        original_client = training_orchestrator.httpx.AsyncClient
+        original_trigger = training_orchestrator._trigger_next_game
+        training_orchestrator.httpx.AsyncClient = FakeClient
+        training_orchestrator._trigger_next_game = fake_trigger
+        training_orchestrator.active_training_sessions["session-1"] = {
+            "ruleset": "default",
+            "bot_count": 2,
+            "generations_left": 1,
+            "population": [{"food_weight": 1.0}, {"food_weight": 0.0}],
+            "generation": 1,
+            "elite_count": 1,
+            "selection_size": 1,
+            "mutation_strength": 0.0,
+            "mutation_rate": 0.0,
+            "random_immigrant_count": 0,
+            "generation_statistics": [],
+            "bot_model": "GOAPGenetic",
+            "games_per_generation": 2,
+            "games_completed": 0,
+            "games_failed": 0,
+            "fitness_entries": [],
+            "games": ["game-1"],
+            "all_fitness_entries": [],
+        }
+        try:
+            await training_orchestrator.handle_training_game_ended("game-1", "session-1")
+        finally:
+            training_orchestrator.httpx.AsyncClient = original_client
+            training_orchestrator._trigger_next_game = original_trigger
+
+        session = training_orchestrator.active_training_sessions["session-1"]
+        self.assertEqual(session["games_completed"], 1)
+        self.assertEqual(session["games_failed"], 1)
+        self.assertFalse(session.get("processing_game_end"))
+        self.assertEqual(triggered, [])
+
+    async def test_start_training_session_schedules_generation_games_concurrently(self):
+        posts = []
+        created_game_ids = []
+
+        class FakeClient:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return False
+
+            async def post(self, url, json, timeout):
+                posts.append((url, json, timeout))
+
+        def fake_create_game(**_kwargs):
+            game_id = f"game-{len(created_game_ids) + 1}"
+            created_game_ids.append(game_id)
+            return game_id
+
+        original_client = training_orchestrator.httpx.AsyncClient
+        original_create_game = training_orchestrator.create_game
+        training_orchestrator.httpx.AsyncClient = FakeClient
+        training_orchestrator.create_game = fake_create_game
+        try:
+            session_id = await training_orchestrator.start_training_session(
+                "default",
+                bot_count=3,
+                generations=1,
+                base_genome_id="random",
+                bot_model="GOAPGenetic",
+                games_per_generation=3,
+            )
+            await asyncio.sleep(0)
+        finally:
+            training_orchestrator.httpx.AsyncClient = original_client
+            training_orchestrator.create_game = original_create_game
+
+        self.assertEqual(created_game_ids, ["game-1", "game-2", "game-3"])
+        self.assertEqual(len(posts), 3)
+        self.assertTrue(all(
+            post[1]["baseGenome"]
+            is training_orchestrator.active_training_sessions[session_id]["population"]
+            for post in posts
+        ))
+        started_calls = [
+            call for call in self.db_calls
+            if call[0] == "mark_training_batch_game_started"
+        ]
+        self.assertEqual(
+            [call[1] for call in started_calls],
+            [
+                (session_id, "game-1", 1, 1),
+                (session_id, "game-2", 1, 2),
+                (session_id, "game-3", 1, 3),
+            ],
+        )
+
+    async def test_duplicate_game_end_does_not_double_count_entries(self):
+        class FakeResponse:
+            status_code = 200
+            text = "ok"
+
+            def json(self):
+                return {"entries": [{"game_id": "game-1", "fitness": 10, "genome": {"food_weight": 1.0}}]}
+
+        class FakeClient:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return False
+
+            async def get(self, *_args, **_kwargs):
+                return FakeResponse()
+
+        original_client = training_orchestrator.httpx.AsyncClient
+        training_orchestrator.httpx.AsyncClient = FakeClient
+        training_orchestrator.active_training_sessions["session-1"] = {
+            "ruleset": "default",
+            "bot_count": 2,
+            "generations_left": 1,
+            "population": [{"food_weight": 1.0}, {"food_weight": 0.0}],
+            "generation": 1,
+            "elite_count": 1,
+            "selection_size": 1,
+            "mutation_strength": 0.0,
+            "mutation_rate": 0.0,
+            "random_immigrant_count": 0,
+            "generation_statistics": [],
+            "bot_model": "GOAPGenetic",
+            "games_per_generation": 1,
+            "games_completed": 0,
+            "games_failed": 0,
+            "fitness_entries": [],
+            "games": ["game-1"],
+            "all_fitness_entries": [],
+        }
+        try:
+            await training_orchestrator.handle_training_game_ended("game-1", "session-1")
+            await training_orchestrator.handle_training_game_ended("game-1", "session-1")
+        finally:
+            training_orchestrator.httpx.AsyncClient = original_client
+
+        complete_calls = [call for call in self.db_calls if call[0] == "complete_training_batch"]
+        self.assertEqual(len(complete_calls), 1)
+
+    async def test_successful_game_end_marks_attempt_completed_with_fitness_summary(self):
+        class FakeResponse:
+            status_code = 200
+            text = "ok"
+
+            def json(self):
+                return {"entries": [
+                    {"game_id": "game-1", "fitness": 10, "genome": {"food_weight": 1.0}},
+                    {"game_id": "game-1", "fitness": 6, "genome": {"food_weight": 0.5}},
+                ]}
+
+        class FakeClient:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return False
+
+            async def get(self, *_args, **_kwargs):
+                return FakeResponse()
+
+        original_client = training_orchestrator.httpx.AsyncClient
+        training_orchestrator.httpx.AsyncClient = FakeClient
+        training_orchestrator.active_training_sessions["session-1"] = {
+            "ruleset": "default",
+            "bot_count": 2,
+            "generations_left": 1,
+            "population": [{"food_weight": 1.0}, {"food_weight": 0.0}],
+            "generation": 1,
+            "elite_count": 1,
+            "selection_size": 1,
+            "mutation_strength": 0.0,
+            "mutation_rate": 0.0,
+            "random_immigrant_count": 0,
+            "generation_statistics": [],
+            "bot_model": "GOAPGenetic",
+            "games_per_generation": 1,
+            "games_completed": 0,
+            "games_failed": 0,
+            "fitness_entries": [],
+            "games": ["game-1"],
+            "all_fitness_entries": [],
+        }
+        try:
+            await training_orchestrator.handle_training_game_ended("game-1", "session-1")
+        finally:
+            training_orchestrator.httpx.AsyncClient = original_client
+
+        completed_calls = [
+            call for call in self.db_calls
+            if call[0] == "mark_training_batch_game_completed"
+        ]
+        self.assertEqual(len(completed_calls), 1)
+        self.assertEqual(completed_calls[0][1][0:3], ("session-1", "game-1", 2))
+        self.assertEqual(completed_calls[0][1][3]["best_fitness"], 10.0)
+        self.assertEqual(completed_calls[0][1][3]["average_fitness"], 8.0)
+
+    async def test_reconcile_stalled_training_sessions_marks_missing_stale_batch(self):
+        class FakeDB:
+            def __init__(self):
+                self.status_updates = []
+
+            def get_training_batches(self):
+                return [{
+                    "batch_id": "batch-1",
+                    "status": "running",
+                    "last_heartbeat_at": datetime.now() - timedelta(seconds=120),
+                }]
+
+            def update_training_batch_status(self, batch_id, status, error_message=None):
+                self.status_updates.append((batch_id, status, error_message))
+
+        fake_db = FakeDB()
+        original_db = training_orchestrator.db
+        training_orchestrator.db = fake_db
+        training_orchestrator.active_training_sessions.clear()
+        try:
+            await training_orchestrator.reconcile_stalled_training_sessions(
+                stale_after_seconds=30,
+            )
+        finally:
+            training_orchestrator.db = original_db
+
+        self.assertEqual(len(fake_db.status_updates), 1)
+        self.assertEqual(fake_db.status_updates[0][0], "batch-1")
+        self.assertEqual(fake_db.status_updates[0][1], "stalled")
+        self.assertIn("not active", fake_db.status_updates[0][2])
+
+    async def test_reconcile_stalled_training_sessions_marks_stale_active_attempt_failed(self):
+        training_orchestrator.active_training_sessions["session-1"] = {
+            "ruleset": "default",
+            "bot_count": 2,
+            "generations_left": 1,
+            "population": [{"food_weight": 1.0}, {"food_weight": 0.0}],
+            "generation": 1,
+            "elite_count": 1,
+            "selection_size": 1,
+            "mutation_strength": 0.0,
+            "mutation_rate": 0.0,
+            "random_immigrant_count": 0,
+            "generation_statistics": [],
+            "bot_model": "GOAPGenetic",
+            "games_per_generation": 1,
+            "games_completed": 0,
+            "games_failed": 0,
+            "fitness_entries": [],
+            "games": ["game-1"],
+            "all_fitness_entries": [],
+            "processed_game_ids": set(),
+            "generation_terminal_game_ids": set(),
+            "generation_lock": asyncio.Lock(),
+            "generation_attempts": {
+                "game-1": {
+                    "attempt": 1,
+                    "status": "running",
+                    "updated_at": datetime.now() - timedelta(seconds=120),
+                }
+            },
+        }
+
+        await training_orchestrator.reconcile_stalled_training_sessions(
+            stale_after_seconds=600,
+            attempt_stale_after_seconds=30,
+        )
+
+        failed_calls = [
+            call for call in self.db_calls
+            if call[0] == "mark_training_batch_game_failed"
+        ]
+        self.assertEqual(len(failed_calls), 1)
+        self.assertEqual(failed_calls[0][1][0:2], ("session-1", "game-1"))
+        self.assertIn("stale", failed_calls[0][1][2])
+        self.assertNotIn("session-1", training_orchestrator.active_training_sessions)
+
+    async def test_cancel_training_session_marks_batch_cancelled_and_removes_active_session(self):
+        training_orchestrator.active_training_sessions["session-1"] = {
+            "generation_lock": asyncio.Lock(),
+        }
+
+        result = await training_orchestrator.cancel_training_session(
+            "session-1", reason="operator requested cancel")
+
+        status_calls = [
+            call for call in self.db_calls
+            if call[0] == "update_training_batch_status"
+        ]
+        self.assertTrue(result)
+        self.assertNotIn("session-1", training_orchestrator.active_training_sessions)
+        self.assertEqual(status_calls[0][1], (
+            "session-1",
+            "cancelled",
+            "operator requested cancel",
+        ))
 
 
 if __name__ == "__main__":

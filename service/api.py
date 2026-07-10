@@ -1,4 +1,8 @@
-from training_orchestrator import start_training_session, active_training_sessions
+from training_orchestrator import (
+    active_training_sessions,
+    cancel_training_session,
+    start_training_session,
+)
 from pydantic import BaseModel
 import os
 import uuid
@@ -10,6 +14,7 @@ from db import db
 from game_manager import active_games, create_game
 import httpx
 import asyncio
+from bot_service_client import BotServiceClient
 from logger import BackendLogger
 from training_session_presenter import build_training_session_payload
 from training_updates import training_update_hub
@@ -23,6 +28,14 @@ CONSTANTS_DIR = Path(__file__).parent / "constants"
 
 # Initialize the API Logger
 api_logger = BackendLogger("api")
+
+
+def bot_service_client() -> BotServiceClient:
+    return BotServiceClient(
+        base_url=os.environ.get("BOT_SERVICE_URL", "http://bots:8001"),
+        bot_secret=os.environ.get("BOT_SECRET", "default_dev_secret"),
+        client_factory=httpx.AsyncClient,
+    )
 
 
 def ensure_visualizations(scope_type: str, scope_id: str, context: dict):
@@ -179,6 +192,10 @@ async def get_training_batches():
             "bot_count": session.get("bot_count"),
             "current_generation": session.get("generation"),
             "current_game_id": session.get("current_game_id"),
+            "games_per_generation": session.get("games_per_generation"),
+            "games_completed": session.get("games_completed", 0),
+            "games_failed": session.get("games_failed", 0),
+            "current_generation_game_index": session.get("current_generation_game_index", 0),
             "generation_statistics": session.get("generation_statistics", []),
         })
     return {"batches": active_batches + persisted_batches}
@@ -202,6 +219,35 @@ async def get_training_batch(batch_id: str):
             batch,
         ),
     }
+
+
+@api_router.post('/api/research/training-batches/{batch_id}/cancel')
+async def cancel_training_batch(batch_id: str, payload: dict | None = None):
+    reason = (payload or {}).get("reason", "Training cancelled by operator")
+    cancelled_active_session = await cancel_training_session(batch_id, reason=reason)
+    if not cancelled_active_session and not db.get_training_batch(batch_id):
+        raise HTTPException(status_code=404, detail="Training batch not found")
+    return {"message": "Training batch cancelled", "batch_id": batch_id}
+
+
+@api_router.post('/api/research/training-batches/{batch_id}/rerun')
+async def rerun_training_batch(batch_id: str):
+    batch = db.get_training_batch(batch_id)
+    if not batch:
+        raise HTTPException(status_code=404, detail="Training batch not found")
+    config = batch.get("config", {}) or {}
+    asyncio.create_task(start_training_session(
+        batch.get("ruleset", "default"),
+        int(batch.get("bot_count") or 5),
+        int(batch.get("total_generations") or 1),
+        batch.get("base_genome_id") or "random",
+        batch.get("bot_model", "genetic"),
+        mutation_strength=float(config.get("mutation_strength", 0.25)),
+        mutation_rate=float(config.get("mutation_rate", 0.15)),
+        random_immigrant_count=int(config.get("random_immigrant_count", 1)),
+        games_per_generation=int(config.get("games_per_generation", 5)),
+    ))
+    return {"message": "Training batch rerun initiated", "source_batch_id": batch_id}
 
 
 @api_router.get('/api/research/visualizations/{visualization_id}')
@@ -236,24 +282,20 @@ async def new_game(payload: dict, user_session: Optional[str] = Cookie(None)):
     game_id = create_game(user_session, ruleset, bot_count)
 
     if bot_count > 0:
-        bot_url = os.environ.get(
-            "BOT_SERVICE_URL", "http://bots:8001")
-        bot_secret = os.environ.get("BOT_SECRET", "default_dev_secret")
-
         async def spawn_external_bots():
-            async with httpx.AsyncClient() as client:
-                try:
-                    await client.post(f"{bot_url}/api/spawn_bots", json={
-                        "gameId": game_id,
-                        "botCount": bot_count,
-                        "botSecret": bot_secret,
-                        "baseGenome": base_genome_data,
-                        "botModel": bot_model  # <-- Pass to Bot Server
-                    }, timeout=5.0)
-                    api_logger.info(f"Successfully requested {bot_count} "
-                                    f"{bot_model} bots for {game_id}")
-                except Exception as e:
-                    api_logger.error("Failed to reach Bot Service", exc=e)
+            result = await bot_service_client().spawn_bots(
+                game_id=game_id,
+                bot_count=bot_count,
+                base_genome=base_genome_data,
+                bot_model=bot_model,
+                timeout=5.0,
+            )
+            if result.ok:
+                api_logger.info(f"Successfully requested {bot_count} "
+                                f"{bot_model} bots for {game_id}")
+            else:
+                api_logger.error(
+                    f"Failed to reach Bot Service: {result.error_message}")
 
         asyncio.create_task(spawn_external_bots())
 
@@ -362,11 +404,13 @@ async def start_training(payload: dict):
     mutation_strength = float(payload.get('mutationStrength', 0.25))
     mutation_rate = float(payload.get('mutationRate', 0.15))
     random_immigrant_count = int(payload.get('randomImmigrantCount', 1))
+    games_per_generation = max(1, min(50, int(payload.get('gamesPerGeneration', 5))))
 
     api_logger.info(
         f"Received training request: Ruleset={ruleset}, Bots={bot_count}, "
         f"Generations={generations}, "
-        f"BaseGenome={base_genome}, Model={bot_model}"
+        f"BaseGenome={base_genome}, Model={bot_model}, "
+        f"GamesPerGeneration={games_per_generation}"
     )
 
     asyncio.create_task(
@@ -375,7 +419,8 @@ async def start_training(payload: dict):
             ruleset, bot_count, generations, base_genome, bot_model,
             mutation_strength=mutation_strength,
             mutation_rate=mutation_rate,
-            random_immigrant_count=random_immigrant_count)
+            random_immigrant_count=random_immigrant_count,
+            games_per_generation=games_per_generation)
     )
 
     return {"message": "Training sequence initiated"}

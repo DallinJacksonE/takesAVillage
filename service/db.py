@@ -86,7 +86,24 @@ class DatabaseProvider(ABC):
     def create_training_batch(self, batch_id: str, config: dict): pass
     @abstractmethod
     def mark_training_batch_game_started(self, batch_id: str, game_id: str,
-                                         generation: int): pass
+                                         generation: int,
+                                         attempt: int | None = None): pass
+    @abstractmethod
+    def mark_training_batch_game_running(self, batch_id: str, game_id: str): pass
+    @abstractmethod
+    def mark_training_batch_game_failed(self, batch_id: str, game_id: str,
+                                        error_message: str): pass
+    @abstractmethod
+    def mark_training_batch_game_completed(self, batch_id: str, game_id: str,
+                                           genome_count: int,
+                                           fitness_summary: dict | None = None): pass
+    @abstractmethod
+    def record_training_batch_heartbeat(self, batch_id: str, phase: str,
+                                        current_generation: int,
+                                        current_game_id: str | None = None): pass
+    @abstractmethod
+    def update_training_batch_status(self, batch_id: str, status: str,
+                                     error_message: str | None = None): pass
     @abstractmethod
     def append_training_batch_generation_stats(self, batch_id: str,
                                                stats: dict): pass
@@ -97,6 +114,8 @@ class DatabaseProvider(ABC):
     def get_training_batches(self) -> list: pass
     @abstractmethod
     def get_training_batch(self, batch_id: str) -> dict | None: pass
+    @abstractmethod
+    def get_training_games(self, batch_id: str) -> list: pass
     @abstractmethod
     def store_research_visualization(self, scope_type: str, scope_id: str,
                                      name: str, title: str, mime_type: str,
@@ -224,15 +243,23 @@ class InMemoryDB(DatabaseProvider):
             "current_game_id": None,
             "started_at": now,
             "completed_at": None,
+            "last_heartbeat_at": now,
+            "phase": "pending",
+            "last_error": None,
             "base_genome_id": config.get("base_genome_id"),
             "final_champion_genome_id": None,
             "config": config.get("config", {}),
+            "games_per_generation": (config.get("config", {}) or {}).get(
+                "games_per_generation"),
+            "games_completed": 0,
+            "games_failed": 0,
             "generation_statistics": [],
             "games": [],
         }
 
     def mark_training_batch_game_started(self, batch_id: str, game_id: str,
-                                         generation: int):
+                                         generation: int,
+                                         attempt: int | None = None):
         batch = self.training_batches.get(batch_id)
         if not batch:
             return
@@ -244,7 +271,85 @@ class InMemoryDB(DatabaseProvider):
         batch["games"].append({
             "game_id": game_id,
             "generation": generation,
+            "attempt": attempt,
+            "status": "spawning",
+            "error_message": None,
+            "genome_count": 0,
+            "best_fitness": None,
+            "average_fitness": None,
         })
+
+    def mark_training_batch_game_running(self, batch_id: str, game_id: str):
+        batch = self.training_batches.get(batch_id)
+        if not batch:
+            return
+        for game in batch.get("games", []):
+            if game.get("game_id") == game_id:
+                game["status"] = "running"
+                return
+
+    def mark_training_batch_game_failed(self, batch_id: str, game_id: str,
+                                        error_message: str):
+        batch = self.training_batches.get(batch_id)
+        if not batch:
+            return
+        for game in batch.get("games", []):
+            if game.get("game_id") == game_id:
+                if game.get("status") != "failed":
+                    batch["games_failed"] = int(batch.get("games_failed", 0) or 0) + 1
+                game["status"] = "failed"
+                game["error_message"] = error_message
+                game["genome_count"] = int(game.get("genome_count", 0) or 0)
+                batch["games_completed"] = len([
+                    entry for entry in batch.get("games", [])
+                    if entry.get("status") in ("completed", "failed", "skipped")
+                ])
+                return
+
+    def mark_training_batch_game_completed(self, batch_id: str, game_id: str,
+                                           genome_count: int,
+                                           fitness_summary: dict | None = None):
+        batch = self.training_batches.get(batch_id)
+        if not batch:
+            return
+        summary = fitness_summary or {}
+        for game in batch.get("games", []):
+            if game.get("game_id") == game_id:
+                game["status"] = "completed"
+                game["error_message"] = None
+                game["genome_count"] = int(genome_count or 0)
+                game["best_fitness"] = summary.get("best_fitness")
+                game["average_fitness"] = summary.get("average_fitness")
+                batch["games_completed"] = len([
+                    entry for entry in batch.get("games", [])
+                    if entry.get("status") in ("completed", "failed", "skipped")
+                ])
+                batch["games_failed"] = len([
+                    entry for entry in batch.get("games", [])
+                    if entry.get("status") == "failed"
+                ])
+                return
+
+    def record_training_batch_heartbeat(self, batch_id: str, phase: str,
+                                        current_generation: int,
+                                        current_game_id: str | None = None):
+        batch = self.training_batches.get(batch_id)
+        if not batch:
+            return
+        batch["last_heartbeat_at"] = datetime.now()
+        batch["phase"] = phase
+        batch["current_generation"] = current_generation
+        batch["current_game_id"] = current_game_id
+
+    def update_training_batch_status(self, batch_id: str, status: str,
+                                     error_message: str | None = None):
+        batch = self.training_batches.get(batch_id)
+        if not batch:
+            return
+        batch["status"] = status
+        batch["last_error"] = error_message
+        if status in ("completed", "failed", "cancelled", "stalled"):
+            batch["completed_at"] = datetime.now()
 
     def append_training_batch_generation_stats(self, batch_id: str, stats: dict):
         batch = self.training_batches.get(batch_id)
@@ -268,6 +373,12 @@ class InMemoryDB(DatabaseProvider):
     def get_training_batch(self, batch_id: str) -> dict | None:
         batch = self.training_batches.get(batch_id)
         return dict(batch) if batch else None
+
+    def get_training_games(self, batch_id: str) -> list:
+        batch = self.training_batches.get(batch_id)
+        if not batch:
+            return []
+        return [dict(game) for game in batch.get("games", [])]
 
     def store_research_visualization(self, scope_type: str, scope_id: str,
                                      name: str, title: str, mime_type: str,
@@ -377,6 +488,7 @@ class MySQLDB(DatabaseProvider):
             for statement in sql_statements:
                 cursor.execute(statement)
             self._ensure_games_columns(cursor)
+            self._ensure_training_batches_columns(cursor)
             conn.commit()
             db_logger.info("MySQL Database is ready.")
         except mysql.connector.Error as err:
@@ -483,6 +595,9 @@ class MySQLDB(DatabaseProvider):
                 `current_game_id` VARCHAR(64),
                 `started_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `completed_at` DATETIME,
+                `last_heartbeat_at` DATETIME,
+                `phase` VARCHAR(64),
+                `last_error` TEXT,
                 `base_genome_id` VARCHAR(64),
                 `final_champion_genome_id` VARCHAR(64),
                 `config` JSON,
@@ -524,6 +639,17 @@ class MySQLDB(DatabaseProvider):
             if not self._column_exists(cursor, "games", column_name):
                 cursor.execute(
                     f"ALTER TABLE `games` ADD COLUMN `{column_name}` {column_definition}")
+
+    def _ensure_training_batches_columns(self, cursor):
+        columns = {
+            "last_heartbeat_at": "DATETIME",
+            "phase": "VARCHAR(64)",
+            "last_error": "TEXT",
+        }
+        for column_name, column_definition in columns.items():
+            if not self._column_exists(cursor, "training_batches", column_name):
+                cursor.execute(
+                    f"ALTER TABLE `training_batches` ADD COLUMN `{column_name}` {column_definition}")
 
     def _column_exists(self, cursor, table_name: str, column_name: str) -> bool:
         cursor.execute(
@@ -763,9 +889,9 @@ class MySQLDB(DatabaseProvider):
                 """
                 SELECT
                     game_id,
-                    training_generation,
+                    training_generation AS generation,
                     trade_count,
-                    contest_count
+                    contest_count,
                     lie_count
                 FROM games
                 WHERE training_batch_id = %s
@@ -828,8 +954,9 @@ class MySQLDB(DatabaseProvider):
         query = """
             INSERT INTO training_batches
             (batch_id, status, ruleset, bot_model, bot_count, total_generations,
-             current_generation, base_genome_id, config, generation_statistics, games)
-            VALUES (%s, 'running', %s, %s, %s, %s, 0, %s, %s, %s, %s)
+             current_generation, last_heartbeat_at, phase, base_genome_id,
+             config, generation_statistics, games)
+            VALUES (%s, 'running', %s, %s, %s, %s, 0, NOW(), 'pending', %s, %s, %s, %s)
         """
         try:
             cursor.execute(query, (
@@ -845,12 +972,22 @@ class MySQLDB(DatabaseProvider):
             conn.close()
 
     def mark_training_batch_game_started(self, batch_id: str, game_id: str,
-                                         generation: int):
+                                         generation: int,
+                                         attempt: int | None = None):
         batch = self.get_training_batch(batch_id)
         if not batch:
             return
         games = batch.get("games", [])
-        games.append({"game_id": game_id, "generation": generation})
+        games.append({
+            "game_id": game_id,
+            "generation": generation,
+            "attempt": attempt,
+            "status": "spawning",
+            "error_message": None,
+            "genome_count": 0,
+            "best_fitness": None,
+            "average_fitness": None,
+        })
         conn = self.get_connection()
         if not conn:
             return
@@ -866,6 +1003,139 @@ class MySQLDB(DatabaseProvider):
             conn.commit()
         except mysql.connector.Error as err:
             db_logger.error(f"Error updating training batch game: {err}")
+        finally:
+            cursor.close()
+            conn.close()
+
+    def mark_training_batch_game_running(self, batch_id: str, game_id: str):
+        batch = self.get_training_batch(batch_id)
+        if not batch:
+            return
+        games = batch.get("games", [])
+        for game in games:
+            if game.get("game_id") == game_id:
+                game["status"] = "running"
+                break
+        conn = self.get_connection()
+        if not conn:
+            return
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "UPDATE training_batches SET games = %s WHERE batch_id = %s",
+                (json.dumps(games), batch_id))
+            conn.commit()
+        except mysql.connector.Error as err:
+            db_logger.error(f"Error marking training game running: {err}")
+        finally:
+            cursor.close()
+            conn.close()
+
+    def mark_training_batch_game_failed(self, batch_id: str, game_id: str,
+                                        error_message: str):
+        batch = self.get_training_batch(batch_id)
+        if not batch:
+            return
+        games = batch.get("games", [])
+        for game in games:
+            if game.get("game_id") == game_id:
+                game["status"] = "failed"
+                game["error_message"] = error_message
+                game["genome_count"] = int(game.get("genome_count", 0) or 0)
+                break
+        conn = self.get_connection()
+        if not conn:
+            return
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "UPDATE training_batches SET games = %s WHERE batch_id = %s",
+                (json.dumps(games), batch_id))
+            conn.commit()
+        except mysql.connector.Error as err:
+            db_logger.error(f"Error marking training game failed: {err}")
+        finally:
+            cursor.close()
+            conn.close()
+
+    def mark_training_batch_game_completed(self, batch_id: str, game_id: str,
+                                           genome_count: int,
+                                           fitness_summary: dict | None = None):
+        batch = self.get_training_batch(batch_id)
+        if not batch:
+            return
+        summary = fitness_summary or {}
+        games = batch.get("games", [])
+        for game in games:
+            if game.get("game_id") == game_id:
+                game["status"] = "completed"
+                game["error_message"] = None
+                game["genome_count"] = int(genome_count or 0)
+                game["best_fitness"] = summary.get("best_fitness")
+                game["average_fitness"] = summary.get("average_fitness")
+                break
+        conn = self.get_connection()
+        if not conn:
+            return
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "UPDATE training_batches SET games = %s WHERE batch_id = %s",
+                (json.dumps(games), batch_id))
+            conn.commit()
+        except mysql.connector.Error as err:
+            db_logger.error(f"Error marking training game completed: {err}")
+        finally:
+            cursor.close()
+            conn.close()
+
+    def record_training_batch_heartbeat(self, batch_id: str, phase: str,
+                                        current_generation: int,
+                                        current_game_id: str | None = None):
+        conn = self.get_connection()
+        if not conn:
+            return
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                """
+                UPDATE training_batches
+                SET last_heartbeat_at = NOW(), phase = %s,
+                    current_generation = %s, current_game_id = %s
+                WHERE batch_id = %s
+                """,
+                (phase, current_generation, current_game_id, batch_id),
+            )
+            conn.commit()
+        except mysql.connector.Error as err:
+            db_logger.error(f"Error recording training batch heartbeat: {err}")
+        finally:
+            cursor.close()
+            conn.close()
+
+    def update_training_batch_status(self, batch_id: str, status: str,
+                                     error_message: str | None = None):
+        conn = self.get_connection()
+        if not conn:
+            return
+        cursor = conn.cursor()
+        completed_clause = (
+            ", completed_at = NOW()"
+            if status in ("completed", "failed", "cancelled", "stalled")
+            else ""
+        )
+        try:
+            cursor.execute(
+                f"""
+                UPDATE training_batches
+                SET status = %s, last_error = %s{completed_clause}
+                WHERE batch_id = %s
+                """,
+                (status, error_message, batch_id),
+            )
+            conn.commit()
+        except mysql.connector.Error as err:
+            db_logger.error(f"Error updating training batch status: {err}")
         finally:
             cursor.close()
             conn.close()
@@ -949,6 +1219,17 @@ class MySQLDB(DatabaseProvider):
         for key in ("config", "generation_statistics", "games"):
             if isinstance(row.get(key), str):
                 row[key] = json.loads(row[key])
+        config = row.get("config", {}) or {}
+        games = row.get("games", []) or []
+        row["games_per_generation"] = config.get("games_per_generation")
+        row["games_completed"] = len([
+            game for game in games
+            if game.get("status") in ("completed", "failed", "skipped")
+        ])
+        row["games_failed"] = len([
+            game for game in games
+            if game.get("status") == "failed"
+        ])
         return row
 
     def store_research_visualization(self, scope_type: str, scope_id: str,

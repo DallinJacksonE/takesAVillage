@@ -7,6 +7,10 @@ export interface GameSetupOptions {
   botCount: number;
   botModel: string;
   generations?: number;
+  gamesPerGeneration?: number;
+  mutationStrength?: number;
+  mutationRate?: number;
+  randomImmigrantCount?: number;
   baseGenome?: string;
   botGenome?: string;
 }
@@ -35,6 +39,10 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
   const [botModel, setBotModel] = useState<string>("genetic");
 
   const [generations, setGenerations] = useState<number>(10);
+  const [gamesPerGeneration, setGamesPerGeneration] = useState<number>(5);
+  const [mutationStrength, setMutationStrength] = useState<number>(0.25);
+  const [mutationRate, setMutationRate] = useState<number>(0.15);
+  const [randomImmigrantCount, setRandomImmigrantCount] = useState<number>(1);
   const [baseGenome, setBaseGenome] = useState<string>("random");
   const [botGenome, setBotGenome] = useState<string>("random");
   const [availableGenomes, setAvailableGenomes] = useState<GenomeDTO[]>([]);
@@ -86,7 +94,14 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
       ruleset: selectedRuleset,
       botCount,
       botModel, // Include the selected architecture
-      ...(isTrainingMode ? { generations, baseGenome } : { botGenome }),
+      ...(isTrainingMode ? {
+        generations,
+        gamesPerGeneration,
+        mutationStrength,
+        mutationRate,
+        randomImmigrantCount,
+        baseGenome,
+      } : { botGenome }),
     };
     console.log("Submitting game options:", payload);
     onSubmit(payload);
@@ -180,6 +195,34 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                 <h4>Generations:</h4>
                 <input type="number" min="1" max="1000" value={generations}
                   onChange={(e) => setGenerations(Math.max(1, parseInt(e.target.value) || 1))}
+                  className={styles.generationsInput} />
+              </div>
+
+              <div className={styles.row3}>
+                <h4>Games per Generation:</h4>
+                <input type="number" min="1" max="50" value={gamesPerGeneration}
+                  onChange={(e) => setGamesPerGeneration(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)))}
+                  className={styles.generationsInput} />
+              </div>
+
+              <div className={styles.row3}>
+                <h4>Mutation Strength:</h4>
+                <input type="number" min="0" max="5" step="0.01" value={mutationStrength}
+                  onChange={(e) => setMutationStrength(Math.max(0, parseFloat(e.target.value) || 0))}
+                  className={styles.generationsInput} />
+              </div>
+
+              <div className={styles.row3}>
+                <h4>Mutation Rate:</h4>
+                <input type="number" min="0" max="1" step="0.01" value={mutationRate}
+                  onChange={(e) => setMutationRate(Math.max(0, Math.min(1, parseFloat(e.target.value) || 0)))}
+                  className={styles.generationsInput} />
+              </div>
+
+              <div className={styles.row3}>
+                <h4>Random Immigrants:</h4>
+                <input type="number" min="0" max="50" value={randomImmigrantCount}
+                  onChange={(e) => setRandomImmigrantCount(Math.max(0, parseInt(e.target.value) || 0))}
                   className={styles.generationsInput} />
               </div>
 

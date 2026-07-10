@@ -84,6 +84,26 @@ export class ResearchService {
 		);
 	}
 
+	static async cancelTrainingBatch(batchId: string, reason?: string): Promise<void> {
+		await this.fetchJson<{ message: string }>(
+			`/api/research/training-batches/${encodeURIComponent(batchId)}/cancel`,
+			"Failed to cancel training batch",
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ reason }),
+			},
+		);
+	}
+
+	static async rerunTrainingBatch(batchId: string): Promise<void> {
+		await this.fetchJson<{ message: string }>(
+			`/api/research/training-batches/${encodeURIComponent(batchId)}/rerun`,
+			"Failed to rerun training batch",
+			{ method: "POST" },
+		);
+	}
+
 	static subscribeToTrainingSessions(
 		onUpdate: TrainingSessionsHandler,
 		onError?: TrainingSessionsErrorHandler,

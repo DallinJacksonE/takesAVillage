@@ -53,4 +53,24 @@ describe("ResearchService", () => {
       body: JSON.stringify({ ruleset: "default", botCount: 4 }),
     });
   });
+
+  it("sends operator control requests for cancelling and rerunning training batches", async () => {
+    const fetchMock = jest
+      .fn()
+      .mockImplementationOnce(() => mockJsonResponse({ message: "cancelled" }))
+      .mockImplementationOnce(() => mockJsonResponse({ message: "rerun" }));
+    global.fetch = fetchMock as typeof fetch;
+
+    await ResearchService.cancelTrainingBatch("batch-1", "operator stop");
+    await ResearchService.rerunTrainingBatch("batch-1");
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "/api/research/training-batches/batch-1/cancel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: "operator stop" }),
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/research/training-batches/batch-1/rerun", {
+      method: "POST",
+    });
+  });
 });

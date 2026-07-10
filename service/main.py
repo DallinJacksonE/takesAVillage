@@ -8,13 +8,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from api import api_router
 from sockets import ws_router, manager
 from game_manager import game_loop
+from training_orchestrator import training_watchdog_loop
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Start the game loop and pass it the websocket manager on startup
-    asyncio.create_task(game_loop(manager))
-    yield  # App runs while paused here
+    game_task = asyncio.create_task(game_loop(manager))
+    watchdog_task = asyncio.create_task(training_watchdog_loop())
+    try:
+        yield  # App runs while paused here
+    finally:
+        game_task.cancel()
+        watchdog_task.cancel()
 
 app = FastAPI(lifespan=lifespan)
 
