@@ -6,7 +6,8 @@ import unittest
 
 SERVICE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 ROOT_DIR = os.path.abspath(os.path.join(SERVICE_DIR, ".."))
-for path in (SERVICE_DIR, ROOT_DIR):
+BOTS_DIR = os.path.join(ROOT_DIR, "bots")
+for path in (SERVICE_DIR, BOTS_DIR, ROOT_DIR):
     if path not in sys.path:
         sys.path.insert(0, path)
 
@@ -47,12 +48,14 @@ sys.modules["logger"] = logger_stub
 training_orchestrator = importlib.import_module("training_orchestrator")
 training_genomes = importlib.import_module("training_genomes")
 training_population = importlib.import_module("training_population")
+from models.goap_genetic.goap_genome import GOAPGenome
 
 
 class TrainingOrchestratorGOAPGenomeTests(unittest.TestCase):
     def test_goap_model_uses_goap_specific_fields(self):
         fields = training_genomes.get_genome_fields_for_model("GOAPGenetic")
 
+        self.assertEqual(set(fields), GOAPGenome.recommended_training_field_names())
         self.assertIn("warmth_desperation_weight", fields)
         self.assertIn("sickness_desperation_weight", fields)
         self.assertIn("trade_deception_weight", fields)
@@ -60,6 +63,8 @@ class TrainingOrchestratorGOAPGenomeTests(unittest.TestCase):
         self.assertIn("resource_urgency_curve", fields)
         self.assertIn("action_cost_weight", fields)
         self.assertIn("tie_break_weight", fields)
+        self.assertIn("planning_depth_weight", fields)
+        self.assertIn("trust_weight", fields)
         self.assertNotEqual(fields, training_genomes.GENOME_FIELDS)
 
     def test_training_orchestrator_does_not_import_bot_modules(self):

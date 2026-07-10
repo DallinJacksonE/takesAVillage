@@ -62,6 +62,11 @@ GOAP_GENOME_FIELDS = [
     "employment_wage_weight", "employer_exploitation_weight",
     "campfire_accept_weight", "finalize_honesty_weight",
     "tie_break_weight", "action_cost_weight",
+    "trust_weight", "fairness_weight", "generosity_weight",
+    "hostility_aversion_weight", "reciprocity_weight",
+    "gift_gratitude_weight", "betrayal_sensitivity_weight",
+    "forgiveness_weight", "retaliation_weight",
+    "planning_depth_weight",
 ]
 
 

@@ -24,6 +24,9 @@ from models.goap_genetic.domain import Command
 from models.goap_genetic.goals import GoalLibrary, GOAPGoal
 from models.goap_genetic.goap_actions import ActionTemplate, OneStepPlanner, PlannedAction
 from models.goap_genetic.goap_genome import GOAPGenome
+from models.goap_genetic.planning.development_economics import DevelopmentEconomist
+from models.goap_genetic.planning.resource_valuation import ResourceValuator
+from models.goap_genetic.planning.time_pressure import TimePressurePolicy
 from models.goap_genetic.memory import DecisionContext, Memory
 from models.goap_genetic.perception import Perception
 from models.goap_genetic.thinking import Thinker
@@ -31,13 +34,15 @@ from bot_multiprocessing import ActionSubmissionGate, create_genome_for_model, s
 
 
 class GOAPGenomeTests(unittest.TestCase):
-    def test_random_goap_genome_uses_minus_one_to_one_gene_range(self):
+    def test_random_goap_genome_uses_nonnegative_survival_core_fields(self):
         genome = GOAPGenome.random()
 
         self.assertTrue(genome.__dict__)
         for gene_name, gene_value in genome.__dict__.items():
             self.assertGreaterEqual(gene_value, -1.0, gene_name)
             self.assertLessEqual(gene_value, 1.0, gene_name)
+        for gene_name in GOAPGenome.nonnegative_field_names():
+            self.assertGreaterEqual(getattr(genome, gene_name), 0.0, gene_name)
 
     def test_phase_four_preference_genes_are_available_with_neutral_defaults(self):
         genome = GOAPGenome()
@@ -72,7 +77,7 @@ class GOAPGenomeTests(unittest.TestCase):
         })
 
         self.assertEqual(genome.food_weight, 0.75)
-        self.assertEqual(genome.wood_weight, -0.25)
+        self.assertEqual(genome.wood_weight, 0.0)
         self.assertTrue(hasattr(genome, "warmth_desperation_weight"))
         self.assertTrue(hasattr(genome, "sickness_desperation_weight"))
 
@@ -195,6 +200,92 @@ class GOAPPerceptionTests(unittest.TestCase):
         self.assertEqual(night["campfire_cost"], {"wood": 1})
         self.assertEqual(night["max_fire_seats"], 2)
 
+    def test_perception_derives_development_economy_facts(self):
+        memory = Perception().sense({
+            "phase": "WORK",
+            "day": 2,
+            "game_length": 8,
+            "me": {
+                "id": "bot-1",
+                "health": "healthy",
+                "resources": {"food": 1, "wood": 0, "iron": 0},
+                "actions": [],
+                "available_work": [
+                    {"development": {"id": "farm-1", "owner_id": "bot-1"}, "wage": 2, "wage_type": "food"},
+                ],
+            },
+            "developments": [
+                {
+                    "id": "farm-1",
+                    "type": "Farm",
+                    "level": 2,
+                    "owner_id": "bot-1",
+                    "maintenance_days": 1,
+                    "maintenance_cost": {"wood": 2, "iron": 1},
+                    "upgrade_cost": {"wood": 3, "iron": 1},
+                    "can_upgrade": True,
+                },
+            ],
+        })
+
+        self.assertEqual(memory["owned_production_by_resource"], {"food": 2.0})
+        self.assertEqual(memory["maintenance_resource_deficits"], {"wood": 2.0, "iron": 1.0})
+        self.assertEqual(memory["upgrade_resource_deficits"], {"wood": 3.0, "iron": 1.0})
+        self.assertEqual(memory["at_risk_developments"][0]["id"], "farm-1")
+        self.assertEqual(memory["upgradable_developments"][0]["id"], "farm-1")
+        self.assertEqual(memory["workable_owned_developments"][0]["id"], "farm-1")
+        self.assertGreater(memory["upgrade_opportunity_value_by_resource"]["food"], 0.0)
+
+
+class GOAPDevelopmentEconomyTests(unittest.TestCase):
+    def test_development_output_scales_with_level_per_laborer(self):
+        economist = DevelopmentEconomist()
+
+        self.assertEqual(economist.production_per_labor({"type": "Farm", "level": 2}), 2.0)
+        self.assertEqual(economist.production_per_labor({"type": "Farm", "level": 3}), 3.0)
+
+    def test_upgrade_marginal_output_is_one_extra_resource_per_laborer_per_remaining_day(self):
+        economist = DevelopmentEconomist()
+        dev = {"id": "farm-1", "type": "Farm", "level": 2, "owner_id": "bot-1"}
+        memory = Memory({
+            "my_id": "bot-1",
+            "day": 2,
+            "game_length": 6,
+            "available_work": [
+                {"development": {"id": "farm-1", "owner_id": "bot-1"}},
+            ],
+            "pending_contracts": [
+                {"type": "EMPLOYMENT", "status": "ACCEPTED", "dev_id": "farm-1", "initiator_id": "bot-2", "target_id": "bot-1"},
+            ],
+        })
+
+        self.assertEqual(economist.expected_laborers(dev, memory), 2.0)
+        self.assertEqual(economist.upgrade_marginal_output(dev, memory), {"food": 8.0})
+
+    def test_development_economist_computes_risk_and_future_resource_deficits(self):
+        economist = DevelopmentEconomist()
+        memory = Memory({
+            "food": 1,
+            "wood": 0,
+            "iron": 1,
+            "my_developments": [
+                {
+                    "id": "woods-1",
+                    "type": "Woods",
+                    "level": 2,
+                    "owner_id": "bot-1",
+                    "maintenance_days": 1,
+                    "maintenance_cost": {"food": 2, "iron": 1},
+                    "upgrade_cost": {"food": 3, "iron": 2},
+                    "can_upgrade": True,
+                },
+            ],
+        })
+
+        self.assertGreater(economist.maintenance_loss_risk(memory["my_developments"][0], memory), 0.9)
+        self.assertEqual(economist.maintenance_required_resources(memory), {"food": 1.0})
+        self.assertEqual(economist.upgrade_required_resources(memory), {"food": 2.0, "iron": 1.0})
+
 
 class GOAPPlannerTests(unittest.TestCase):
     def test_goal_library_exposes_explicit_desired_state_goals(self):
@@ -298,6 +389,80 @@ class GOAPPlannerTests(unittest.TestCase):
         self.assertTrue(actions)
         self.assertTrue({action["action_command"] for action in actions}.issubset(command_vocabulary))
 
+    def test_goap_legal_actions_include_contest_actions_for_enemy_developments(self):
+        bot = GOAPGenetic(GOAPGenome(contest_weight=1.0, aggression_weight=1.0))
+        state = {
+            "status": "RUNNING",
+            "phase": "WORK",
+            "me": {
+                "id": "bot-1",
+                "health": "healthy",
+                "resources": {"food": 2, "wood": 2, "iron": 1},
+                "actions": [],
+                "available_work": [],
+            },
+            "player_list": [
+                {"id": "bot-1", "health": "healthy"},
+                {"id": "bot-2", "health": "healthy"},
+            ],
+            "developments": [
+                {"id": "dev-2", "type": "Farm", "level": 2, "owner_id": "bot-2", "is_contested": False},
+            ],
+        }
+
+        actions = bot.get_available_actions(state)
+
+        self.assertIn(
+            {"action_command": Command.CONTEST_DEV, "payload": {"dev_id": "dev-2", "side": "INITIATOR"}},
+            actions,
+        )
+
+    def test_time_pressure_policy_filters_waiting_actions_near_deadline(self):
+        policy = TimePressurePolicy(deadline_fraction=0.2, minimum_deadline_seconds=1.0)
+        memory = Memory({"phase": "WORK", "time_remaining": 5, "is_waiting": False})
+        policy.observe(memory)
+        urgent_memory = Memory({"phase": "WORK", "time_remaining": 1, "is_waiting": True})
+        actions = [
+            {"action_command": Command.EMPLOYMENT, "payload": {"is_application": True}},
+            {"action_command": Command.COMMIT_WORK, "payload": {"job": {"wage_type": "food", "wage": 1}}},
+            {"action_command": Command.CONTEST_DEV, "payload": {"dev_id": "dev-2", "side": "INITIATOR"}},
+        ]
+
+        self.assertTrue(policy.should_stop_waiting(urgent_memory))
+        self.assertEqual(policy.filter_actions(actions, urgent_memory), actions[1:])
+
+    def test_goap_stops_waiting_near_training_deadline_and_submits_immediate_work(self):
+        bot = GOAPGenetic(GOAPGenome(work_weight=1.0, food_weight=1.0, food_desperation_weight=1.0))
+        first_state = {
+            "status": "RUNNING",
+            "training": True,
+            "phase": "WORK",
+            "time_remaining": 5,
+            "me": {
+                "id": "bot-1",
+                "health": "healthy",
+                "resources": {"food": 1, "wood": 2, "iron": 0},
+                "actions": [{
+                    "id": "application-1",
+                    "type": "EMPLOYMENT",
+                    "is_application": True,
+                    "initiator_id": "bot-1",
+                    "target_id": "bot-2",
+                    "status": "PENDING",
+                }],
+                "available_work": [{"development": {"owner_id": "bot-1", "is_contested": False}, "wage": 2, "wage_type": "food"}],
+                "finished_phase": False,
+            },
+            "player_list": [{"id": "bot-1", "health": "healthy"}],
+            "developments": [],
+        }
+        late_state = {**first_state, "time_remaining": 1}
+
+        self.assertIsNone(bot.choose_action(first_state))
+        action = bot.choose_action(late_state)
+
+        self.assertEqual(action["action_command"], Command.COMMIT_WORK)
+
     def test_one_step_planner_scores_effect_progress_and_cost(self):
         genome = GOAPGenome(food_desperation_weight=1.0, wood_desperation_weight=-1.0)
         planner = OneStepPlanner(genome)
@@ -347,6 +512,209 @@ class GOAPPlannerTests(unittest.TestCase):
         costly_plan = costly_planner.plan(goal, legal_actions, memory)
 
         self.assertGreater(free_plan.score, costly_plan.score)
+
+    def test_resource_valuator_penalizes_spending_last_survival_resources(self):
+        valuator = ResourceValuator(GOAPGenome(
+            food_weight=1.0,
+            wood_weight=1.0,
+            food_desperation_weight=1.0,
+            wood_desperation_weight=1.0,
+            survival_weight=1.0,
+        ))
+        memory = Memory({"food": 1, "wood": 1, "iron": 0, "phase": "WORK", "fire_status": "COLD"})
+
+        safe_gain = valuator.action_utility({"food_delta": 1.0}, memory)
+        risky_spend = valuator.action_utility({"wood_cost": 1.0, "resource_cost": 1.0}, memory)
+
+        self.assertGreater(safe_gain, 0.0)
+        self.assertLess(risky_spend, -1.0)
+
+    def test_goal_library_returns_phase_relevant_incomplete_goals(self):
+        goals = GoalLibrary(GOAPGenome(
+            survival_weight=1.0,
+            food_desperation_weight=1.0,
+            warmth_desperation_weight=1.0,
+            build_weight=1.0,
+            growth_weight=1.0,
+        ))
+        stable_work = Memory({"phase": "WORK", "food": 4, "wood": 3, "iron": 0, "fire_status": "HOST", "sickness_chance": 0.0})
+        cold_night = Memory({"phase": "NIGHT", "food": 4, "wood": 0, "iron": 0, "fire_status": "COLD", "sickness_chance": 0.0})
+
+        self.assertNotIn("SURVIVE", {goal.name for goal in goals.available_goals(stable_work)})
+        self.assertIn("INCREASE_PRODUCTION", {goal.name for goal in goals.available_goals(stable_work)})
+        self.assertEqual([goal.name for goal in goals.available_goals(cold_night)][0], "SECURE_WARMTH")
+
+    def test_goal_library_prioritizes_development_loop_goals(self):
+        goals = GoalLibrary(GOAPGenome(
+            maintain_weight=1.0,
+            upgrade_weight=1.0,
+            growth_weight=1.0,
+            future_reward_weight=1.0,
+            work_weight=1.0,
+            food_desperation_weight=1.0,
+            survival_weight=1.0,
+        ))
+        maintenance_due = Memory({
+            "phase": "WORK",
+            "food": 4,
+            "wood": 4,
+            "iron": 2,
+            "fire_status": "HOST",
+            "sickness_chance": 0.0,
+            "at_risk_developments": [{"id": "farm-1"}],
+            "maintenance_resource_deficits": {},
+            "upgradable_developments": [{"id": "farm-1"}],
+            "upgrade_opportunity_value_by_resource": {"food": 8.0},
+            "workable_owned_developments": [{"id": "farm-1"}],
+        })
+        cannot_maintain = Memory({
+            **maintenance_due,
+            "wood": 0,
+            "maintenance_resource_deficits": {"wood": 2.0},
+        })
+        safe_upgrade = Memory({
+            **maintenance_due,
+            "at_risk_developments": [],
+            "upgradable_developments": [{"id": "farm-1"}],
+            "upgrade_opportunity_value_by_resource": {"food": 8.0},
+        })
+
+        self.assertIn("MAINTAIN_PRODUCTION", [goal.name for goal in goals.available_goals(maintenance_due)])
+        self.assertIn("GATHER_MAINTENANCE_RESOURCES", [goal.name for goal in goals.available_goals(cannot_maintain)])
+        self.assertIn("UPGRADE_PRODUCTION", [goal.name for goal in goals.available_goals(safe_upgrade)])
+        self.assertIn("STAFF_PRODUCTION", [goal.name for goal in goals.available_goals(safe_upgrade)])
+        starving = Memory({**safe_upgrade, "food": 0})
+        self.assertGreater(goals.by_name("SURVIVE").utility(starving), goals.by_name("UPGRADE_PRODUCTION").utility(starving))
+
+    def test_development_action_features_value_upgrade_maintenance_and_owned_work(self):
+        calculator = ActionFeatureCalculator()
+        memory = Memory({
+            "my_id": "bot-1",
+            "day": 2,
+            "game_length": 6,
+            "food": 3,
+            "wood": 4,
+            "iron": 2,
+            "my_developments": [
+                {
+                    "id": "farm-1",
+                    "type": "Farm",
+                    "level": 2,
+                    "owner_id": "bot-1",
+                    "maintenance_days": 1,
+                    "maintenance_cost": {"wood": 1},
+                    "upgrade_cost": {"wood": 2, "iron": 1},
+                    "can_upgrade": True,
+                },
+            ],
+            "other_player_developments": [
+                {"id": "enemy-farm", "type": "Farm", "level": 3, "owner_id": "bot-2"},
+                {"id": "enemy-mine", "type": "Mine", "level": 3, "owner_id": "bot-2"},
+            ],
+            "available_work": [
+                {"development": {"id": "farm-1", "type": "Farm", "level": 2, "owner_id": "bot-1"}, "wage": 2, "wage_type": "food"},
+            ],
+        })
+
+        upgrade = calculator.calculate({"action_command": Command.UPGRADE_DEV, "payload": {"dev_id": "farm-1"}}, memory)
+        maintain = calculator.calculate({"action_command": Command.MAINTAIN_DEV, "payload": {"dev_id": "farm-1"}}, memory)
+        work = calculator.calculate({
+            "action_command": Command.COMMIT_WORK,
+            "payload": {"job": {"development": {"id": "farm-1", "type": "Farm", "level": 2, "owner_id": "bot-1"}, "wage": 2, "wage_type": "food"}},
+        }, memory)
+        hungry = Memory({**memory, "food": 0, "wood": 4, "iron": 4})
+        contest_farm = calculator.calculate({"action_command": Command.CONTEST_DEV, "payload": {"dev_id": "enemy-farm", "side": "INITIATOR"}}, hungry)
+        contest_mine = calculator.calculate({"action_command": Command.CONTEST_DEV, "payload": {"dev_id": "enemy-mine", "side": "INITIATOR"}}, hungry)
+
+        self.assertEqual(upgrade["food_upgrade_output_delta"], 4.0)
+        self.assertGreater(upgrade["upgrade_roi"], 0.0)
+        self.assertGreater(maintain["maintenance_loss_avoided"], 0.0)
+        self.assertGreater(maintain["food_production_protected"], 0.0)
+        self.assertEqual(work["owned_work_output"], 2.0)
+        self.assertEqual(work["food_production_delta"], 2.0)
+        self.assertGreater(contest_farm["contested_value"], contest_mine["contested_value"])
+
+    def test_resource_valuator_counts_future_maintenance_and_upgrade_deficits(self):
+        valuator = ResourceValuator(GOAPGenome(
+            wood_weight=0.1,
+            iron_weight=0.1,
+            maintain_weight=1.0,
+            upgrade_weight=1.0,
+            future_reward_weight=1.0,
+        ))
+        memory = Memory({
+            "wood": 2,
+            "iron": 0,
+            "fire_status": "HOST",
+            "maintenance_resource_deficits": {"iron": 1.0},
+            "upgrade_resource_deficits": {"iron": 1.0},
+        })
+
+        self.assertGreater(
+            valuator.action_utility({"iron_delta": 1.0}, memory),
+            valuator.action_utility({"wood_delta": 1.0}, memory),
+        )
+
+    def test_actuator_scores_across_active_goals_instead_of_first_viable_goal(self):
+        genome = GOAPGenome(
+            survival_weight=1.0,
+            food_weight=1.0,
+            food_desperation_weight=1.0,
+            build_weight=1.0,
+            growth_weight=1.0,
+            future_reward_weight=1.0,
+        )
+        actuator = Actuator(genome)
+        memory = Memory({
+            "phase": "WORK",
+            "food": 4,
+            "wood": 3,
+            "iron": 0,
+            "fire_status": "HOST",
+            "sickness_chance": 0.0,
+            "day": 1,
+            "game_length": 12,
+            "development_costs": {"Farm": {"build": {"wood": 1}}},
+        })
+        actions = [
+            {"action_command": Command.EMPLOYMENT, "payload": {"wage_type": "food", "wage": 1}},
+            {"action_command": Command.BUILD_DEV, "payload": {"tile_id": "farm", "_tile_type": "Farm"}},
+        ]
+
+        action = actuator.act("SECURE_FOOD", actions, memory)
+
+        self.assertEqual(action["action_command"], Command.BUILD_DEV)
+        self.assertEqual(actuator.last_debug_explanation["goal"], "INCREASE_PRODUCTION")
+
+    def test_planner_subtracts_explicit_action_cost_from_score(self):
+        goal = GoalLibrary(GOAPGenome(growth_weight=1.0, build_weight=1.0)).by_name("INCREASE_PRODUCTION")
+        memory = Memory({
+            "food": 2,
+            "wood": 2,
+            "iron": 0,
+            "development_costs": {"Farm": {"build": {"wood": 2}}},
+        })
+        legal_actions = [
+            {"action_command": Command.BUILD_DEV, "payload": {"tile_id": "farm", "_tile_type": "Farm"}},
+        ]
+        planner = OneStepPlanner(GOAPGenome(
+            growth_weight=1.0,
+            build_weight=1.0,
+            action_cost_weight=1.0,
+            wood_weight=1.0,
+        ))
+
+        planned = planner.plan(goal, legal_actions, memory)
+
+        self.assertIsNotNone(planned)
+        self.assertAlmostEqual(
+            planned.score,
+            planned.explanation["goal_progress"]
+            + planned.explanation["feature_utility"]
+            + planned.explanation["resource_utility"]
+            + planned.explanation["lookahead_score"]
+            - planned.explanation["cost"],
+        )
 
     def test_action_features_are_factual_and_normalized_for_work_and_build(self):
         calculator = ActionFeatureCalculator()
@@ -420,6 +788,155 @@ class GOAPPlannerTests(unittest.TestCase):
 
 
 class GOAPActionGeneratorTests(unittest.TestCase):
+    def test_goap_legal_actions_start_fire_when_cold_and_affordable(self):
+        bot = GOAPGenetic(GOAPGenome())
+        state = {
+            "status": "RUNNING",
+            "phase": "NIGHT",
+            "campfire_cost": {"wood": 1},
+            "me": {
+                "id": "bot-1",
+                "health": "healthy",
+                "fire_status": "COLD",
+                "resources": {"food": 2, "wood": 1, "iron": 0},
+                "actions": [],
+            },
+            "player_list": [{"id": "bot-1", "health": "healthy", "fire_status": "COLD"}],
+        }
+
+        actions = bot.get_available_actions(state)
+
+        self.assertTrue(any(action["action_command"] == Command.START_FIRE for action in actions))
+
+    def test_goap_legal_actions_request_campfire_when_cold_without_wood(self):
+        bot = GOAPGenetic(GOAPGenome())
+        state = {
+            "status": "RUNNING",
+            "phase": "NIGHT",
+            "campfire_cost": {"wood": 1},
+            "max_fire_seats": 2,
+            "me": {
+                "id": "bot-1",
+                "health": "healthy",
+                "fire_status": "COLD",
+                "resources": {"food": 2, "wood": 0, "iron": 0},
+                "actions": [],
+            },
+            "player_list": [
+                {"id": "bot-1", "health": "healthy", "fire_status": "COLD"},
+                {"id": "host", "health": "healthy", "fire_status": "HOST", "fire_guests": []},
+            ],
+        }
+
+        actions = bot.get_available_actions(state)
+
+        self.assertTrue(any(
+            action["action_command"] == Command.CAMPFIRE
+            and action["payload"].get("target_id") == "host"
+            and action["payload"].get("is_request") is True
+            for action in actions
+        ))
+
+    def test_goap_legal_actions_finalize_accepted_trade_with_feasible_items(self):
+        bot = GOAPGenetic(GOAPGenome())
+        state = {
+            "status": "RUNNING",
+            "phase": "TRADE",
+            "me": {
+                "id": "bot-1",
+                "health": "healthy",
+                "resources": {"food": 0, "wood": 1, "iron": 0},
+                "actions": [{
+                    "id": "trade-1",
+                    "type": "TRADE",
+                    "status": "ACCEPTED",
+                    "initiator_id": "other",
+                    "target_id": "bot-1",
+                    "target_finalized": False,
+                    "request_items": {"wood": 2},
+                    "offer_items": {"food": 1},
+                }],
+            },
+            "player_list": [
+                {"id": "bot-1", "health": "healthy"},
+                {"id": "other", "health": "healthy"},
+            ],
+        }
+
+        actions = bot.get_available_actions(state)
+        finalize = next(action for action in actions if action["action_command"] == Command.FINALIZE)
+
+        self.assertEqual(finalize["payload"], {
+            "action_id": "trade-1",
+            "actual_items": {"wood": 1},
+        })
+
+    def test_goap_legal_actions_accept_or_deny_incoming_trade(self):
+        bot = GOAPGenetic(GOAPGenome())
+        state = {
+            "status": "RUNNING",
+            "phase": "TRADE",
+            "me": {
+                "id": "bot-1",
+                "health": "healthy",
+                "resources": {"food": 1, "wood": 1, "iron": 0},
+                "actions": [{
+                    "id": "trade-1",
+                    "type": "TRADE",
+                    "status": "PENDING",
+                    "waiting_on_id": "bot-1",
+                    "initiator_id": "other",
+                    "target_id": "bot-1",
+                }],
+            },
+            "player_list": [
+                {"id": "bot-1", "health": "healthy"},
+                {"id": "other", "health": "healthy"},
+            ],
+        }
+
+        commands = {action["action_command"] for action in bot.get_available_actions(state)}
+
+        self.assertIn(Command.ACCEPT, commands)
+        self.assertIn(Command.DENY, commands)
+
+    def test_goap_trade_actions_request_future_maintenance_deficits_and_keep_reserves(self):
+        bot = GOAPGenetic(GOAPGenome(iron_weight=1.0, maintain_weight=1.0))
+        state = {
+            "status": "RUNNING",
+            "phase": "TRADE",
+            "me": {
+                "id": "bot-1",
+                "health": "healthy",
+                "fire_status": "HOST",
+                "resources": {"food": 1, "wood": 4, "iron": 0},
+                "actions": [],
+            },
+            "player_list": [
+                {"id": "bot-1", "health": "healthy"},
+                {"id": "other", "health": "healthy"},
+            ],
+        }
+        memory = Memory({
+            "food": 1,
+            "wood": 4,
+            "iron": 0,
+            "fire_status": "HOST",
+            "maintenance_resource_deficits": {"iron": 1.0},
+            "upgrade_resource_deficits": {},
+        })
+
+        actions = bot.get_available_actions(state, memory)
+        trades = [action for action in actions if action["action_command"] == Command.TRADE]
+
+        self.assertTrue(trades)
+        self.assertEqual(trades[0]["payload"]["request_items"], {"iron": 1})
+        self.assertNotEqual(trades[0]["payload"]["offer_items"], {"food": 1})
+
+    def test_goap_survival_fields_are_declared_and_trainable(self):
+        self.assertTrue(GOAPGenome.survival_field_names().issubset(GOAPGenome.field_names()))
+        self.assertEqual(GOAPGenome.recommended_training_field_names(), GOAPGenome.field_names())
+
     def test_start_fire_is_host_fire_and_campfire_is_social_invite_or_request(self):
         generator = ActionGenerator(GOAPGenome())
         actions = [
@@ -609,7 +1126,7 @@ class BotServerGOAPGenomeTests(unittest.TestCase):
         genome = create_genome_for_model("GOAPGenetic", {"food_weight": -0.5})
 
         self.assertIsInstance(genome, GOAPGenome)
-        self.assertEqual(genome.food_weight, -0.5)
+        self.assertEqual(genome.food_weight, 0.0)
 
     def test_bot_server_seeds_goap_population_with_goap_genomes(self):
         genomes = seed_genomes_for_model("GOAPGenetic", None, 3)

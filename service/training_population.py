@@ -99,4 +99,13 @@ def build_next_population(bot_model: str, entries: list[dict], bot_count: int,
     for _ in range(immigrant_slots):
         next_population.append(random_genome_dict_for_model(bot_model))
 
+    while len(next_population) < bot_count:
+        parent = random.choice(parents)
+        next_population.append(mutate_genome_for_model(
+            bot_model,
+            parent,
+            mutation_strength=mutation_strength,
+            mutation_rate=mutation_rate,
+        ))
+
     return next_population[:bot_count]

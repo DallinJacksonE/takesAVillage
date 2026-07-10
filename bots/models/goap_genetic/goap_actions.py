@@ -6,6 +6,7 @@ from .domain import Command
 from .goals import GOAPGoal
 from .goap_genome import GOAPGenome
 from .memory import Memory
+from .planning.resource_valuation import ResourceValuator
 
 
 EffectFactory = Callable[[Memory, dict], dict]
@@ -60,6 +61,7 @@ class OneStepPlanner:
         self.templates = self._build_templates()
         self.feature_calculator = ActionFeatureCalculator()
         self.feature_scorer = ActionUtilityScorer(genome)
+        self.resource_valuator = ResourceValuator(genome)
 
     def plan(self, goal: GOAPGoal, legal_actions: list[dict],
              memory: Memory) -> PlannedAction | None:
@@ -75,9 +77,14 @@ class OneStepPlanner:
             feature_evaluation = self.feature_scorer.score(features)
             goal_progress = goal.progress(memory, features)
             lookahead_score = self._lookahead_score(goal, memory, features)
-            score = goal_progress + feature_evaluation.score + lookahead_score
-            if score < 0:
-                continue
+            resource_utility = self.resource_valuator.action_utility(features, memory)
+            score = (
+                goal_progress
+                + feature_evaluation.score
+                + resource_utility
+                + lookahead_score
+                - candidate.cost
+            )
             scored.append(PlannedAction(
                 template_name=candidate.template_name,
                 server_action=candidate.server_action,
@@ -91,6 +98,7 @@ class OneStepPlanner:
                     "score": score,
                     "goal_progress": goal_progress,
                     "feature_utility": feature_evaluation.score,
+                    "resource_utility": resource_utility,
                     "lookahead_score": lookahead_score,
                     "planning_depth": self.planning_depth,
                     "cost": candidate.cost,

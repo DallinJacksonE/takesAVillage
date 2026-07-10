@@ -18,12 +18,21 @@ class Thinker:
         """
         Calculates utility scores for broad GOAP goals and returns the highest.
         """
+        goals = self.goal_library.available_goals(memory)
+        if not goals:
+            goals = self.goal_library.all_goals()
         scored_goals = [
-            (goal, goal.utility(memory) + self.genome.tie_break_weight)
-            for goal in self.goal_library.all_goals()
+            (goal, goal.utility(memory) + self._tie_break(goal))
+            for goal in goals
         ]
 
         return max(scored_goals, key=lambda item: item[1])[0]
+
+    def _tie_break(self, goal: GOAPGoal) -> float:
+        if self.genome.tie_break_weight == 0:
+            return 0.0
+        stable_bucket = (sum(ord(char) for char in goal.name) % 7) - 3
+        return stable_bucket * self.genome.tie_break_weight * 0.01
 
     # --- Utility Scoring Functions ---
 

@@ -1,4 +1,5 @@
 from .memory import Memory
+from .planning.development_economics import DevelopmentEconomist
 
 
 class Perception:
@@ -115,6 +116,18 @@ class Perception:
                 "iron": resources.get("iron", 0),
             },
         }
+
+        economist = DevelopmentEconomist()
+        factual_memory = Memory(memory)
+        memory.update({
+            "owned_production_by_resource": economist.owned_production_by_resource(factual_memory),
+            "upgrade_opportunity_value_by_resource": economist.upgrade_opportunity_value_by_resource(factual_memory),
+            "maintenance_resource_deficits": economist.maintenance_required_resources(factual_memory),
+            "upgrade_resource_deficits": economist.upgrade_required_resources(factual_memory),
+            "at_risk_developments": economist.at_risk_developments(factual_memory),
+            "upgradable_developments": economist.upgradable_developments(factual_memory),
+            "workable_owned_developments": economist.workable_owned_developments(factual_memory),
+        })
 
         return Memory(memory)
 

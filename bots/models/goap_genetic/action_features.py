@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from .domain import Command
 from .goap_genome import GOAPGenome
 from .memory import Memory
+from .planning.development_economics import DevelopmentEconomist
 
 
 RESOURCE_TYPES = ("food", "wood", "iron")
@@ -37,6 +38,9 @@ class ActionFeatureCalculator:
     genome weights can express preference separately.
     """
 
+    def __init__(self):
+        self.development_economist = DevelopmentEconomist()
+
     def calculate(self, action: dict, memory: Memory) -> dict[str, float]:
         command = action.get("action_command")
         payload = action.get("payload", {})
@@ -49,10 +53,13 @@ class ActionFeatureCalculator:
             self._add_counterparty_sentiment(
                 features, payload.get("target_id"), memory)
         elif command == Command.COMMIT_WORK:
-            self._add_wage_features(features, payload.get("job", {}))
+            job = payload.get("job", {})
+            self._add_wage_features(features, job)
+            self._add_owned_work_features(features, job, memory)
             features["helps_self"] = 1.0
+            features["work_commitment"] = 1.0
             self._add_counterparty_sentiment(
-                features, payload.get("job", {}).get("employer_id"), memory)
+                features, job.get("employer_id"), memory)
         elif command == Command.BUILD_DEV:
             tile_type = payload.get("_tile_type")
             self._add_resource_cost(features, self._build_cost(tile_type, memory))
@@ -63,18 +70,14 @@ class ActionFeatureCalculator:
             if dev:
                 if command == Command.UPGRADE_DEV:
                     self._add_resource_cost(features, dev.get("upgrade_cost", {}))
-                    self._add_production_features(
-                        features,
-                        dev.get("type"),
-                        memory,
-                        level=float(dev.get("level", 1) + 1),
-                    )
+                    self._add_upgrade_features(features, dev, memory)
                 elif command == Command.MAINTAIN_DEV:
                     self._add_resource_cost(features, dev.get("maintenance_cost", {}))
                     features["maintenance_days_saved"] = self._remaining_day_fraction(
                         memory,
                         float(dev.get("maintenance_days", 0)),
                     )
+                    self._add_maintenance_protection_features(features, dev, memory)
                 else:
                     features["contested_value"] = self._development_value(dev, memory)
                     side = payload.get("side")
@@ -147,6 +150,42 @@ class ActionFeatureCalculator:
         features["production_delta"] = features.get("production_delta", 0.0) + production_delta
         features[f"{resource}_production_delta"] = features.get(f"{resource}_production_delta", 0.0) + production_delta
 
+    def _add_owned_work_features(self, features: dict[str, float],
+                                 job: dict, memory: Memory) -> None:
+        development = job.get("development", {}) or {}
+        if development.get("owner_id") != memory.get("my_id"):
+            return
+        resource = self.development_economist.resource_for_type(development.get("type"))
+        if not resource:
+            return
+        output = self.development_economist.production_per_labor(development)
+        features["owned_work_output"] = features.get("owned_work_output", 0.0) + output
+        features["production_delta"] = features.get("production_delta", 0.0) + output
+        features[f"{resource}_production_delta"] = features.get(f"{resource}_production_delta", 0.0) + output
+
+    def _add_upgrade_features(self, features: dict[str, float],
+                              dev: dict, memory: Memory) -> None:
+        outputs = self.development_economist.upgrade_marginal_output(dev, memory)
+        total_output = 0.0
+        for resource, value in outputs.items():
+            features[f"{resource}_upgrade_output_delta"] = features.get(f"{resource}_upgrade_output_delta", 0.0) + value
+            features[f"{resource}_production_delta"] = features.get(f"{resource}_production_delta", 0.0) + value
+            total_output += value
+        if total_output:
+            features["production_delta"] = features.get("production_delta", 0.0) + total_output
+            cost_total = float(sum((dev.get("upgrade_cost", {}) or {}).values()))
+            features["upgrade_roi"] = total_output / max(1.0, cost_total)
+
+    def _add_maintenance_protection_features(self, features: dict[str, float],
+                                             dev: dict, memory: Memory) -> None:
+        risk = self.development_economist.maintenance_loss_risk(dev, memory)
+        if risk <= 0.0:
+            return
+        features["maintenance_loss_avoided"] = features.get("maintenance_loss_avoided", 0.0) + risk
+        resource = self.development_economist.resource_for_type(dev.get("type"))
+        if resource:
+            features[f"{resource}_production_protected"] = features.get(f"{resource}_production_protected", 0.0) + risk
+
     def _build_cost(self, tile_type: str | None, memory: Memory) -> dict:
         if tile_type is None:
             return {}
@@ -170,7 +209,15 @@ class ActionFeatureCalculator:
 
     def _development_value(self, dev: dict, memory: Memory) -> float:
         level = float(dev.get("level", 1) or 1)
-        return max(0.0, level * self._remaining_day_fraction(memory))
+        base_value = max(0.0, level * self._remaining_day_fraction(memory))
+        resource = self.development_economist.resource_for_type(dev.get("type"))
+        if not resource:
+            return base_value
+        inventory = float(memory.get(resource, 0) or 0)
+        scarcity = 1.0 / (inventory + 1.0)
+        maintenance_need = float((memory.get("maintenance_resource_deficits", {}) or {}).get(resource, 0.0) or 0.0)
+        upgrade_need = float((memory.get("upgrade_resource_deficits", {}) or {}).get(resource, 0.0) or 0.0)
+        return base_value * (1.0 + scarcity + maintenance_need + upgrade_need)
 
     def _fire_risk_delta(self, memory: Memory) -> float:
         if memory.get("fire_status") != "COLD":
@@ -215,7 +262,21 @@ class ActionFeatureCalculator:
                 memory,
             )
             self._add_wage_features(features, contract)
-            features["helps_other"] = 1.0
+            if contract.get("target_id") == memory.get("my_id"):
+                dev = self._development_for_contract(contract, memory)
+                if dev:
+                    produced = DEVELOPMENT_PRODUCTION.get(dev.get("type"))
+                    level = float(dev.get("level", 1) or 1)
+                    if produced:
+                        features[f"{produced}_production_delta"] = features.get(f"{produced}_production_delta", 0.0) + level
+                    features["employment_production_value"] = level
+                wage_type = contract.get("wage_type")
+                wage = float(contract.get("wage", 0) or 0)
+                if wage_type in RESOURCE_TYPES and wage:
+                    features[f"{wage_type}_cost"] = features.get(f"{wage_type}_cost", 0.0) + wage
+                    features["resource_cost"] = features.get("resource_cost", 0.0) + wage
+            else:
+                features["helps_other"] = 1.0
         elif contract_type == "CAMPFIRE":
             self._add_counterparty_sentiment(
                 features,
@@ -231,6 +292,16 @@ class ActionFeatureCalculator:
         if contract.get("target_id") == my_id:
             return contract.get("initiator_id")
         return contract.get("target_id") or contract.get("initiator_id")
+
+    def _development_for_contract(self, contract: dict, memory: Memory) -> dict | None:
+        dev_id = contract.get("dev_id")
+        if not dev_id:
+            return None
+        for group in ["my_developments", "other_player_developments", "unowned_developments", "contested_developments"]:
+            for dev in memory.get(group, []) or []:
+                if dev.get("id") == dev_id:
+                    return dev
+        return None
 
     def _add_counterparty_sentiment(
         self,
@@ -307,6 +378,17 @@ class ActionUtilityScorer:
             "wood_cost": 0.0,
             "iron_cost": 0.0,
             "maintenance_days_saved": self.genome.maintain_weight,
+            "maintenance_loss_avoided": self.genome.maintain_weight + self.genome.future_reward_weight,
+            "food_production_protected": self.genome.food_weight + self.genome.future_reward_weight + self.genome.maintain_weight,
+            "wood_production_protected": self.genome.wood_weight + self.genome.future_reward_weight + self.genome.maintain_weight,
+            "iron_production_protected": self.genome.iron_weight + self.genome.future_reward_weight + self.genome.maintain_weight,
+            "food_upgrade_output_delta": self.genome.food_weight + self.genome.future_reward_weight + self.genome.upgrade_weight,
+            "wood_upgrade_output_delta": self.genome.wood_weight + self.genome.future_reward_weight + self.genome.upgrade_weight,
+            "iron_upgrade_output_delta": self.genome.iron_weight + self.genome.future_reward_weight + self.genome.upgrade_weight,
+            "upgrade_roi": self.genome.upgrade_weight + self.genome.future_reward_weight,
+            "owned_work_output": self.genome.work_weight + self.genome.future_reward_weight,
+            "work_commitment": self.genome.work_weight + self.genome.reputation_weight,
+            "employment_production_value": self.genome.future_reward_weight + self.genome.employer_exploitation_weight,
             "fire_risk_delta": self.genome.fire_weight + self.genome.sickness_desperation_weight,
             "trade_received_value": self.genome.trade_fairness_weight,
             "trade_given_value": -self.genome.trade_fairness_weight,

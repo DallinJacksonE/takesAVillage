@@ -2,6 +2,78 @@ import random
 from dataclasses import dataclass, fields
 
 
+SURVIVAL_CRITICAL_FIELDS = (
+    "survival_weight",
+    "food_weight",
+    "wood_weight",
+    "iron_weight",
+    "food_desperation_weight",
+    "wood_desperation_weight",
+    "iron_desperation_weight",
+    "warmth_desperation_weight",
+    "sickness_desperation_weight",
+    "resource_urgency_curve",
+    "survival_urgency_weight",
+    "health_risk_weight",
+    "fire_weight",
+    "fire_host_weight",
+    "fire_guest_weight",
+    "campfire_accept_weight",
+)
+
+PRODUCTIVITY_FIELDS = (
+    "growth_weight",
+    "build_weight",
+    "upgrade_weight",
+    "maintain_weight",
+    "work_weight",
+    "farm_preference",
+    "woods_preference",
+    "mine_preference",
+    "employment_wage_weight",
+    "immediate_reward_weight",
+    "future_reward_weight",
+    "production_discount_weight",
+    "maintenance_urgency_weight",
+    "action_cost_weight",
+)
+
+TRADE_SOCIAL_FIELDS = (
+    "trade_fairness_weight",
+    "trade_deception_weight",
+    "wage_deception_weight",
+    "finalize_honesty_weight",
+    "reputation_weight",
+    "cooperation_weight",
+    "risk_weight",
+    "trust_weight",
+    "fairness_weight",
+    "generosity_weight",
+    "hostility_aversion_weight",
+    "reciprocity_weight",
+    "gift_gratitude_weight",
+    "betrayal_sensitivity_weight",
+    "forgiveness_weight",
+    "retaliation_weight",
+)
+
+PLANNING_FIELDS = (
+    "planning_depth_weight",
+    "tie_break_weight",
+)
+
+NONNEGATIVE_FIELDS = tuple(sorted(set(
+    SURVIVAL_CRITICAL_FIELDS
+    + PRODUCTIVITY_FIELDS
+    + (
+        "reputation_weight",
+        "cooperation_weight",
+        "trade_fairness_weight",
+        "finalize_honesty_weight",
+    )
+)))
+
+
 @dataclass
 class GOAPGenome:
     """Genome for GOAP bots.
@@ -87,6 +159,18 @@ class GOAPGenome:
     def field_names(cls) -> set[str]:
         return {field.name for field in fields(cls)}
 
+    @classmethod
+    def survival_field_names(cls) -> set[str]:
+        return set(SURVIVAL_CRITICAL_FIELDS)
+
+    @classmethod
+    def recommended_training_field_names(cls) -> set[str]:
+        return cls.field_names()
+
+    @classmethod
+    def nonnegative_field_names(cls) -> set[str]:
+        return set(NONNEGATIVE_FIELDS)
+
     @staticmethod
     def clamp_gene(value: float) -> float:
         return max(-1.0, min(1.0, float(value)))
@@ -107,13 +191,23 @@ class GOAPGenome:
         values = {}
         for field in fields(cls):
             raw_value = data.get(field.name, field.default)
-            values[field.name] = cls.clamp_gene(raw_value)
+            values[field.name] = cls.normalize_gene(field.name, raw_value)
         return cls(**values)
+
+    @classmethod
+    def normalize_gene(cls, field_name: str, value: float) -> float:
+        clamped = cls.clamp_gene(value)
+        if field_name in NONNEGATIVE_FIELDS:
+            return max(0.0, clamped)
+        return clamped
 
     @classmethod
     def random(cls):
         return cls(**{
-            field.name: random.uniform(-1.0, 1.0)
+            field.name: random.uniform(
+                0.0 if field.name in NONNEGATIVE_FIELDS else -1.0,
+                1.0,
+            )
             for field in fields(cls)
         })
 
@@ -125,7 +219,7 @@ class GOAPGenome:
             value = getattr(parent, field.name)
             if random.random() < mutation_rate:
                 value += random.gauss(0, mutation_strength)
-            values[field.name] = cls.clamp_gene(value)
+            values[field.name] = cls.normalize_gene(field.name, value)
         return cls(**values)
 
     @classmethod
