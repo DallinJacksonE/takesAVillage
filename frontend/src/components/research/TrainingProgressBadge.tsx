@@ -1,28 +1,3 @@
-<<<<<<< HEAD
-import React from "react";
-import { ResearchTrainingBatchRow } from "../../presenters/ResearchPresenter";
-
-import styles from "./TrainingProgressBadge.module.css";
-interface TrainingProgressBadgeProps {
-  batch: ResearchTrainingBatchRow;
-}
-
-export const TrainingProgressBadge: React.FC<TrainingProgressBadgeProps> = ({ batch }) => {
-  if (batch.status !== "running") {
-    return <span className={styles.text3}>{batch.status}</span>;
-  }
-
-  return (
-    <span
-      title={batch.progress_tooltip || "Training loop is running"}
-      className={styles.text2}
-    >
-      <span aria-hidden="true" className={styles.text}>●</span>
-      Running
-    </span>
-  );
-};
-=======
 import React from "react";
 import { ResearchTrainingBatchRow } from "../../presenters/ResearchPresenter";
 
@@ -55,4 +30,3 @@ export const TrainingProgressBadge: React.FC<TrainingProgressBadgeProps> = ({ ba
     </span>
   );
 };
->>>>>>> 5aae65484608285345edeb4ee838d500ef4f5a69
