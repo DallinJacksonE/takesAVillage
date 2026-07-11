@@ -765,7 +765,7 @@ class MySQLDB(DatabaseProvider):
                     game_id,
                     training_generation,
                     trade_count,
-                    contest_count
+                    contest_count,
                     lie_count
                 FROM games
                 WHERE training_batch_id = %s

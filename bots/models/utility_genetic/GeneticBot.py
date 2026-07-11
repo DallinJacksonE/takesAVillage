@@ -1,5 +1,5 @@
 import copy
-
+import random
 from BaseBot import BaseBot
 from .Relationship_manager import RelationshipManager
 from .Genome import Genome
@@ -443,27 +443,10 @@ class GeneticBot(BaseBot):
                     score += utility + g.cooperation_weight
                 else:
                     score -= utility
-
-        if command == "FINALIZE":
-            # Prefer to finalize (ship goods) if we can actually send the items
-            actual = action.get("payload", {}).get("actual_items", {})
-            feasible = {
-                r: min(int(qty), resources.get(r, 0))
-                for r, qty in actual.items()
-            }
-            feasible_value = self.resource_value(feasible)
-
-            if feasible_value > 0:
-                # Strongly favor finalizing when we can ship what we promised
-                score += 15000
-                score += feasible_value * 50
-            else:
-                # If we can't ship anything, deprioritize
-                score -= 1000
         # =====================
         # RANDOMNESS
         # =====================
-        score += (g.risk_weight * 0.1)
+        score += (random.uniform(-1, 1) * 0.1)
 
         return score
     
@@ -499,16 +482,11 @@ class GeneticBot(BaseBot):
             total -= val
         return total
     
-    def get_available_actions(self, game_state: dict) -> list[dict]:
-        """
-        Reconstructs the available actions purely from the JSON state DTO.
-        """
+    def check_for_waiting(self, game_state: dict):
         if game_state.get("status") == "WAITING":
-            return []
-        actions = []
-        phase = game_state.get("phase")
+            return True
+        
         me = game_state.get("me", {})
-        resources = me.get("resources", {"wood": 0, "food": 0, "iron": 0})
 
         pending_application = any(
             action.get("type") == "EMPLOYMENT"
@@ -520,9 +498,424 @@ class GeneticBot(BaseBot):
 
         if pending_application:
             self.waiting = True
-            return []
+            return True
         
         self.waiting = False
+        return False
+        
+    def get_build_upgrade_maintain_contest_actions(self, game_state: dict, me, resources, actions):
+        dev_costs = game_state.get("development_costs", {})
+        map_data = game_state.get("map", {})
+
+        # Handle map_data whether it arrives as a dict or a list
+        tiles = map_data.values() if isinstance(
+            map_data, dict) else map_data
+            
+        if me.get("health") not in ["sick", "recovering"]:
+
+            for tile in tiles:
+                if not tile.get("development"):
+                    tile_type = tile.get("type")
+                    build_cost = dev_costs.get(tile_type, {}).get("build", {})
+
+                    affordable = all(
+                        resources.get(res, 0) >= amount
+                        for res, amount in build_cost.items()
+                    )
+
+                    if affordable:
+                        actions.append({
+                            "action_command": "BUILD_DEV",
+                            "payload": {
+                                "tile_id": tile["id"],
+                                "_tile_type": tile_type
+                            }
+                            })
+            for dev in game_state.get("developments", []):
+                if dev["owner_id"] == me["id"] and dev["can_upgrade"]:
+                    upgrade_cost = self.get_upgrade_cost(dev, game_state)
+
+                    affordable = all(
+                        resources.get(res, 0) >= amount
+                        for res, amount in upgrade_cost.items()
+                    )
+
+                    if affordable:
+                        actions.append({
+                            "action_command": "UPGRADE_DEV",
+                            "payload": {
+                                "dev_id": dev["id"]
+                            }
+                        })
+            
+                if dev["owner_id"] == me["id"]:
+                    affordable = all(
+                        resources.get(r, 0) >= amt
+                        for r, amt in self.get_maintenance_cost(dev, game_state).items()
+                    )
+
+                    if affordable:
+                        actions.append({
+                            "action_command": "MAINTAIN_DEV",
+                            "payload": {
+                                "dev_id": dev["id"]
+                            }
+                        })
+            
+                if dev["owner_id"] != me["id"]:
+                    actions.append({
+                        "action_command": "CONTEST_DEV",
+                        "payload": {
+                            "dev_id": dev["id"],
+                            "side": "INITIATOR"
+                        }
+                    })
+
+    def get_job_applications_and_contest_sides(self, game_state, me, actions):
+    
+        existing_apps = {
+                (a.get("dev_id"), a.get("target_id"))
+                for a in me.get("actions", [])
+                if a["type"] == "EMPLOYMENT"
+            }
+
+        for dev in game_state.get("developments", []):
+
+            owner = self.find_player(game_state, dev["owner_id"])
+
+            if (dev['id'], dev['owner_id']) in existing_apps:
+                continue
+
+            if dev["is_contested"]:
+
+                if dev["owner_id"] == me["id"]:
+                    actions.append({
+                        "action_command": "CONTEST_DEV",
+                        "payload": {
+                        "dev_id": dev["id"],
+                        "side": "OWNER"
+                    }
+                })
+                
+                elif dev.get("contest_initiator_id") == me["id"]:
+                    actions.append({
+                        "action_command": "CONTEST_DEV",
+                        "payload": {
+                            "dev_id": dev["id"],
+                            "side": "CONTESTER"
+                        }
+                    })
+
+                else:
+                    actions.append({
+                        "action_command": "CONTEST_DEV",
+                        "payload": {
+                            "dev_id": dev["id"],
+                            "side": "OWNER"
+                        }
+                    })
+
+                    actions.append({
+                        "action_command": "CONTEST_DEV",
+                        "payload": {
+                            "dev_id": dev["id"],
+                            "side": "CONTESTER"
+                        }
+                    })
+
+            if dev.get("worker_id"):
+                continue
+            if not self.is_dead_player(owner):
+                actions.append({
+                    "action_command": "EMPLOYMENT",
+                    "payload": {
+                        "type": "EMPLOYMENT",
+                        "target_id": dev["owner_id"],
+                        "dev_id": dev["id"],
+                        "wage": dev['level'],
+                        "wage_type": self.resource_map[dev['type']],
+                        "is_application": True
+                    }
+                })
+
+    def get_work_actions_accept_deny_work_requests(self, game_state, me, actions):
+        for job in me.get("available_work", []):
+                owner_id = job.get('development', {}).get('owner_id')
+                owner = self.find_player(game_state, owner_id)
+                if self.is_dead_player(owner):
+                    continue
+                if not job.get('development').get('is_contested'):
+                    actions.append({
+                        "action_command": "COMMIT_WORK",
+                        "payload": {"job": job}
+                    })
+                
+        for action in me.get("actions", []):
+            if (
+                action["type"] == "EMPLOYMENT"
+                and action["status"] == "PENDING"
+                and action["target_id"] == me["id"]
+            ):
+                actions.append({
+                    "action_command": "ACCEPT",
+                    "payload": {
+                        "action_id": action["id"]
+                    }
+                })
+                actions.append({
+                    "action_command": "DENY",
+                    "payload": {
+                        "action_id": action["id"]
+                    }
+                    })
+
+    def get_accept_deny_trades(self, me, actions):
+        for action in me.get("actions", []):
+            if (
+                action["type"] == "TRADE"
+                and action["waiting_on_id"] == me["id"]
+            ):
+                trade_id = action["id"]
+
+                if trade_id not in self.trade_intentions:
+
+                    other_player = (
+                        action["initiator_id"]
+                        if action["initiator_id"] != me["id"]
+                        else action["target_id"]
+                    )
+
+                    will_honor = self.relationship_manager.will_honor_trade(other_player)
+
+                    self.trade_intentions[trade_id] = will_honor
+
+                actions.append({
+                    "action_command": "ACCEPT",
+                    "payload": {
+                        "action_id": trade_id
+                    }
+                })
+                actions.append({
+                    "action_command": "DENY",
+                    "payload": {
+                        "action_id": action["id"]
+                    }
+                })
+
+    def get_finalize_trades(self, me, actions):
+        for action in me.get("actions", []):
+            if action["status"] == "ACCEPTED":
+
+                is_initiator = action.get("initiator_id") == me.get("id")
+
+                already_finalized = (
+                    action.get("initiator_finalized", False)
+                    if is_initiator
+                    else action.get("target_finalized", False)
+                )
+
+                if already_finalized:
+                    continue
+
+                promised = (
+                    action.get("offer_items")
+                    if is_initiator
+                    else action.get("request_items")
+                )
+
+                feasible = {}
+                resources = me.get("resources", {})
+
+                for r, qty in (promised or {}).items():
+                    try:
+                        q = int(qty)
+                    except Exception:
+                        q = 0
+
+                    available = int(resources.get(r, 0))
+                    send_amt = max(0, min(q, available))
+
+                    if send_amt > 0:
+                        feasible[r] = send_amt
+                
+                will_honor = self.trade_intentions.get(action["id"], True)
+
+                if will_honor:
+
+                    actions.append({
+                        "action_command": "FINALIZE",
+                        "payload": {
+                            "action_id": action["id"],
+                            "actual_items": feasible
+                        }
+                    })
+                else:
+                    actions.append({
+                        'action_command': 'FINALIZE',
+                        'payload': {
+                            'action_id': action["id"],
+                            'actual_items': {}
+                        }
+                    })
+
+    def draft_trades(self, game_state, me, actions):
+        resources = me.get("resources", {"wood": 0, "food": 0, "iron": 0})
+        # determine offer (most abundant) and request (least abundant)
+        costs = {r: self.marginal_cost(r, 1, me) for r in resources.keys() if resources.get(r, 0) > 0}
+        benefits = {
+            r: self.marginal_utility(r, 1, me) for r in resources
+        }
+
+        best_requests = sorted(
+            benefits.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+
+        best_offers = sorted(
+            costs.items(),
+            key=lambda x: x[1]
+        )
+
+        if not best_offers:
+            return False
+
+        offer_item = best_offers[0][0]
+
+        best_requests = [
+            (r, value) for r, value in best_requests if r != offer_item
+        ]
+
+        request_item= best_requests[0][0]             
+        
+        existing_outgoing_trade = any(
+            a.get("type") == "TRADE" and a.get("initiator_id") == me.get("id")
+            and a.get("status") in ["PENDING", "NEGOTIATING", "ACCEPTED"]
+            for a in me.get("actions", [])
+        )
+
+        if existing_outgoing_trade:
+            # Respect a single outstanding trade until it's resolved
+            pass
+        else:
+            # Throttle number of trades per bot per TRADE phase
+            if self.trade_offers_made < self.max_trade_offers_per_phase:
+                for player in self.get_alive_players(game_state):
+                    if player.get("id") == me.get("id"):
+                        continue
+
+                    # Avoid creating duplicate pending trades to same target
+                    existing = any(
+                        a.get("type") == "TRADE" and a.get("target_id") == player.get("id")
+                        for a in me.get("actions", [])
+                    )
+                    if existing:
+                        continue
+
+                    ##           IMPLEMENT TRUSTING MECHANICS HERE                  ##
+
+                    actions.append({
+                            "action_command": "TRADE",
+                            "payload": {
+                                "type": "TRADE",
+                                "target_id": player.get("id"),
+                                "offer_items": {offer_item: 1},
+                                "request_items": {request_item: 1}
+                            }
+                        })
+                    # Count this draft so we don't spam the phase
+                    self.trade_offers_made += 1
+                    # Stop creating more offers once limit reached
+                    if self.trade_offers_made >= self.max_trade_offers_per_phase:
+                        break
+        return True
+
+    def get_start_fire_actions(self, game_state: dict, me: dict, actions: list, resources):
+        fire_cost = game_state.get("campfire_cost", {"wood": 1})
+        affordable = all(
+            resources.get(res, 0) >= amount
+            for res, amount in fire_cost.items()
+        )
+
+        if me.get("fire_status") == "COLD" and affordable:
+            actions.append({
+                "action_command": "START_FIRE",
+                "payload": {}
+            })
+    
+    def accept_deny_fire_invites(self, game_state: dict, me: dict, actions: list):
+        for action in me.get("actions", []):
+            if (
+                action["type"] == "CAMPFIRE"
+                and action["waiting_on_id"] == me["id"]
+            ):
+                # Only offer ACCEPT when the host still has seats available
+                is_request = action.get("is_request", False)
+                host_id = action.get("target_id") if is_request else action.get("initiator_id")
+                host_player = None
+                for p in game_state.get("player_list", []):
+                    if p.get("id") == host_id:
+                        host_player = p
+                        break
+
+                can_accept = False
+                if host_player and host_player.get("fire_status") == "HOST":
+                    max_seats = game_state.get("max_fire_seats", 0)
+                    current = len(host_player.get("fire_guests", []) or [])
+                    if current < max_seats:
+                        can_accept = True
+
+                if can_accept:
+                    actions.append({
+                        "action_command": "ACCEPT",
+                        "payload": {
+                            "action_id": action["id"]
+                        }
+                    })
+
+                # Always allow denying an invite
+                actions.append({
+                    "action_command": "DENY",
+                    "payload": {
+                        "action_id": action["id"]
+                    }
+                })
+
+    def send_fire_invites_requests(self, game_state: dict, me: dict, actions: list):
+        for player in self.get_alive_players(game_state):
+            if player["id"] == me["id"]:
+                continue
+            if me["fire_status"] == "HOST":
+                actions.append({
+                    "action_command": "CAMPFIRE",
+                    "payload": {
+                        "target_id": player["id"],
+                        "is_request": False,
+                        "type": "CAMPFIRE"
+                    }
+                })
+            
+            elif player["fire_status"] == "HOST" and me["fire_status"] == "COLD":
+                actions.append({
+                    "action_command": "CAMPFIRE",
+                    "payload": {
+                        "target_id": player["id"],
+                        "is_request": True,
+                        "type": "CAMPFIRE"
+                    }
+                })
+
+    def get_available_actions(self, game_state: dict) -> list[dict]:
+        """
+        Reconstructs the available actions purely from the JSON state DTO.
+        """
+        if self.check_for_waiting(game_state):
+            return []
+
+        actions = []
+        phase = game_state.get("phase")
+        me = game_state.get("me", {})
+        resources = me.get("resources", {"wood": 0, "food": 0, "iron": 0})
 
         # reset per-phase counters when phase changes
         if phase != self._last_phase:
@@ -533,404 +926,37 @@ class GeneticBot(BaseBot):
 
         if phase == "WORK" and me.get("health") != "dead":
             # --- 1. BUILD ACTIONS ---
-            dev_costs = game_state.get("development_costs", {})
-            map_data = game_state.get("map", {})
+            self.get_build_upgrade_maintain_contest_actions(game_state, me, resources, actions)
+            print([a for a in actions if a["action_command"] == "CONTEST_DEV"])
 
-            # Handle map_data whether it arrives as a dict or a list
-            tiles = map_data.values() if isinstance(
-                map_data, dict) else map_data
-            
-            if me.get("health") not in ["sick", "recovering"]:
+                # --- 2. JOB APPLICATIONS ---
 
-                for tile in tiles:
-                    if not tile.get("development"):
-                        tile_type = tile.get("type")
-                        build_cost = dev_costs.get(tile_type, {}).get("build", {})
+            self.get_job_applications_and_contest_sides(game_state, me, actions)
 
-                        affordable = all(
-                            resources.get(res, 0) >= amount
-                            for res, amount in build_cost.items()
-                        )
-
-                        if affordable:
-                            actions.append({
-                                "action_command": "BUILD_DEV",
-                                "payload": {
-                                    "tile_id": tile["id"],
-                                    "_tile_type": tile_type
-                                }
-                            })
-                for dev in game_state.get("developments", []):
-                    if dev["owner_id"] == me["id"] and dev["can_upgrade"]:
-                        upgrade_cost = self.get_upgrade_cost(dev, game_state)
-
-                        affordable = all(
-                            resources.get(res, 0) >= amount
-                            for res, amount in upgrade_cost.items()
-                        )
-
-                        if affordable:
-                            actions.append({
-                                "action_command": "UPGRADE_DEV",
-                                "payload": {
-                                    "dev_id": dev["id"]
-                                }
-                            })
-                
-                    if dev["owner_id"] == me["id"]:
-                        affordable = all(
-                            resources.get(r, 0) >= amt
-                            for r, amt in self.get_maintenance_cost(dev, game_state).items()
-                        )
-
-                        if affordable:
-                            actions.append({
-                                "action_command": "MAINTAIN_DEV",
-                                "payload": {
-                                    "dev_id": dev["id"]
-                                }
-                            })
-                
-                    if dev["owner_id"] != me["id"]:
-                        actions.append({
-                            "action_command": "CONTEST_DEV",
-                            "payload": {
-                                "dev_id": dev["id"],
-                                "side": "INITIATOR"
-                            }
-                        })
-
-                # --- JOB APPLICATIONS ---
-
-                existing_apps = {
-                    (a.get("dev_id"), a.get("target_id"))
-                    for a in me.get("actions", [])
-                    if a["type"] == "EMPLOYMENT"
-                }
-
-                for dev in game_state.get("developments", []):
-
-                    owner = self.find_player(game_state, dev["owner_id"])
-
-                    if (dev['id'], dev['owner_id']) in existing_apps:
-                        continue
-
-                    if dev["is_contested"]:
-
-                        if dev["owner_id"] == me["id"]:
-                            actions.append({
-                                "action_command": "CONTEST_DEV",
-                                "payload": {
-                                "dev_id": dev["id"],
-                                "side": "OWNER"
-                            }
-                        })
-                        
-                        elif dev.get("contest_initiator_id") == me["id"]:
-                            actions.append({
-                                "action_command": "CONTEST_DEV",
-                                "payload": {
-                                    "dev_id": dev["id"],
-                                    "side": "CONTESTER"
-                                }
-                            })
-
-                        else:
-                            actions.append({
-                                "action_command": "CONTEST_DEV",
-                                "payload": {
-                                    "dev_id": dev["id"],
-                                    "side": "OWNER"
-                                }
-                            })
-
-                            actions.append({
-                                "action_command": "CONTEST_DEV",
-                                "payload": {
-                                    "dev_id": dev["id"],
-                                    "side": "CONTESTER"
-                                }
-                            })
-
-                    if dev.get("worker_id"):
-                        continue
-                    if not self.is_dead_player(owner):
-                        actions.append({
-                            "action_command": "EMPLOYMENT",
-                            "payload": {
-                                "type": "EMPLOYMENT",
-                                "target_id": dev["owner_id"],
-                                "dev_id": dev["id"],
-                                "wage": dev['level'],
-                                "wage_type": self.resource_map[dev['type']],
-                                "is_application": True
-                            }
-                        })
-
-                # --- 2. WORK ACTIONS ---
-                for job in me.get("available_work", []):
-                    owner_id = job.get('development', {}).get('owner_id')
-                    owner = self.find_player(game_state, owner_id)
-                    if self.is_dead_player(owner):
-                        continue
-                    if not job.get('development').get('is_contested'):
-                        actions.append({
-                            "action_command": "COMMIT_WORK",
-                            "payload": {"job": job}
-                        })
-                
-            for action in me.get("actions", []):
-                 if (
-                    action["type"] == "EMPLOYMENT"
-                    and action["status"] == "PENDING"
-                    and action["target_id"] == me["id"]
-                ):
-                    actions.append({
-                        "action_command": "ACCEPT",
-                        "payload": {
-                            "action_id": action["id"]
-                        }
-                    })
-                    actions.append({
-                        "action_command": "DENY",
-                        "payload": {
-                            "action_id": action["id"]
-                        }
-                     })
+                # --- 3. WORK ACTIONS ---
+            self.get_work_actions_accept_deny_work_requests(game_state, me, actions)
 
         elif phase == "TRADE" and me.get("health") != "dead":
-            for action in me.get("actions", []):
-                if (
-                    action["type"] == "TRADE"
-                    and action["waiting_on_id"] == me["id"]
-                ):
-                    trade_id = action["id"]
+             # --- 4. Accept, Deny, Finalize Trades --- 
+            self.get_accept_deny_trades(me, actions)
+            self.get_finalize_trades(me, actions)
 
-                    if trade_id not in self.trade_intentions:
-
-                        other_player = (
-                            action["initiator_id"]
-                            if action["initiator_id"] != me["id"]
-                            else action["target_id"]
-                        )
-
-                        will_honor = self.relationship_manager.will_honor_trade(other_player)
-
-                        self.trade_intentions[trade_id] = will_honor
-
-                    actions.append({
-                        "action_command": "ACCEPT",
-                        "payload": {
-                            "action_id": trade_id
-                        }
-                    })
-                    actions.append({
-                        "action_command": "DENY",
-                        "payload": {
-                            "action_id": action["id"]
-                        }
-                    })
-                if action["status"] == "ACCEPTED":
-
-                    is_initiator = action.get("initiator_id") == me.get("id")
-
-                    already_finalized = (
-                        action.get("initiator_finalized", False)
-                        if is_initiator
-                        else action.get("target_finalized", False)
-                    )
-
-                    if already_finalized:
-                        continue
-
-                    promised = (
-                        action.get("offer_items")
-                        if is_initiator
-                        else action.get("request_items")
-                    )
-
-                    feasible = {}
-                    resources = me.get("resources", {})
-
-                    for r, qty in (promised or {}).items():
-                        try:
-                            q = int(qty)
-                        except Exception:
-                            q = 0
-
-                        available = int(resources.get(r, 0))
-                        send_amt = max(0, min(q, available))
-
-                        if send_amt > 0:
-                            feasible[r] = send_amt
-                    
-                    will_honor = self.trade_intentions.get(action["id"], True)
-
-                    if will_honor:
-
-                        actions.append({
-                            "action_command": "FINALIZE",
-                            "payload": {
-                                "action_id": action["id"],
-                                "actual_items": feasible
-                            }
-                        })
-                    else:
-                        actions.append({
-                            'action_command': 'FINALIZE',
-                            'payload': {
-                                'action_id': action["id"],
-                                'actual_items': {}
-                            }
-                        })
-            # --- 1. Draft simple trades ---
+            # --- 5. Draft simple trades ---
             # Bots may propose trades to other players offering surplus
             # and requesting resources they lack.
-            resources = me.get("resources", {"wood": 0, "food": 0, "iron": 0})
-            # determine offer (most abundant) and request (least abundant)
-            costs = {r: self.marginal_cost(r, 1, me) for r in resources.keys() if resources.get(r, 0) > 0}
-            benefits = {
-                r: self.marginal_utility(r, 1, me) for r in resources
-            }
-
-            best_requests = sorted(
-                benefits.items(),
-                key=lambda x: x[1],
-                reverse=True
-            )
-
-            best_offers = sorted(
-                costs.items(),
-                key=lambda x: x[1]
-            )
-
-            if not best_offers:
+            trades = self.draft_trades(game_state, me, actions)
+            if not trades:
                 return [{
                     "action_command": "FINISH_PHASE",
                     "payload": {}
                 }]
-
-            offer_item = best_offers[0][0]
-
-            best_requests = [
-                (r, value) for r, value in best_requests if r != offer_item
-            ]
-
-            request_item= best_requests[0][0]             
-            
-            existing_outgoing_trade = any(
-                a.get("type") == "TRADE" and a.get("initiator_id") == me.get("id")
-                and a.get("status") in ["PENDING", "NEGOTIATING", "ACCEPTED"]
-                for a in me.get("actions", [])
-            )
-
-            if existing_outgoing_trade:
-                # Respect a single outstanding trade until it's resolved
-                pass
-            else:
-                # Throttle number of trades per bot per TRADE phase
-                if self.trade_offers_made < self.max_trade_offers_per_phase:
-                    for player in self.get_alive_players(game_state):
-                        if player.get("id") == me.get("id"):
-                            continue
-
-                        # Avoid creating duplicate pending trades to same target
-                        existing = any(
-                            a.get("type") == "TRADE" and a.get("target_id") == player.get("id")
-                            for a in me.get("actions", [])
-                        )
-                        if existing:
-                            continue
-
-                        ##           IMPLEMENT TRUSTING MECHANICS HERE                  ##
-
-                        actions.append({
-                                "action_command": "TRADE",
-                                "payload": {
-                                    "type": "TRADE",
-                                    "target_id": player.get("id"),
-                                    "offer_items": {offer_item: 1},
-                                    "request_items": {request_item: 1}
-                                }
-                            })
-                        # Count this draft so we don't spam the phase
-                        self.trade_offers_made += 1
-                        # Stop creating more offers once limit reached
-                        if self.trade_offers_made >= self.max_trade_offers_per_phase:
-                            break
                 
 
         elif phase == "NIGHT":
-            # --- CAMPFIRE ACTIONS ---
-            fire_cost = game_state.get("campfire_cost", {"wood": 1})
-            affordable = all(
-                resources.get(res, 0) >= amount
-                for res, amount in fire_cost.items()
-            )
+            # --- 6. CAMPFIRE ACTIONS ---
+            self.get_start_fire_actions(game_state, me, actions, resources)
+            self.accept_deny_fire_invites(game_state, me, actions)
+            self.send_fire_invites_requests(game_state, me, actions)
 
-            if me.get("fire_status") == "COLD" and affordable:
-                actions.append({
-                    "action_command": "START_FIRE",
-                    "payload": {}
-                })
-            for action in me.get("actions", []):
-                if (
-                    action["type"] == "CAMPFIRE"
-                    and action["waiting_on_id"] == me["id"]
-                ):
-                    # Only offer ACCEPT when the host still has seats available
-                    is_request = action.get("is_request", False)
-                    host_id = action.get("target_id") if is_request else action.get("initiator_id")
-                    host_player = None
-                    for p in game_state.get("player_list", []):
-                        if p.get("id") == host_id:
-                            host_player = p
-                            break
-
-                    can_accept = False
-                    if host_player and host_player.get("fire_status") == "HOST":
-                        max_seats = game_state.get("max_fire_seats", 0)
-                        current = len(host_player.get("fire_guests", []) or [])
-                        if current < max_seats:
-                            can_accept = True
-
-                    if can_accept:
-                        actions.append({
-                            "action_command": "ACCEPT",
-                            "payload": {
-                                "action_id": action["id"]
-                            }
-                        })
-
-                    # Always allow denying an invite
-                    actions.append({
-                        "action_command": "DENY",
-                        "payload": {
-                            "action_id": action["id"]
-                        }
-                    })
-            
-            for player in self.get_alive_players(game_state):
-                if player["id"] == me["id"]:
-                    continue
-                if me["fire_status"] == "HOST":
-                    actions.append({
-                        "action_command": "CAMPFIRE",
-                        "payload": {
-                            "target_id": player["id"],
-                            "is_request": False,
-                            "type": "CAMPFIRE"
-                        }
-                    })
-                
-                elif player["fire_status"] == "HOST" and me["fire_status"] == "COLD":
-                    actions.append({
-                        "action_command": "CAMPFIRE",
-                        "payload": {
-                            "target_id": player["id"],
-                            "is_request": True,
-                            "type": "CAMPFIRE"
-                        }
-                    })
         return actions
         
