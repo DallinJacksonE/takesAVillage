@@ -369,13 +369,20 @@ export interface TrainingGenerationStatisticsDTO {
 
 export interface TrainingBatchListItemDTO {
   batch_id: string;
-  status: "running" | "completed" | "failed";
+  status: "running" | "completed" | "failed" | "stalled" | "cancelled";
   ruleset?: string;
   bot_model?: string;
   bot_count?: number;
   total_generations?: number;
   current_generation?: number;
   current_game_id?: string | null;
+  games_per_generation?: number;
+  games_completed?: number;
+  games_failed?: number;
+  current_generation_game_index?: number;
+  phase?: string | null;
+  last_error?: string | null;
+  last_heartbeat_at?: string | null;
   started_at?: string;
   completed_at?: string | null;
   generation_statistics?: TrainingGenerationStatisticsDTO[];
@@ -385,7 +392,16 @@ export interface TrainingBatchDetailDTO extends TrainingBatchListItemDTO {
   base_genome_id?: string | null;
   final_champion_genome_id?: string | null;
   config?: Record<string, any>;
-  games?: Array<{ game_id: string; generation: number }>;
+  games?: Array<{
+    game_id: string;
+    generation: number;
+    attempt?: number | null;
+    status?: "spawning" | "running" | "completed" | "failed" | "skipped";
+    error_message?: string | null;
+    genome_count?: number;
+    best_fitness?: number | null;
+    average_fitness?: number | null;
+  }>;
   visualizations: ResearchVisualizationDTO[];
 }
 
@@ -396,6 +412,10 @@ export interface TrainingSessionDTO {
   bot_count: number;
   generation: number;
   generations_left: number;
+  games_per_generation?: number;
+  games_completed?: number;
+  games_failed?: number;
+  current_generation_game_index?: number;
   population_size: number;
   elite_count?: number;
   selection_size?: number;
