@@ -66,7 +66,8 @@ class GeneticBot(BaseBot):
                 if a["action_command"] == "ACCEPT"
             ]
             if accept_actions:
-                return self.format_network_payload(accept_actions[0])
+                for action in accept_actions:
+                    return self.format_network_payload(accept_actions[0])
         elif game_state.get("phase") == "WORK":
 
             response_actions = [
@@ -104,8 +105,11 @@ class GeneticBot(BaseBot):
                     if action["action_command"] != "ACCEPT":
                         continue
                     trade_id = action["payload"].get("action_id")
-                    if trade_id in self.trade_intentions:
-                        if not self.trade_intentions[trade_id]:
+                    if trade_id in self.trade_intentions or action.get("target_id") in self.trade_intentions:
+                        intent = self.trade_intentions.get(trade_id)
+                        if intent is None:
+                            intent = self.trade_intentions.get(action.get("target_id"))
+                        if intent is False:
                             return self.format_network_payload(action)
                         
                 # Return the best response if not planning to lie
@@ -677,17 +681,20 @@ class GeneticBot(BaseBot):
             ):
                 trade_id = action["id"]
 
-                if trade_id not in self.trade_intentions:
-
-                    other_player = (
+                other_player = (
                         action["initiator_id"]
                         if action["initiator_id"] != me["id"]
                         else action["target_id"]
                     )
 
-                    will_honor = self.relationship_manager.will_honor_trade(other_player)
+                if trade_id not in self.trade_intentions:
+                    if other_player in self.trade_intentions:
+                        self.trade_intentions[trade_id] = self.trade_intentions.pop(other_player)
 
-                    self.trade_intentions[trade_id] = will_honor
+                    else:
+                        will_honor = self.relationship_manager.will_honor_trade(other_player)
+
+                        self.trade_intentions[trade_id] = will_honor
 
                 actions.append({
                     "action_command": "ACCEPT",
@@ -800,7 +807,14 @@ class GeneticBot(BaseBot):
         else:
             # Throttle number of trades per bot per TRADE phase
             if self.trade_offers_made < self.max_trade_offers_per_phase:
-                for player in self.get_alive_players(game_state):
+                candidates = []
+                
+                players = [player for player in game_state.get("players", []) if player.get("id") != me.get("id")]
+
+                candidates = self.relationship_manager.sort_liked_players(players)
+                
+                for score, player in candidates:
+
                     if player.get("id") == me.get("id"):
                         continue
 
@@ -812,7 +826,25 @@ class GeneticBot(BaseBot):
                     if existing:
                         continue
 
-                    ##           IMPLEMENT TRUSTING MECHANICS HERE                  ##
+                    max_score = (
+                        self.genome.trust_weight +
+                        self.genome.friendship_weight +
+                        self.genome.generosity_weight +
+                        self.genome.greed_weight
+                    )
+
+                    if max_score > 0:
+                        trade_probability = (score + max_score) / (2 * max_score)
+                    else:
+                        trade_probability = 0.5
+
+                    if random.random() > trade_probability:
+                        continue
+
+                    lie_probability = (1 - trade_probability) / 2
+
+                    if random.random() < lie_probability:
+                        self.trade_intentions[player.get("id")] = False
 
                     actions.append({
                             "action_command": "TRADE",
@@ -882,9 +914,11 @@ class GeneticBot(BaseBot):
                 })
 
     def send_fire_invites_requests(self, game_state: dict, me: dict, actions: list):
-        for player in self.get_alive_players(game_state):
-            if player["id"] == me["id"]:
-                continue
+        sorted_players = self.relationship_manager.sort_liked_players([player for player in self.get_alive_players(game_state) if player["id"] != me["id"]])
+
+        target_players = sorted_players[0:2] if len(sorted_players) > 2 else self.get_alive_players(game_state)
+
+        for player in target_players:
             if me["fire_status"] == "HOST":
                 actions.append({
                     "action_command": "CAMPFIRE",
@@ -894,8 +928,11 @@ class GeneticBot(BaseBot):
                         "type": "CAMPFIRE"
                     }
                 })
-            
-            elif player["fire_status"] == "HOST" and me["fire_status"] == "COLD":
+
+        for player in self.get_alive_players(game_state):
+            if player["id"] == me["id"]:
+                continue
+            if player["fire_status"] == "HOST" and me["fire_status"] == "COLD":
                 actions.append({
                     "action_command": "CAMPFIRE",
                     "payload": {

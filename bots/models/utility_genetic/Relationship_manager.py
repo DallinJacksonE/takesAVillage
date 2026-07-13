@@ -120,3 +120,20 @@ class RelationshipManager:
             probability = 0.5
         will_honor = random() <= probability
         return will_honor
+    
+    def get_relationship_score(self, player_id):
+        relationship = self.get_relationship(player_id)
+        
+        if not relationship:
+            return 0
+        
+        score = (
+            relationship.trust * self.genome.trust_weight +
+            relationship.friendship * self.genome.friendship_weight +
+            relationship.generosity * self.genome.generosity_weight -
+            relationship.greed * self.genome.greed_weight
+        )
+        return score
+    
+    def sort_liked_players(self, players):
+        return sorted(players, key=lambda p: self.get_relationship_score(p.get("id")), reverse=True)
