@@ -173,6 +173,7 @@ class GoalLibrary:
                 is_complete=lambda memory: (
                     not memory.get("upgradable_developments")
                     or bool(memory.get("upgrade_resource_deficits"))
+                    or bool(memory.get("at_risk_developments"))
                     or self._has_survival_pressure(memory)
                 ),
                 progress=lambda _memory, effects: (
@@ -245,13 +246,9 @@ class GoalLibrary:
             GOAPGoal(
                 name="COOPERATE",
                 desired_state={"cooperation": True},
-                utility=lambda memory: len(memory.get("pending_contracts", []))
-                * (self.genome.cooperation_weight
-                   + self.genome.campfire_accept_weight),
+                utility=self._cooperate_utility,
                 is_complete=lambda _memory: False,
-                progress=lambda _memory, effects: effects.get("cooperation", 0)
-                * (self.genome.cooperation_weight
-                   + self.genome.campfire_accept_weight),
+                progress=self._cooperate_progress,
             ),
         ]
 
@@ -268,7 +265,7 @@ class GoalLibrary:
     def _development_safety_multiplier(self, memory: Memory) -> float:
         if self._has_survival_pressure(memory):
             return 0.0
-        if memory.get("at_risk_developments") and memory.get("maintenance_resource_deficits"):
+        if memory.get("at_risk_developments"):
             return 0.0
         return 1.0
 
@@ -322,6 +319,69 @@ class GoalLibrary:
             self._maintenance_pressure(memory)
             * self.genome.maintain_weight
             * GOAPGenome.positive_multiplier(self.genome.maintenance_urgency_weight)
+        )
+
+    def _cooperate_utility(self, memory: Memory) -> float:
+        obligation_value = len(memory.get("pending_contracts", [])) * (
+            self.genome.cooperation_weight + self.genome.campfire_accept_weight)
+        opportunity_value = self._trusted_complementary_opportunity(memory) * (
+            self.genome.cooperation_weight
+            + self.genome.trust_weight
+            + self.genome.future_reward_weight
+        )
+        care_value = self._trusted_partner_care_opportunity(memory) * (
+            self.genome.cooperation_weight
+            + self.genome.trust_weight
+            + self.genome.survival_weight
+        )
+        if self._has_survival_pressure(memory):
+            care_value *= 0.25
+        return max(0.0, obligation_value + opportunity_value + care_value)
+
+    def _trusted_complementary_opportunity(self, memory: Memory) -> float:
+        trusted = memory.get("trusted_partner_scores", {}) or {}
+        complementary = memory.get("complementary_partner_scores", {}) or {}
+        opportunity = 0.0
+        for player_id, complementarity in complementary.items():
+            trust = float(trusted.get(player_id, 0.0) or 0.0)
+            if trust <= 0.0:
+                continue
+            opportunity += trust * max(0.0, float(complementarity or 0.0))
+        return opportunity
+
+    def _trusted_partner_care_opportunity(self, memory: Memory) -> float:
+        trusted = memory.get("trusted_partner_scores", {}) or {}
+        care_needs = memory.get("partner_care_needs", {}) or {}
+        opportunity = 0.0
+        for player_id, needs in care_needs.items():
+            trust = float(trusted.get(player_id, 0.0) or 0.0)
+            if trust <= 0.0:
+                continue
+            relationship = (memory.get("relationships", {}) or {}).get(player_id, {}) or {}
+            if float(relationship.get("hostility", 0.0) or 0.0) > 0.5:
+                continue
+            opportunity += trust * sum(
+                max(0.0, float(value or 0.0))
+                for value in (needs or {}).values()
+            )
+        return opportunity
+
+    def _cooperate_progress(self, _memory: Memory, effects: dict) -> float:
+        support = (
+            effects.get("cooperation", 0)
+            + effects.get("trusted_partner_support", 0)
+            + effects.get("complementary_partner_support", 0)
+            + effects.get("partner_survival_support", 0)
+            + effects.get("group_resource_balance_delta", 0)
+            + effects.get("free_food_support", 0)
+            + effects.get("campfire_partner_support", 0)
+            + effects.get("sick_partner_support", 0)
+        )
+        return support * (
+            self.genome.cooperation_weight
+            + self.genome.trust_weight
+            + self.genome.future_reward_weight
+            + self.genome.campfire_accept_weight
         )
 
     def _survival_utility(self, memory: Memory) -> float:

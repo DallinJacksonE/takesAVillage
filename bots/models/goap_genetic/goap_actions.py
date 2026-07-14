@@ -179,6 +179,7 @@ class OneStepPlanner:
                 command=Command.UPGRADE_DEV,
                 effects={"asset_level_delta": 1, "production_capacity": 1},
                 cost=self._development_action_cost,
+                precondition=self._can_upgrade_development,
             ),
             ActionTemplate(
                 name="contest-development",
@@ -238,14 +239,30 @@ class OneStepPlanner:
 
     def _development_action_cost(self, memory: Memory, action: dict) -> float:
         dev_id = action.get("payload", {}).get("dev_id")
+        command = action.get("action_command")
         for key in ["my_developments", "other_player_developments", "unowned_developments"]:
             for dev in memory.get(key, []):
                 if dev.get("id") == dev_id:
+                    if command == Command.MAINTAIN_DEV:
+                        return self._resource_bundle_cost(
+                            dev.get("maintenance_cost", {}))
+                    if command == Command.UPGRADE_DEV:
+                        return self._resource_bundle_cost(
+                            dev.get("upgrade_cost", {}))
                     return self._resource_bundle_cost(
-                        dev.get("upgrade_cost")
-                        or dev.get("maintenance_cost")
-                        or {})
+                        dev.get("upgrade_cost") or dev.get("maintenance_cost") or {})
         return 0.0
+
+    def _can_upgrade_development(self, memory: Memory, _action: dict) -> bool:
+        return not memory.get("at_risk_developments") and not self._has_survival_pressure(memory)
+
+    def _has_survival_pressure(self, memory: Memory) -> bool:
+        return (
+            memory.get("health") in {"sick", "recovering"}
+            or memory.get("food", 0) <= 1
+            or memory.get("fire_status") == "COLD"
+            or float(memory.get("sickness_chance", 0.0) or 0.0) > 0.25
+        )
 
     def _resource_bundle_cost(self, bundle: dict | None) -> float:
         bundle = bundle or {}

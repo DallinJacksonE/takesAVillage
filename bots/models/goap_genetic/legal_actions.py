@@ -34,11 +34,11 @@ class GOAPLegalActionSource:
         self._reset_phase_state(phase)
 
         if phase == "WORK":
-            return self._work_actions(game_state, me)
+            return self._work_actions(game_state, me, memory)
         if phase == "TRADE":
             return self._trade_actions(game_state, me, memory)
         if phase == "NIGHT":
-            return self._night_actions(game_state, me)
+            return self._night_actions(game_state, me, memory)
         return []
 
     def _reset_phase_state(self, phase: str | None) -> None:
@@ -48,14 +48,15 @@ class GOAPLegalActionSource:
         if phase == "TRADE":
             self._trade_offers_made = 0
 
-    def _work_actions(self, game_state: dict, me: dict) -> list[dict]:
+    def _work_actions(self, game_state: dict, me: dict,
+                      memory: Memory | None) -> list[dict]:
         actions = []
         resources = self._resources(me)
 
         if me.get("health") not in ["sick", "recovering"]:
             actions.extend(self._build_actions(game_state, resources))
             actions.extend(self._development_actions(game_state, me, resources))
-            actions.extend(self._employment_application_actions(game_state, me))
+            actions.extend(self._employment_application_actions(game_state, me, memory))
             actions.extend(self._commit_work_actions(game_state, me))
 
         actions.extend(self._pending_employment_response_actions(me))
@@ -122,10 +123,16 @@ class GOAPLegalActionSource:
         return actions
 
     def _employment_application_actions(self, game_state: dict,
-                                        me: dict) -> list[dict]:
+                                        me: dict,
+                                        memory: Memory | None) -> list[dict]:
         actions = []
         my_id = me.get("id")
-        for dev in game_state.get("developments", []) or []:
+        developments = sorted(
+            game_state.get("developments", []) or [],
+            key=lambda dev: self._employment_partner_score(dev, me, memory),
+            reverse=True,
+        )
+        for dev in developments:
             owner_id = dev.get("owner_id")
             if not owner_id or owner_id == my_id or dev.get("worker_id"):
                 continue
@@ -226,18 +233,19 @@ class GOAPLegalActionSource:
             return []
 
         resources = self._resources(me)
-        trade_pairs = self._candidate_trade_pairs(resources, memory)
-        if not trade_pairs:
-            return []
-
         actions = []
-        for player in self._alive_players(game_state):
+        actions.extend(self._support_trade_actions(game_state, me, resources, memory))
+        for player in self._rank_trade_partners(self._alive_players(game_state), me, memory):
             if self._trade_offers_made >= self.max_trade_offers_per_phase:
                 break
             target_id = player.get("id")
             if not target_id or target_id == me.get("id"):
                 continue
             if self._already_has_trade_with(me, target_id):
+                continue
+            trade_pairs = self._candidate_trade_pairs(
+                resources, memory, target_id)
+            if not trade_pairs:
                 continue
             for offer_resource, request_resource in trade_pairs:
                 if self._trade_offers_made >= self.max_trade_offers_per_phase:
@@ -254,16 +262,53 @@ class GOAPLegalActionSource:
                 self._trade_offers_made += 1
         return actions
 
+    def _support_trade_actions(self, game_state: dict, me: dict,
+                               resources: dict,
+                               memory: Memory | None) -> list[dict]:
+        if memory is None:
+            return []
+        actions = []
+        for target_id in memory.get("free_food_support_targets", []) or []:
+            if self._trade_offers_made >= self.max_trade_offers_per_phase:
+                break
+            if not target_id or target_id == me.get("id"):
+                continue
+            if self._already_has_trade_with(me, target_id):
+                continue
+            target = self._find_player(game_state, target_id)
+            if self._is_dead_player(target):
+                continue
+            needs = (memory.get("partner_care_needs", {}) or {}).get(target_id, {}) or {}
+            if float(needs.get("food", 0.0) or 0.0) <= 0.0:
+                continue
+            if not self._safe_to_gift("food", resources, memory):
+                continue
+            actions.append({
+                "action_command": Command.TRADE,
+                "payload": {
+                    "type": "TRADE",
+                    "target_id": target_id,
+                    "offer_items": {"food": 1},
+                    "request_items": {},
+                    "_support_reason": "SICK_PARTNER_FOOD",
+                },
+            })
+            self._trade_offers_made += 1
+        return actions
+
     def _candidate_trade_pairs(self, resources: dict,
-                               memory: Memory | None) -> list[tuple[str, str]]:
+                               memory: Memory | None,
+                               target_id: str | None = None) -> list[tuple[str, str]]:
         offer_candidates = sorted(
             [resource for resource in RESOURCE_TYPES if self._safe_to_offer(resource, resources, memory)],
-            key=lambda resource: self._offer_score(resource, resources, memory),
+            key=lambda resource: self._targeted_offer_score(
+                resource, resources, memory, target_id),
             reverse=True,
         )
         request_candidates = sorted(
             RESOURCE_TYPES,
-            key=lambda resource: self._request_score(resource, resources, memory),
+            key=lambda resource: self._targeted_request_score(
+                resource, resources, memory, target_id),
             reverse=True,
         )
         pairs = []
@@ -287,7 +332,23 @@ class GOAPLegalActionSource:
         reserve += self._future_deficit(resource, memory)
         return available - 1.0 >= reserve
 
-    def _night_actions(self, game_state: dict, me: dict) -> list[dict]:
+    def _safe_to_gift(self, resource: str, resources: dict,
+                      memory: Memory | None) -> bool:
+        available = float(resources.get(resource, 0) or 0)
+        if available <= 0.0:
+            return False
+        reserve = 0.0
+        if resource == "food":
+            reserve = 2.0 if (memory or {}).get("health") in {"sick", "recovering"} else 1.0
+            if available <= 2.0:
+                reserve = max(reserve, 2.0)
+        elif resource == "wood" and (memory or {}).get("fire_status") == "COLD":
+            reserve = 1.0
+        reserve += self._future_deficit(resource, memory)
+        return available - 1.0 >= reserve
+
+    def _night_actions(self, game_state: dict, me: dict,
+                       memory: Memory | None) -> list[dict]:
         actions = []
         resources = self._resources(me)
         campfire_cost = game_state.get("campfire_cost", {"wood": 1}) or {}
@@ -309,11 +370,11 @@ class GOAPLegalActionSource:
                 "payload": {"action_id": action.get("id")},
             })
 
-        for player in self._alive_players(game_state):
+        for player in self._rank_campfire_targets(self._alive_players(game_state), memory):
             target_id = player.get("id")
             if not target_id or target_id == me.get("id"):
                 continue
-            if me.get("fire_status") == "HOST":
+            if me.get("fire_status") == "HOST" and self._has_fire_seat(game_state, me):
                 actions.append({
                     "action_command": Command.CAMPFIRE,
                     "payload": {
@@ -322,9 +383,13 @@ class GOAPLegalActionSource:
                         "type": "CAMPFIRE",
                     },
                 })
-            elif (me.get("fire_status") == "COLD"
-                  and player.get("fire_status") == "HOST"
-                  and self._has_fire_seat(game_state, player)):
+        for player in self._rank_campfire_hosts(self._alive_players(game_state), memory):
+            target_id = player.get("id")
+            if not target_id or target_id == me.get("id"):
+                continue
+            if (me.get("fire_status") == "COLD"
+                    and player.get("fire_status") == "HOST"
+                    and self._has_fire_seat(game_state, player)):
                 actions.append({
                     "action_command": Command.CAMPFIRE,
                     "payload": {
@@ -334,6 +399,34 @@ class GOAPLegalActionSource:
                     },
                 })
         return actions
+
+    def _rank_campfire_targets(self, players: list[dict],
+                               memory: Memory | None) -> list[dict]:
+        return sorted(
+            players,
+            key=lambda player: self._campfire_target_score(player, memory),
+            reverse=True,
+        )
+
+    def _rank_campfire_hosts(self, players: list[dict],
+                             memory: Memory | None) -> list[dict]:
+        return sorted(
+            players,
+            key=lambda player: self._partner_score(player.get("id"), memory),
+            reverse=True,
+        )
+
+    def _campfire_target_score(self, player: dict,
+                               memory: Memory | None) -> float:
+        player_id = player.get("id")
+        score = self._partner_score(player_id, memory)
+        if memory is not None and player_id in (memory.get("campfire_support_targets", []) or []):
+            score += 10.0
+        if player.get("health") in {"sick", "recovering"}:
+            score += 2.0
+        if player.get("fire_status") == "COLD":
+            score += 1.0
+        return score
 
     def _accept_deny(self, action_id: str | None) -> list[dict]:
         return [
@@ -376,6 +469,62 @@ class GOAPLegalActionSource:
     def _offer_score(self, resource: str, resources: dict,
                      memory: Memory | None) -> float:
         return float(resources.get(resource, 0) or 0) - self._request_score(resource, resources, memory)
+
+    def _targeted_offer_score(self, resource: str, resources: dict,
+                              memory: Memory | None,
+                              target_id: str | None) -> float:
+        score = self._offer_score(resource, resources, memory)
+        if memory is None or not target_id:
+            return score
+        support_need = (memory.get("partner_support_needs", {}) or {}).get(
+            target_id, {}) or {}
+        return score + float(support_need.get(resource, 0.0) or 0.0) * 10.0
+
+    def _targeted_request_score(self, resource: str, resources: dict,
+                                memory: Memory | None,
+                                target_id: str | None) -> float:
+        score = self._request_score(resource, resources, memory)
+        if memory is None or not target_id:
+            return score
+        specialization = (memory.get("partner_specializations", {}) or {}).get(target_id)
+        if specialization == resource:
+            score += 2.0
+        return score
+
+    def _rank_trade_partners(self, players: list[dict], me: dict,
+                             memory: Memory | None) -> list[dict]:
+        return sorted(
+            players,
+            key=lambda player: self._partner_score(player.get("id"), memory),
+            reverse=True,
+        )
+
+    def _employment_partner_score(self, dev: dict, me: dict,
+                                  memory: Memory | None) -> float:
+        owner_id = dev.get("owner_id")
+        wage_type = self._resource_for_development_type(dev.get("type"))
+        resources = self._resources(me)
+        wage_score = self._request_score(wage_type, resources, memory) if wage_type else 0.0
+        return self._partner_score(owner_id, memory) + wage_score
+
+    def _partner_score(self, player_id: str | None,
+                       memory: Memory | None) -> float:
+        if not player_id or memory is None:
+            return 0.0
+        trusted = (memory.get("trusted_partner_scores", {}) or {}).get(player_id, 0.0) or 0.0
+        complementary = (memory.get("complementary_partner_scores", {}) or {}).get(player_id, 0.0) or 0.0
+        specialization = (memory.get("partner_specializations", {}) or {}).get(player_id)
+        specialization_fit = 0.0
+        if specialization in RESOURCE_TYPES:
+            specialization_fit = self._request_score(
+                specialization,
+                {
+                    resource: memory.get(resource, 0)
+                    for resource in RESOURCE_TYPES
+                },
+                memory,
+            )
+        return float(trusted) + float(complementary) + specialization_fit
 
     def _me(self, game_state: dict) -> dict:
         return game_state.get("me", {}) or {}

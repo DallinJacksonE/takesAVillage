@@ -8,6 +8,8 @@ from .thinking import Thinker
 from .acting import Actuator
 from .social_memory import SocialMemory
 from .legal_actions import GOAPLegalActionSource
+from .planning.partner_care import PartnerCareAnalyzer
+from .planning.partner_specialization import PartnerSpecialistAnalyzer
 from .planning.time_pressure import TimePressurePolicy
 
 
@@ -29,6 +31,8 @@ class GOAPGenetic(BaseBot):
         self.social_memory = SocialMemory()
         self.legal_action_source = GOAPLegalActionSource(self.genome)
         self.time_pressure = TimePressurePolicy()
+        self.partner_specialization = PartnerSpecialistAnalyzer()
+        self.partner_care = PartnerCareAnalyzer()
 
     @staticmethod
     def from_json(genome_json: dict):
@@ -54,6 +58,9 @@ class GOAPGenetic(BaseBot):
         memory = self.perception.sense(game_state)
         self.social_memory.observe_game_state(game_state)
         memory = memory.with_fact("relationships", self.social_memory.as_memory())
+        refreshed_facts = self.partner_specialization.analyze(memory)
+        memory = Memory({**memory, **refreshed_facts})
+        memory = Memory({**memory, **self.partner_care.analyze(memory)})
         self.time_pressure.observe(memory)
 
         # Handle hard-stops (like waiting on a pending application)

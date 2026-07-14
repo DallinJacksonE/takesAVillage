@@ -1,5 +1,7 @@
 from .memory import Memory
 from .planning.development_economics import DevelopmentEconomist
+from .planning.partner_care import PartnerCareAnalyzer
+from .planning.partner_specialization import PartnerSpecialistAnalyzer
 
 
 class Perception:
@@ -118,6 +120,8 @@ class Perception:
         }
 
         economist = DevelopmentEconomist()
+        partner_analyzer = PartnerSpecialistAnalyzer()
+        partner_care_analyzer = PartnerCareAnalyzer()
         factual_memory = Memory(memory)
         memory.update({
             "owned_production_by_resource": economist.owned_production_by_resource(factual_memory),
@@ -128,6 +132,8 @@ class Perception:
             "upgradable_developments": economist.upgradable_developments(factual_memory),
             "workable_owned_developments": economist.workable_owned_developments(factual_memory),
         })
+        memory.update(partner_analyzer.analyze(Memory(memory)))
+        memory.update(partner_care_analyzer.analyze(Memory(memory)))
 
         return Memory(memory)
 

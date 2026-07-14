@@ -101,6 +101,13 @@ class ActionFeatureCalculator:
             else:
                 features["helps_other"] = 1.0
                 features["social_exposure"] = 1.0
+                self._add_partner_support_features(
+                    features,
+                    payload.get("target_id"),
+                    {"campfire": 1},
+                    memory,
+                    support_kind="campfire",
+                )
         elif command in (Command.ACCEPT, Command.DENY, Command.FINALIZE):
             contract = self._contract_for_action(payload, memory)
             if contract:
@@ -114,6 +121,13 @@ class ActionFeatureCalculator:
             features["social_exposure"] = 1.0
             self._add_counterparty_sentiment(
                 features, payload.get("target_id"), memory)
+            self._add_partner_support_features(
+                features,
+                payload.get("target_id"),
+                payload.get("offer_items", {}),
+                memory,
+                support_kind=payload.get("_support_reason"),
+            )
 
         return {key: float(value) for key, value in features.items() if value != 0.0}
 
@@ -343,6 +357,44 @@ class ActionFeatureCalculator:
             features["trade_received_value"] = features.get("trade_received_value", 0.0) + received_total
             features["resource_delta"] = features.get("resource_delta", 0.0) + received_total
 
+    def _add_partner_support_features(
+        self,
+        features: dict[str, float],
+        counterparty_id: str | None,
+        offered: dict | None,
+        memory: Memory,
+        support_kind: str | None = None,
+    ) -> None:
+        if not counterparty_id:
+            return
+        trust = float((memory.get("trusted_partner_scores", {}) or {}).get(
+            counterparty_id, 0.0) or 0.0)
+        complementarity = float((memory.get("complementary_partner_scores", {}) or {}).get(
+            counterparty_id, 0.0) or 0.0)
+        support_needs = {
+            **((memory.get("partner_support_needs", {}) or {}).get(counterparty_id, {}) or {}),
+            **((memory.get("partner_care_needs", {}) or {}).get(counterparty_id, {}) or {}),
+        }
+        balance_delta = 0.0
+        survival_support = 0.0
+        for resource, amount in (offered or {}).items():
+            supported = min(float(amount or 0.0), float(support_needs.get(resource, 0.0) or 0.0))
+            balance_delta += max(0.0, supported)
+            if resource in {"food", "wood", "campfire"}:
+                survival_support += max(0.0, supported)
+        if trust > 0.0 and balance_delta > 0.0:
+            features["trusted_partner_support"] = features.get("trusted_partner_support", 0.0) + trust
+            if complementarity > 0.0:
+                features["complementary_partner_support"] = features.get("complementary_partner_support", 0.0) + complementarity
+            features["group_resource_balance_delta"] = features.get("group_resource_balance_delta", 0.0) + balance_delta
+            if survival_support > 0.0:
+                features["partner_survival_support"] = features.get("partner_survival_support", 0.0) + survival_support
+                features["sick_partner_support"] = features.get("sick_partner_support", 0.0) + 1.0
+            if support_kind == "SICK_PARTNER_FOOD" or "food" in (offered or {}):
+                features["free_food_support"] = features.get("free_food_support", 0.0) + 1.0
+            if support_kind == "campfire" or "campfire" in (offered or {}):
+                features["campfire_partner_support"] = features.get("campfire_partner_support", 0.0) + 1.0
+
 
 class ActionUtilityScorer:
     """Scores factual features as a genome-weighted dot product."""
@@ -405,4 +457,11 @@ class ActionUtilityScorer:
             "counterparty_reciprocity": self.genome.reciprocity_weight,
             "counterparty_confidence": self.genome.forgiveness_weight,
             "expected_cheat_risk": -self.genome.betrayal_sensitivity_weight,
+            "trusted_partner_support": self.genome.cooperation_weight + self.genome.trust_weight + self.genome.reputation_weight,
+            "complementary_partner_support": self.genome.future_reward_weight + self.genome.cooperation_weight,
+            "partner_survival_support": self.genome.survival_weight + self.genome.cooperation_weight,
+            "group_resource_balance_delta": self.genome.cooperation_weight + self.genome.fairness_weight + self.genome.reciprocity_weight,
+            "free_food_support": self.genome.cooperation_weight + self.genome.generosity_weight + self.genome.reputation_weight,
+            "campfire_partner_support": self.genome.cooperation_weight + self.genome.campfire_accept_weight + self.genome.trust_weight,
+            "sick_partner_support": self.genome.survival_weight + self.genome.cooperation_weight + self.genome.reputation_weight,
         }

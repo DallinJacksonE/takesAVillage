@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 
 
 RESOURCE_TYPES = ("food", "wood", "iron")
+SUPPORT_REASONS = {"SICK_PARTNER_FOOD", "SUPPORT_GIFT", "CAMPFIRE_SUPPORT"}
 
 
 def clamp(value: float, low: float = -1.0, high: float = 1.0) -> float:
@@ -97,6 +98,16 @@ class ExchangeClassifier:
         received_value = self._bundle_value(actual_received, event)
         sent_value = self._bundle_value(actual_sent, event)
 
+        if reason in SUPPORT_REASONS:
+            return self._support_evidence(
+                event_id,
+                counterparty_id,
+                promised_value,
+                received_value,
+                sent_value,
+                day,
+            )
+
         if promised_value > 0:
             shortfall_ratio = max(0.0, promised_value - received_value) / promised_value
             if shortfall_ratio > self.cheat_tolerance:
@@ -129,6 +140,16 @@ class ExchangeClassifier:
                 affinity=0.25 * gift_strength,
                 strength=gift_strength,
                 day=day,
+            )
+
+        if sent_value > 0 and promised_value <= 0 and received_value <= self.gift_return_tolerance * sent_value:
+            return self._support_evidence(
+                event_id,
+                counterparty_id,
+                promised_value,
+                received_value,
+                sent_value,
+                day,
             )
 
         return SocialEventEvidence(
@@ -167,6 +188,57 @@ class ExchangeClassifier:
             hostility=0.45 * strength,
             affinity=-0.35 * strength,
             strength=strength,
+            day=day,
+        )
+
+    def _support_evidence(self, event_id: str, counterparty_id: str,
+                          promised_value: float, received_value: float,
+                          sent_value: float,
+                          day: int | None) -> SocialEventEvidence:
+        if received_value > 0.0 and sent_value <= self.gift_return_tolerance * received_value:
+            strength = self._normalize(received_value)
+            return SocialEventEvidence(
+                event_id=event_id,
+                counterparty_id=counterparty_id,
+                kind="support_received",
+                trust=0.15 * strength,
+                generosity=0.40 * strength,
+                reciprocity=-0.15 * strength,
+                affinity=0.30 * strength,
+                strength=strength,
+                day=day,
+            )
+        if sent_value > 0.0 and received_value <= self.gift_return_tolerance * sent_value:
+            strength = self._normalize(sent_value)
+            return SocialEventEvidence(
+                event_id=event_id,
+                counterparty_id=counterparty_id,
+                kind="support_given",
+                trust=0.05 * strength,
+                generosity=0.10 * strength,
+                reciprocity=0.20 * strength,
+                affinity=0.15 * strength,
+                strength=strength,
+                day=day,
+            )
+        if promised_value > 0.0:
+            shortfall = max(0.0, promised_value - max(received_value, sent_value)) / promised_value
+            strength = self._normalize(shortfall)
+            return SocialEventEvidence(
+                event_id=event_id,
+                counterparty_id=counterparty_id,
+                kind="support_failed",
+                trust=-0.10 * strength,
+                fairness=-0.10 * strength,
+                hostility=0.05 * strength,
+                affinity=-0.05 * strength,
+                strength=strength,
+                day=day,
+            )
+        return SocialEventEvidence(
+            event_id=event_id,
+            counterparty_id=counterparty_id,
+            kind="support_neutral",
             day=day,
         )
 
@@ -248,6 +320,9 @@ class SocialMemory:
             if action.get("id")
         }
         for event in me.get("timeline", []) or []:
+            if event.get("type") in {"JOINED_FIRE", "SEATED_GUEST"}:
+                self.observe_campfire_event(my_id, event, game_state.get("day"))
+                continue
             if event.get("type") != "TRADE_RESOLVED":
                 continue
             data = event.get("data", {}) or {}
@@ -266,6 +341,49 @@ class SocialMemory:
                 "actual_sent": data.get("sent", {}),
                 "day": game_state.get("day"),
             })
+
+    def observe_campfire_event(self, my_id: str, event: dict,
+                               day: int | None) -> None:
+        data = event.get("data", {}) or {}
+        event_id = str(event.get("id") or "")
+        if event.get("type") == "JOINED_FIRE":
+            host_id = data.get("host")
+            if host_id and host_id != my_id:
+                self._apply_campfire_evidence(SocialEventEvidence(
+                    event_id=f"campfire:joined:{event_id or day}:{host_id}",
+                    counterparty_id=host_id,
+                    kind="campfire_support_received",
+                    trust=0.15,
+                    generosity=0.25,
+                    reciprocity=-0.10,
+                    affinity=0.25,
+                    strength=0.75,
+                    day=day,
+                ))
+        elif event.get("type") == "SEATED_GUEST":
+            guest_id = data.get("guest")
+            if guest_id and guest_id != my_id:
+                self._apply_campfire_evidence(SocialEventEvidence(
+                    event_id=f"campfire:seated:{event_id or day}:{guest_id}",
+                    counterparty_id=guest_id,
+                    kind="campfire_support_given",
+                    generosity=0.05,
+                    reciprocity=0.15,
+                    affinity=0.10,
+                    strength=0.5,
+                    day=day,
+                ))
+
+    def _apply_campfire_evidence(self, evidence: SocialEventEvidence) -> None:
+        if (not evidence.event_id or not evidence.counterparty_id
+                or evidence.event_id in self.observed_event_ids):
+            return
+        self.observed_event_ids.add(evidence.event_id)
+        self.relationship(evidence.counterparty_id).apply(
+            evidence,
+            learning_rate=self.learning_rate,
+            decay=self.decay,
+        )
 
     def as_memory(self) -> dict[str, dict]:
         return {
