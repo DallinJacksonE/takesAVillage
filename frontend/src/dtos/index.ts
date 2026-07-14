@@ -208,6 +208,7 @@ export interface DevelopmentDTO {
   maintenance_cost: Record<string, number>;
   upgrade_cost: Record<string, number>;
   can_upgrade: boolean;
+  pending_contest: boolean;
 }
 
 export interface MapTileDTO {

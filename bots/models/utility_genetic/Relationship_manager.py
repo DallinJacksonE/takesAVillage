@@ -136,4 +136,14 @@ class RelationshipManager:
         return score
     
     def sort_liked_players(self, players):
-        return sorted(players, key=lambda p: self.get_relationship_score(p.get("id")), reverse=True)
+        return sorted(
+            [
+                (
+                    self.get_relationship_score(p.get("id")),
+                    p
+                )
+                for p in players
+            ],
+            key=lambda x: x[0],
+            reverse=True
+        )

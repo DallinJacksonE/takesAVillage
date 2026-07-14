@@ -3,6 +3,7 @@ import random
 from BaseBot import BaseBot
 from .Relationship_manager import RelationshipManager
 from .Genome import Genome
+import time
 
 
 class GeneticBot(BaseBot):
@@ -11,6 +12,10 @@ class GeneticBot(BaseBot):
         self.trade_intentions = {}
         super().__init__(genome)
         self.relationship_manager = RelationshipManager(self)
+        self._phase_delay = 0
+        self._next_action_delay = 0
+        self.phase_start_time = 0
+        self.action_start_time = 0
 
     @staticmethod
     def from_json(genome_json):
@@ -53,11 +58,17 @@ class GeneticBot(BaseBot):
         if game_state.get("status") == "WAITING":
             return None
 
-        actions = self.get_available_actions(game_state)
-
         if me.get("health") == "dead":
             return None
         
+        if time.time() - self.phase_start_time < self._phase_delay:
+            return None
+        
+        if time.time() - self.action_start_time < self._next_action_delay:
+            return None
+        
+        actions = self.get_available_actions(game_state)
+
         self.relationship_manager.update_relationships(game_state)
 
         if  game_state.get("phase") == "NIGHT":
@@ -67,6 +78,7 @@ class GeneticBot(BaseBot):
             ]
             if accept_actions:
                 for action in accept_actions:
+                    self.schedule_next_action()
                     return self.format_network_payload(accept_actions[0])
         elif game_state.get("phase") == "WORK":
 
@@ -80,6 +92,7 @@ class GeneticBot(BaseBot):
                     response_actions,
                     key=lambda a: self.score_action(a, game_state)
                 )
+                self.schedule_next_action()
                 return self.format_network_payload(best)
 
         elif game_state.get("phase") == "TRADE":
@@ -93,6 +106,7 @@ class GeneticBot(BaseBot):
             )
 
             if finalize_action:
+                self.schedule_next_action()
                 return self.format_network_payload(finalize_action)
 
             trade_responses = [
@@ -110,6 +124,7 @@ class GeneticBot(BaseBot):
                         if intent is None:
                             intent = self.trade_intentions.get(action.get("target_id"))
                         if intent is False:
+                            self.schedule_next_action()
                             return self.format_network_payload(action)
                         
                 # Return the best response if not planning to lie
@@ -117,7 +132,7 @@ class GeneticBot(BaseBot):
                     trade_responses,
                     key=lambda a: self.score_action(a, game_state)
                 )
-
+                self.schedule_next_action()
                 return self.format_network_payload(best_response)
 
         if me.get("finished_phase"):
@@ -130,6 +145,14 @@ class GeneticBot(BaseBot):
         
         # 2. If no valid moves, finish the phase
         if not actions:
+            # During TRADE, wait up to 5 seconds before finishing so
+            # other players have time to send/accept/finalize trades.
+            if (
+                game_state.get("phase") == "TRADE"
+                and time.time() - self.phase_start_time < 5
+            ):
+                return None
+
             return self.format_network_payload(None)
 
         # 3. Score and select the best action
@@ -139,6 +162,7 @@ class GeneticBot(BaseBot):
         )
 
         # 4. Use the base class to clean and format the DTO
+        self.schedule_next_action()
         return self.format_network_payload(best_action)
 
     def score_action(self, action: dict, game_state: dict) -> float:
@@ -566,7 +590,11 @@ class GeneticBot(BaseBot):
                             }
                         })
             
-                if dev["owner_id"] != me["id"]:
+                if (
+                    dev["owner_id"] != me["id"]
+                    and not dev.get("is_contested", False)
+                    and not dev.get("pending_contest", False)
+                ):
                     actions.append({
                         "action_command": "CONTEST_DEV",
                         "payload": {
@@ -629,6 +657,10 @@ class GeneticBot(BaseBot):
 
             if dev.get("worker_id"):
                 continue
+
+            if dev.get("is_contested"):
+                continue
+
             if not self.is_dead_player(owner):
                 actions.append({
                     "action_command": "EMPLOYMENT",
@@ -713,6 +745,8 @@ class GeneticBot(BaseBot):
         for action in me.get("actions", []):
             if action["status"] == "ACCEPTED":
 
+                trade_id = action.get("id")
+
                 is_initiator = action.get("initiator_id") == me.get("id")
 
                 already_finalized = (
@@ -723,6 +757,21 @@ class GeneticBot(BaseBot):
 
                 if already_finalized:
                     continue
+
+                if trade_id not in self.trade_intentions:
+                    other_player = (
+                        action["initiator_id"]
+                        if action["initiator_id"] != me["id"]
+                        else action["target_id"]
+                    )
+
+                    if other_player in self.trade_intentions:
+                        self.trade_intentions[trade_id] = self.trade_intentions.pop(other_player)
+
+                    else:
+                        will_honor = self.relationship_manager.will_honor_trade(other_player)
+
+                        self.trade_intentions[trade_id] = will_honor
 
                 promised = (
                     action.get("offer_items")
@@ -744,8 +793,11 @@ class GeneticBot(BaseBot):
 
                     if send_amt > 0:
                         feasible[r] = send_amt
-                
-                will_honor = self.trade_intentions.get(action["id"], True)
+
+                if action.get("id") in self.trade_intentions:
+                    will_honor = self.trade_intentions.get(action["id"], True)
+                else:
+                    will_honor = self.trade_intentions.get(other_player, True)
 
                 if will_honor:
 
@@ -784,6 +836,9 @@ class GeneticBot(BaseBot):
             key=lambda x: x[1]
         )
 
+        if not best_requests:
+            return False
+
         if not best_offers:
             return False
 
@@ -803,13 +858,14 @@ class GeneticBot(BaseBot):
 
         if existing_outgoing_trade:
             # Respect a single outstanding trade until it's resolved
-            pass
+            return False
+        
         else:
             # Throttle number of trades per bot per TRADE phase
             if self.trade_offers_made < self.max_trade_offers_per_phase:
                 candidates = []
                 
-                players = [player for player in game_state.get("players", []) if player.get("id") != me.get("id")]
+                players = [player for player in game_state.get("player_list", []) if player.get("id") != me.get("id")]
 
                 candidates = self.relationship_manager.sort_liked_players(players)
                 
@@ -841,7 +897,7 @@ class GeneticBot(BaseBot):
                     if random.random() > trade_probability:
                         continue
 
-                    lie_probability = (1 - trade_probability) / 2
+                    lie_probability = (1 - trade_probability)/2
 
                     if random.random() < lie_probability:
                         self.trade_intentions[player.get("id")] = False
@@ -914,8 +970,12 @@ class GeneticBot(BaseBot):
                 })
 
     def send_fire_invites_requests(self, game_state: dict, me: dict, actions: list):
-        sorted_players = self.relationship_manager.sort_liked_players([player for player in self.get_alive_players(game_state) if player["id"] != me["id"]])
-
+        sorted_players = [
+                            player
+                            for _, player in self.relationship_manager.sort_liked_players(
+                                [p for p in self.get_alive_players(game_state) if p["id"] != me["id"]]
+                            )
+                        ]
         target_players = sorted_players[0:2] if len(sorted_players) > 2 else self.get_alive_players(game_state)
 
         for player in target_players:
@@ -957,6 +1017,8 @@ class GeneticBot(BaseBot):
         # reset per-phase counters when phase changes
         if phase != self._last_phase:
             self._last_phase = phase
+            self._phase_delay = random.uniform(0, .2)
+            self.phase_start_time = time.time()
             if phase == "TRADE":
                 self.trade_offers_made = 0
                 self.trade_intentions.clear()
@@ -981,12 +1043,7 @@ class GeneticBot(BaseBot):
             # --- 5. Draft simple trades ---
             # Bots may propose trades to other players offering surplus
             # and requesting resources they lack.
-            trades = self.draft_trades(game_state, me, actions)
-            if not trades:
-                return [{
-                    "action_command": "FINISH_PHASE",
-                    "payload": {}
-                }]
+            self.draft_trades(game_state, me, actions)
                 
 
         elif phase == "NIGHT":
@@ -997,3 +1054,6 @@ class GeneticBot(BaseBot):
 
         return actions
         
+    def schedule_next_action(self):
+        self._next_action_delay = random.uniform(0, .1)
+        self.action_start_time = time.time()

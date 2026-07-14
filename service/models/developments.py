@@ -87,7 +87,8 @@ class Development:
             "owner_supporters": self.owner_supporters,
             "maintenance_cost": self.get_maintenance_cost(),
             "upgrade_cost": self.get_upgrade_cost(),
-            "can_upgrade": self.can_upgrade
+            "can_upgrade": self.can_upgrade,
+            "pending_contest": self.pending_contest
         }
 
 
