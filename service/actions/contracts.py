@@ -88,11 +88,26 @@ class TradeContract(Contract):
         game = context['game']
 
         if self.initiator_finalized and self.target_finalized:
-            self.status = 'COMPLETED'
+
+            if self.actual_request_items != self.request_items:
+                game.lie_count[self.target_id] = (
+                    game.lie_count.get(self.target_id, 0) + 1
+                )
+
+            if self.actual_offer_items != self.offer_items:
+                game.lie_count[self.initiator_id] = (
+                    game.lie_count.get(self.initiator_id, 0) + 1
+                )
+            
+            contract_logger.info(
+                f"Lie count after finalize: {game.lie_count}"
+            )
+
+            self.status = "COMPLETED"
             self.waiting_on_id = None
             game.trade_count += 1
-            # self.just_completed = True
             return "UPDATED_COMPLETED"
+
         return f"UPDATED_{self.status}"
 
     def to_dict(self) -> dict:

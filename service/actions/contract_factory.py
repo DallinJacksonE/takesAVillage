@@ -112,7 +112,7 @@ class ContractFactory:
 
         if contract_copy.actual_offer_items != contract_copy.offer_items:
             self.game.lie_count[contract_copy.initiator_id] = self.game.lie_count.get(contract_copy.initiator_id, 0) + 1
-
+            
     def _add_contract_to_players(self, contract_obj):
         initiator = self.players.get(contract_obj.initiator_id)
         target = self.players.get(contract_obj.target_id)
