@@ -16,6 +16,7 @@ class GeneticBot(BaseBot):
         self._next_action_delay = 0
         self.phase_start_time = 0
         self.action_start_time = 0
+        self.fire_blacklist = set()
 
     @staticmethod
     def from_json(genome_json):
@@ -132,6 +133,23 @@ class GeneticBot(BaseBot):
                     trade_responses,
                     key=lambda a: self.score_action(a, game_state)
                 )
+
+                trust_probability = self.relationship_manager.get_relationship_score(
+                    best_response.get("initiator_id")) / (
+                    self.genome.trust_weight +
+                    self.genome.friendship_weight +
+                    self.genome.generosity_weight +
+                    self.genome.greed_weight
+                )
+
+                trust_probability = max(0.0, min(1.0, trust_probability))
+
+                if best_response["action_command"] == "ACCEPT" and trust_probability < random.random():
+                    best_response = {
+                        "action_command": "DENY",
+                        "payload": {
+                            "action_id": best_response["id"]
+                        }}
                 self.schedule_next_action()
                 return self.format_network_payload(best_response)
 
@@ -662,6 +680,9 @@ class GeneticBot(BaseBot):
                 continue
 
             if not self.is_dead_player(owner):
+                will_trust = self.relationship_manager.will_honor_trade(dev["owner_id"])
+                if not will_trust:
+                    continue
                 actions.append({
                     "action_command": "EMPLOYMENT",
                     "payload": {
@@ -704,6 +725,9 @@ class GeneticBot(BaseBot):
                         "action_id": action["id"]
                     }
                     })
+                will_honor = self.relationship_manager.will_honor_trade(action["initiator_id"])
+                if not will_honor:
+                    self.trade_intentions[action["initiator_id"]] = False
 
     def get_accept_deny_trades(self, me, actions):
         for action in me.get("actions", []):
@@ -979,7 +1003,10 @@ class GeneticBot(BaseBot):
         target_players = sorted_players[0:2] if len(sorted_players) > 2 else self.get_alive_players(game_state)
 
         for player in target_players:
-            if me["fire_status"] == "HOST":
+            if (
+                me["fire_status"] == "HOST"
+                and player["id"] not in self.fire_blacklist
+            ):
                 actions.append({
                     "action_command": "CAMPFIRE",
                     "payload": {
@@ -1022,6 +1049,8 @@ class GeneticBot(BaseBot):
             if phase == "TRADE":
                 self.trade_offers_made = 0
                 self.trade_intentions.clear()
+            if phase == "NIGHT":
+                self.update_fire_blacklist(game_state, me)
 
         if phase == "WORK" and me.get("health") != "dead":
             # --- 1. BUILD ACTIONS ---
@@ -1057,3 +1086,28 @@ class GeneticBot(BaseBot):
     def schedule_next_action(self):
         self._next_action_delay = random.uniform(0, .1)
         self.action_start_time = time.time()
+
+    def update_fire_blacklist(self, game_state: dict, me: dict):
+        self.fire_blacklist.clear()
+        max_score = (
+                self.genome.trust_weight +
+                self.genome.friendship_weight +
+                self.genome.generosity_weight +
+                self.genome.greed_weight
+            )
+        
+        if max_score <= 0:
+            return
+        
+        for player in game_state.get("player_list", []):
+            if player["id"] == me["id"]:
+                continue
+
+            rel_score = self.relationship_manager.get_relationship_score(player["id"])
+            
+            accept_probability = (rel_score + max_score) / (2 * max_score)
+
+            accept_probability = max(0, min(1, accept_probability))
+            
+            if accept_probability < 0.25:
+                self.fire_blacklist.add(player["id"])
