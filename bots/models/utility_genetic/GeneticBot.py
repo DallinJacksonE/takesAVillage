@@ -148,7 +148,7 @@ class GeneticBot(BaseBot):
                     best_response = {
                         "action_command": "DENY",
                         "payload": {
-                            "action_id": best_response["id"]
+                            "action_id": best_response["payload"]["action_id"]
                         }}
                 self.schedule_next_action()
                 return self.format_network_payload(best_response)
@@ -680,7 +680,7 @@ class GeneticBot(BaseBot):
                 continue
 
             if not self.is_dead_player(owner):
-                will_trust = self.relationship_manager.will_honor_trade(dev["owner_id"])
+                will_trust = self.relationship_manager.will_honor_trade(dev["owner_id"]) # trade here because owner can be sick
                 if not will_trust:
                     continue
                 actions.append({
@@ -725,7 +725,7 @@ class GeneticBot(BaseBot):
                         "action_id": action["id"]
                     }
                     })
-                will_honor = self.relationship_manager.will_honor_trade(action["initiator_id"])
+                will_honor = self.relationship_manager.will_honor_work_hire(action["initiator_id"])
                 if not will_honor:
                     self.trade_intentions[action["initiator_id"]] = False
 
@@ -1003,6 +1003,8 @@ class GeneticBot(BaseBot):
         target_players = sorted_players[0:2] if len(sorted_players) > 2 else self.get_alive_players(game_state)
 
         for player in target_players:
+            if len(me.get("fire_guests", [])) >= game_state["max_fire_seats"]:
+                return
             if (
                 me["fire_status"] == "HOST"
                 and player["id"] not in self.fire_blacklist
@@ -1090,10 +1092,9 @@ class GeneticBot(BaseBot):
     def update_fire_blacklist(self, game_state: dict, me: dict):
         self.fire_blacklist.clear()
         max_score = (
-                self.genome.trust_weight +
-                self.genome.friendship_weight +
-                self.genome.generosity_weight +
-                self.genome.greed_weight
+                self.genome.fire_trust_weight +
+                self.genome.fire_friendship_weight +
+                self.genome.fire_sympathy_weight
             )
         
         if max_score <= 0:
@@ -1103,7 +1104,7 @@ class GeneticBot(BaseBot):
             if player["id"] == me["id"]:
                 continue
 
-            rel_score = self.relationship_manager.get_relationship_score(player["id"])
+            rel_score = self.relationship_manager.fire_score(player["id"])
             
             accept_probability = (rel_score + max_score) / (2 * max_score)
 

@@ -197,6 +197,43 @@ class CampfireContract(Contract):
             return "ILLEGAL"
         self.status = 'ACCEPTED'
         self.waiting_on_id = None
+
+        game = context.get("game", {})
+        players = game.players
+
+        if self.is_request:
+            guest = players.get(self.initiator_id)
+            host = players.get(self.target_id)
+        
+        else:
+            host = players.get(self.initiator_id)
+            guest = players.get(self.target_id)
+
+        guests = set(getattr(host, "fire_guests", set()))
+        guests.add(guest.session_id)
+
+        guest.fire_history.append({
+            "host_id": host.session_id,
+            "fire_id": self.id,
+            "role": "guest",
+            "guests": list(guests.copy())
+        })
+
+        for interaction in host.fire_history:
+            if interaction.get("fire_id") == self.id:
+                interaction["guests"].add(guest.session_id)
+                break
+        else:
+            host.fire_history.append({
+                "host_id": host.session_id,
+                "fire_id": self.id,
+                "role": "host",
+                "guests": list(guests.copy())
+            })
+
+        if guest.session_id not in host.fire_guests:
+            host.fire_guests.append(guest.session_id)
+
         return f"UPDATED_{self.status}"
 
     def to_dict(self) -> dict:
