@@ -62,6 +62,7 @@ GENE_RANGES = {
     "friendship_weight": (0.0, 1.0),
     "trust_weight": (0.0, 1.0),
     "generosity_weight": (0.0, 1.0),
+    "trade_sympathy_weight": (0.0, 0.5),
 
     "initial_friendship": (-1.0, 1.0),
     "initial_generosity": (-1.0, 1.0),
@@ -81,6 +82,18 @@ GENE_RANGES = {
     # -----------------------------
     "honest_trust_increase": (0.0, 1.0),
     "honest_friendship_increase": (0.0, 1.0),
+
+    # -----------------------------
+    # Fire score weights
+    # -----------------------------
+    "fire_trust_weight": (0.0, 1.0),
+    "fire_friendship_weight": (0.0, 1.0),
+    "fire_sympathy_weight": (0.0, 0.5),
+
+    "fire_trust _sensitivity": (0.0, 1.0),
+    "fire_friendship_sensitivity": (0.0, 1.0),
+    "fire_generosity_sensitivity": (0.0, 1.0),
+    "fire_greed_sensitivity": (0.0, 1.0)
 }
 
 
@@ -129,6 +142,7 @@ class Genome:
     friendship_weight: float
     trust_weight: float
     generosity_weight: float
+    trade_sympathy_weight: float
 
     initial_friendship: float
     initial_generosity: float
@@ -142,6 +156,15 @@ class Genome:
 
     honest_trust_increase: float
     honest_friendship_increase: float
+
+    fire_trust_weight: float
+    fire_friendship_weight: float
+    fire_sympathy_weight: float
+
+    fire_trust_sensitivity: float
+    fire_friendship_sensitivity: float
+    fire_generosity_sensitivity: float
+    fire_greed_sensitivity: float
 
     @staticmethod
     def random():

@@ -248,6 +248,14 @@ export interface PlayerDTO {
   timeline: any[]; // Lightweight research log left as any[]
   finished_phase: boolean;
   trade_history?: TradeHistoryDTO[];
+  fire_history?: FireHistoryDTO[];
+}
+
+export interface FireHistoryDTO{
+  fire_id: string;
+  host_id: string;
+  role: "host" | "guest";
+  guests: Set<string>;
 }
 
 export interface GameStateDTO {

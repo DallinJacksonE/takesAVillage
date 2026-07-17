@@ -31,6 +31,7 @@ GENOME_FIELDS = [
     "friendship_weight",
     "trust_weight",
     "generosity_weight",
+    "trade_sympathy_weight",
     "initial_friendship",
     "initial_generosity",
     "initial_trust",
@@ -43,6 +44,15 @@ GENOME_FIELDS = [
 
     "honest_trust_increase",
     "honest_friendship_increase",
+
+    "fire_trust_weight",
+    "fire_friendship_weight",
+    "fire_sympathy_weight",
+
+    "fire_trust_sensitivity",
+    "fire_friendship_sensitivity",
+    "fire_generosity_sensitivity",
+    "fire_greed_sensitivity"
 ]
 
 GOAP_GENOME_FIELDS = [

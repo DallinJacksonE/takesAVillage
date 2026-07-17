@@ -17,6 +17,7 @@ class Player:
         self.timeline = []  # Chronological log for research data extraction
         self.trade_history = []  # Log of trades for research and player reference
         self.old_history = []
+        self.fire_history = []
 
         # Phase specific states
         self.fire_status = "COLD"  # COLD, HOST, GUEST
@@ -162,6 +163,7 @@ class Player:
             ) if self.committed_action else None,
 
             "trade_history": self.trade_history, # Assuming trade_history is already a list of dicts or simple data
+            "fire_history": self.fire_history[-5:]  # Last 5 fire interactions
         }
 
 

@@ -16,6 +16,9 @@ class RelationshipManager:
         self.processed_trade_ids = set()
         self.processed_action_ids = set()
         self.processed_timeline_ids = set()
+        self.processed_fire_ids = {}
+
+        self.sympathy = {}
 
     def update_relationships(self, state):
         me = state.get("me")
@@ -24,10 +27,17 @@ class RelationshipManager:
             if trade_id in self.processed_action_ids:
                 continue
             self._process_trade(trade, state)
-        
+
+        for player in state.get('player_list', []):
+            if player.get('id') != me.get('session_id'):
+                self.sympathy[player.get('id')] = player.get("health", "healthy") == 'sick'
+
+        for interaction in me.get('fire_history', []):
+            self.process_fire_interaction(interaction, state)
+
         for relationship in self.relationships.values():
             self.normalize(relationship)
-        
+
         print(f"Processed relationships for bot {me.get('session_id')}")
         print(self.relationships)
 
@@ -99,7 +109,7 @@ class RelationshipManager:
             )
         return self.relationships[player_id]
     
-    def will_honor_trade(self, player_id):
+    def will_honor_work_hire(self, player_id):
         relationship = self.get_relationship(player_id)
         score = (
         relationship.trust * self.genome.trust_weight +
@@ -112,6 +122,32 @@ class RelationshipManager:
             self.genome.friendship_weight +
             self.genome.generosity_weight +
             self.genome.greed_weight
+        )
+        if max_score != 0:
+            probability = (score + max_score) / (2 * max_score)
+            probability = max(0.0, min(1.0, probability))
+        else:
+            probability = 0.5
+        will_honor = random() <= probability
+        return will_honor
+
+    
+    def will_honor_trade(self, player_id):
+        relationship = self.get_relationship(player_id)
+        score = (
+        relationship.trust * self.genome.trust_weight +
+        relationship.friendship * self.genome.friendship_weight +
+        relationship.generosity * self.genome.generosity_weight -
+        relationship.greed * self.genome.greed_weight
+        )
+        if self.sympathy.get(player_id, False):
+            score += self.genome.trade_sympathy_weight
+        max_score = (
+            self.genome.trust_weight +
+            self.genome.friendship_weight +
+            self.genome.generosity_weight +
+            self.genome.greed_weight+
+            self.genome.trade_sympathy_weight
         )
         if max_score != 0:
             probability = (score + max_score) / (2 * max_score)
@@ -139,7 +175,7 @@ class RelationshipManager:
         return sorted(
             [
                 (
-                    self.get_relationship_score(p.get("id")),
+                    self.fire_score(p.get("id")),
                     p
                 )
                 for p in players
@@ -147,3 +183,52 @@ class RelationshipManager:
             key=lambda x: x[0],
             reverse=True
         )
+    
+    def fire_score(self, player_id):
+        relationship = self.get_relationship(player_id)
+        score = relationship.trust * self.genome.fire_trust_weight + relationship.friendship * self.genome.fire_friendship_weight
+        if self.sympathy.get(player_id, False):
+            score += self.genome.fire_sympathy_weight
+        score /= (self.genome.fire_trust_weight +
+                  self.genome.fire_friendship_weight +
+                  self.genome.fire_sympathy_weight 
+                )
+        return score
+    
+    def process_fire_interaction(self, interaction, state):
+        me = state.get('me')
+        im_host = interaction.get("role") == "host"
+        fire_id = interaction.get("fire_id")
+
+        if fire_id not in self.processed_fire_ids:
+            self.processed_fire_ids[fire_id] = set()
+
+        if im_host:
+            for player_id in interaction.get("guests", []):
+                if player_id == me.get('id'):
+                    continue
+                if player_id in self.processed_fire_ids[fire_id]:
+                    continue
+                else:
+                    relationship = self.get_relationship(player_id)
+                    relationship.trust += self.genome.fire_trust_sensitivity/2
+                    relationship.friendship += self.genome.fire_friendship_sensitivity/2
+                    self.processed_fire_ids[fire_id].add(player_id)
+        else:
+            host_id = interaction.get("host_id")
+            if host_id not in self.processed_fire_ids[fire_id]:
+                relationship = self.get_relationship(host_id)
+                relationship.trust += self.genome.fire_trust_sensitivity
+                relationship.friendship += self.genome.fire_friendship_sensitivity
+                relationship.generosity += self.genome.fire_generosity_sensitivity
+                relationship.greed -= self.genome.fire_greed_sensitivity
+                fire_id = interaction.get("fire_id")
+                for player_id in interaction.get("guests", []):
+                    if player_id == me.get('id'):
+                        continue
+                    if player_id == host_id:
+                        continue
+                    relationship = self.get_relationship(player_id)
+                    relationship.trust += self.genome.fire_trust_sensitivity/3
+                    relationship.friendship += self.genome.fire_friendship_sensitivity/3
+                    self.processed_fire_ids[fire_id].add(player_id)
