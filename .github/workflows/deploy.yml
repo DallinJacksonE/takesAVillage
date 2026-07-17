@@ -6,27 +6,6 @@ on:
       - main # Triggers the action when code is pushed to the main branch
 
 jobs:
-  # test:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout Code
-  #       uses: actions/checkout@v4
-  #
-  #     - name: Set up Python
-  #       uses: actions/setup-python@v5
-  #       with:
-  #         python-version: '3.12'
-  #
-  #     - name: Install Dependencies
-  #       run: |
-  #         python -m pip install --upgrade pip
-  #         pip install --no-cache-dir flask flask-socketio gevent gevent-websocket mysql-connector-python matplotlib uuid
-  #         pip install pytest pytest-mock
-  #
-  #     - name: Run Pytest
-  #       run: |
-  #         pytest
-  #
   deploy:
     runs-on: ubuntu-latest
     steps:
@@ -58,8 +37,14 @@ jobs:
             # Pull changes securely using the local Deploy Key
             GIT_SSH_COMMAND="ssh -i ~/.ssh/github_actions -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git pull origin main
 
-            # Rebuild and restart the containers
-            docker compose up -d --build frontend backend bots
+            # Rebuild and restart the containers with PRODUCTION ports via CLI
+            # Adjust these port numbers to your preferred production configuration
+            export PROD_DB_PORT=8002
+            export PROD_BACKEND_PORT=8000
+            export PROD_BOTS_PORT=8001
+            export PROD_FRONTEND_PORT=8080
+            
+            docker compose up -d --build frontend backend bots db
 
             # Clean up old unused images to save disk space
             docker image prune -f

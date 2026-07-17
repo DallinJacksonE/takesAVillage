@@ -9,7 +9,7 @@ services:
       - MYSQL_USER=village
       - MYSQL_PASSWORD=village_db
     ports:
-      - "3308:3306"
+      - "${PROD_DB_PORT:-3308}:3306"
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
@@ -26,7 +26,7 @@ services:
     container_name: village_backend
     restart: always
     ports:
-      - "5000:5000"
+      - "${PROD_BACKEND_PORT:-5000}:5000"
     environment:
       PYTHONUNBUFFERED: 1
       DB_TYPE: mysql
@@ -51,7 +51,7 @@ services:
     container_name: village_bots
     restart: always
     ports:
-      - "8001:8001" # Expose the Bot Server API
+      - "${PROD_BOTS_PORT:-8001}:8001"
     environment:
       # Use the docker-compose service name 'backend' to route traffic
       - GAME_SERVER_HTTP_URL=http://backend:5000
@@ -69,7 +69,7 @@ services:
     container_name: village_frontend
     restart: always
     ports:
-      - "4999:4999"
+      - "${PROD_FRONTEND_PORT:-4999}:4999"
     depends_on:
       - backend
 
