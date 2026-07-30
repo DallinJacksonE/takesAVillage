@@ -22,6 +22,43 @@ class GeneticBot(BaseBot):
     def from_json(genome_json):
         return GeneticBot(Genome(**genome_json))
 
+    def planned_resource_demand(self, me, game_state):
+        g = self.genome
+        demand = {
+            "food": 0,
+            "wood": 0,
+            "iron": 0
+        }
+
+        owned = [
+            d for d in game_state.get("developments", [])
+            if d.get("owner_id") == me.get("id")
+        ]
+
+        for dev in owned:
+            urgency = max(0, 5 - dev.get("maintenance_days"))
+
+            if dev["can_upgrade"]:
+                cost = self.get_upgrade_cost(dev, game_state)
+
+                current = me.get("resources", {})
+
+                for resource, amount in cost.items():
+                    needed = max(0, amount - current.get(resource, 0))
+                    upgrade_weight = (
+                        needed * g.upgrade_bias +
+                        urgency * g.maintain_bias
+                    )
+                    demand[resource] += upgrade_weight
+
+            else:
+                cost = self.get_maintenance_cost(dev, game_state)
+                for resource, amount in cost.items():
+                    demand[resource] += (
+                        amount * urgency * g.maintain_bias
+                    )
+        return demand
+
     def adjusted_resource_value(self, bundle, me):
         resources = me.get("resources", {})
 
@@ -190,6 +227,16 @@ class GeneticBot(BaseBot):
         command = action["action_command"]
         contract = None
         me = game_state.get("me", {})
+        resource_demand = self.planned_resource_demand(me, game_state)
+        owned_devs = [
+            d for d in game_state.get("developments", [])
+            if d["owner_id"] == me["id"]
+        ]
+        all_devs = game_state.get("developments", [])
+
+        farm_count = sum(d["type"] == "Farm" for d in owned_devs)
+        woods_count = sum(d["type"] == "Woods" for d in owned_devs)
+        mine_count = sum(d["type"] == "Mine" for d in owned_devs)
 
         if "action_id" in action.get("payload", {}):
             action_id = action["payload"]["action_id"]
@@ -246,18 +293,22 @@ class GeneticBot(BaseBot):
 
             if tile_type == "Farm":
                 score += (g.farm_preference + g.growth_weight)
-                if food_need > 0:
-                    score += (food_need * g.survival_weight)
+                missing = int(max(0, g.target_farm_count - farm_count))
+                score += missing * g.growth_weight
             elif tile_type == "Woods":
                 score += (g.woods_preference + g.growth_weight)
+                missing = int(max(0, g.target_woods_count - woods_count))
+                score += missing * g.growth_weight
             elif tile_type == "Mine":
                 score += (g.mine_preference + g.growth_weight)
+                missing = int(max(0, g.target_mine_count - mine_count))
+                score += missing * g.growth_weight
 
         # =====================
         # UPGRADE / MAINTAIN / CONTEST
         # =====================
         elif command == "UPGRADE_DEV":
-            score += (g.upgrade_weight + g.growth_weight)
+            score += (g.upgrade_weight)
 
             dev_id = action["payload"]["dev_id"]
 
@@ -310,7 +361,7 @@ class GeneticBot(BaseBot):
             if dev:
                 days_left = dev.get("maintenance_days")
                 score += (
-                    max(0, 5 - days_left)
+                    max(0, 2 - days_left)
                     * g.maintain_weight
                 )
 
@@ -367,6 +418,10 @@ class GeneticBot(BaseBot):
             wage = job.get("wage", 0)
             wage_type = job.get("wage_type")
 
+            resource_demand = self.planned_resource_demand(me, game_state)
+
+            score += resource_demand.get(wage_type, 0)
+
             if wage_type == "food":
                 score += (wage * g.food_weight)
                 score += (food_need * g.food_desperation_weight)
@@ -399,8 +454,11 @@ class GeneticBot(BaseBot):
                 produced_value = self.marginal_utility(
                     produced_resource,
                     produced_amount,
-                    me
+                    me,
+                    resource_demand
                 )
+
+
 
                 me_copy = copy.deepcopy(me)
                 me_copy['resources'][produced_resource] += produced_amount
@@ -408,7 +466,8 @@ class GeneticBot(BaseBot):
                 wage_value = self.marginal_cost(
                     contract["wage_type"],
                     contract["wage"],
-                    me_copy
+                    me_copy,
+                    resource_demand
                 )
 
                 net_value = produced_value + wage_value
@@ -475,12 +534,12 @@ class GeneticBot(BaseBot):
 
                 # Gain utility and update simulated inventory
                 for resource, amount in received.items():
-                    received_value += self.marginal_utility(resource, amount, future_me)
+                    received_value += self.marginal_utility(resource, amount, future_me, resource_demand)
                     future_me["resources"][resource] += amount
 
                 # Cost is evaluated after receiving the goods
                 for resource, amount in given.items():
-                    given_cost += self.marginal_cost(resource, amount, future_me)
+                    given_cost += self.marginal_cost(resource, amount, future_me, resource_demand)
                     future_me["resources"][resource] -= amount
 
                 utility = received_value - given_cost
@@ -496,11 +555,12 @@ class GeneticBot(BaseBot):
 
         return score
     
-    def marginal_utility(self, resource: str, amount: int, me: dict):
+    def marginal_utility(self, resource: str, amount: int, me: dict, resource_demand: dict):
         resources = me.get("resources")
         g = self.genome
         current = resources.get(resource, 0)
         total = 0
+        demand = resource_demand.get(resource, 0)
         for i in range(amount):
             inventory = current + i
             if resource == "food":
@@ -510,13 +570,15 @@ class GeneticBot(BaseBot):
             elif resource == "iron":
                 val = g.iron_weight + max(0, 5 - inventory) * g.iron_desperation_weight
             total += val
+        total += demand * amount
         return total
     
-    def marginal_cost(self, resource: str, amount: int, me: dict):
+    def marginal_cost(self, resource: str, amount: int, me: dict, resource_demand: dict):
         resources = me.get("resources")
         g = self.genome
         current = resources.get(resource, 0)
         total = 0
+        demand = resource_demand.get(resource, 0)
         for i in range(amount):
             inventory = current - i
             if resource == "food":
@@ -526,6 +588,7 @@ class GeneticBot(BaseBot):
             elif resource == "iron":
                 val = g.iron_weight + max(0, 5 - inventory) * g.iron_desperation_weight
             total -= val
+        total -= demand * amount
         return total
     
     def check_for_waiting(self, game_state: dict):
@@ -841,12 +904,12 @@ class GeneticBot(BaseBot):
                         }
                     })
 
-    def draft_trades(self, game_state, me, actions):
+    def draft_trades(self, game_state, me, actions,resource_demand):
         resources = me.get("resources", {"wood": 0, "food": 0, "iron": 0})
         # determine offer (most abundant) and request (least abundant)
-        costs = {r: self.marginal_cost(r, 1, me) for r in resources.keys() if resources.get(r, 0) > 0}
+        costs = {r: self.marginal_cost(r, 1, me, resource_demand) for r in resources.keys() if resources.get(r, 0) > 0}
         benefits = {
-            r: self.marginal_utility(r, 1, me) for r in resources
+            r: self.marginal_utility(r, 1, me, resource_demand) for r in resources
         }
 
         best_requests = sorted(
@@ -1042,6 +1105,7 @@ class GeneticBot(BaseBot):
         phase = game_state.get("phase")
         me = game_state.get("me", {})
         resources = me.get("resources", {"wood": 0, "food": 0, "iron": 0})
+        resource_demand = self.planned_resource_demand(me, game_state)
 
         # reset per-phase counters when phase changes
         if phase != self._last_phase:
@@ -1074,7 +1138,7 @@ class GeneticBot(BaseBot):
             # --- 5. Draft simple trades ---
             # Bots may propose trades to other players offering surplus
             # and requesting resources they lack.
-            self.draft_trades(game_state, me, actions)
+            self.draft_trades(game_state, me, actions, resource_demand)
                 
 
         elif phase == "NIGHT":

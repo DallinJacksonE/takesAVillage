@@ -151,6 +151,7 @@ class RelationshipManager:
         )
         if max_score != 0:
             probability = (score + max_score) / (2 * max_score)
+            probability = 0.25 + 0.75 * probability # Weight it biased towards being honest (so default relationships arent constantly lying but still change the odds)
             probability = max(0.0, min(1.0, probability))
         else:
             probability = 0.5

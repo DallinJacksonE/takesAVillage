@@ -52,7 +52,14 @@ GENOME_FIELDS = [
     "fire_trust_sensitivity",
     "fire_friendship_sensitivity",
     "fire_generosity_sensitivity",
-    "fire_greed_sensitivity"
+    "fire_greed_sensitivity",
+
+    "target_farm_count",
+    "target_woods_count",
+    "target_mine_count",
+
+    "upgrade_bias",
+    "maintain_bias"
 ]
 
 GOAP_GENOME_FIELDS = [

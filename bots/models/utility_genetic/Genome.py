@@ -90,10 +90,17 @@ GENE_RANGES = {
     "fire_friendship_weight": (0.0, 1.0),
     "fire_sympathy_weight": (0.0, 0.5),
 
-    "fire_trust _sensitivity": (0.0, 1.0),
+    "fire_trust_sensitivity": (0.0, 1.0),
     "fire_friendship_sensitivity": (0.0, 1.0),
     "fire_generosity_sensitivity": (0.0, 1.0),
-    "fire_greed_sensitivity": (0.0, 1.0)
+    "fire_greed_sensitivity": (0.0, 1.0),
+
+    "target_farm_count": (1, 6),
+    "target_woods_count": (1, 6),
+    "target_mine_count": (1, 4),
+
+    "upgrade_bias": (0.0, 1.0),
+    "maintain_bias": (0.0, 1.0)
 }
 
 
@@ -165,6 +172,13 @@ class Genome:
     fire_friendship_sensitivity: float
     fire_generosity_sensitivity: float
     fire_greed_sensitivity: float
+    target_farm_count: float
+    target_woods_count: float
+    target_mine_count: float
+    upgrade_bias: float
+    maintain_bias: float
+
+    
 
     @staticmethod
     def random():
