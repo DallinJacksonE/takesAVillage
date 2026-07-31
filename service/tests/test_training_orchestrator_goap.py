@@ -1,56 +1,16 @@
-import importlib
 import asyncio
 from datetime import datetime, timedelta
 import os
-import sys
-import types
 import unittest
 
+from bots.models.goap_genetic.goap_genome import GOAPGenome
+from service.db.memory import InMemoryDB
+from service.research.training import genomes as training_genomes
+from service.research.training import orchestrator as training_orchestrator
+from service.research.training import population as training_population
+
+
 SERVICE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-ROOT_DIR = os.path.abspath(os.path.join(SERVICE_DIR, ".."))
-BOTS_DIR = os.path.join(ROOT_DIR, "bots")
-for path in (SERVICE_DIR, BOTS_DIR, ROOT_DIR):
-    if path not in sys.path:
-        sys.path.insert(0, path)
-
-httpx_stub = types.ModuleType("httpx")
-setattr(httpx_stub, "AsyncClient", object)
-sys.modules["httpx"] = httpx_stub
-
-fastapi_stub = types.ModuleType("fastapi")
-setattr(fastapi_stub, "WebSocket", object)
-sys.modules["fastapi"] = fastapi_stub
-
-db_stub = types.ModuleType("db")
-setattr(db_stub, "db", types.SimpleNamespace(get_all_genomes=lambda: [], store_genome=lambda *args, **kwargs: None))
-sys.modules["db"] = db_stub
-
-game_manager_stub = types.ModuleType("game_manager")
-setattr(game_manager_stub, "create_game", lambda *args, **kwargs: "test-game")
-sys.modules["game_manager"] = game_manager_stub
-
-logger_stub = types.ModuleType("logger")
-
-class _Logger:
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def info(self, *args, **kwargs):
-        pass
-
-    def warning(self, *args, **kwargs):
-        pass
-
-    def error(self, *args, **kwargs):
-        pass
-
-setattr(logger_stub, "BackendLogger", _Logger)
-sys.modules["logger"] = logger_stub
-
-training_orchestrator = importlib.import_module("training_orchestrator")
-training_genomes = importlib.import_module("training_genomes")
-training_population = importlib.import_module("training_population")
-from models.goap_genetic.goap_genome import GOAPGenome
 
 
 class TrainingOrchestratorGOAPGenomeTests(unittest.TestCase):
@@ -70,7 +30,9 @@ class TrainingOrchestratorGOAPGenomeTests(unittest.TestCase):
         self.assertNotEqual(fields, training_genomes.GENOME_FIELDS)
 
     def test_training_orchestrator_does_not_import_bot_modules(self):
-        source_path = os.path.join(SERVICE_DIR, "training_orchestrator.py")
+        source_path = os.path.join(
+            SERVICE_DIR, "research", "training", "orchestrator.py"
+        )
         with open(source_path, "r", encoding="utf-8") as source_file:
             source = source_file.read()
 
@@ -170,24 +132,28 @@ class TrainingOrchestratorGOAPGenomeTests(unittest.TestCase):
 
 class TrainingOrchestratorRobustnessTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        training_orchestrator.active_training_sessions.clear()
         self.db_calls = []
+        self.database = InMemoryDB()
 
         def record(name):
             def _recorder(*args, **kwargs):
                 self.db_calls.append((name, args, kwargs))
             return _recorder
 
-        training_orchestrator.db.create_training_batch = record("create_training_batch")
-        training_orchestrator.db.mark_training_batch_game_started = record("mark_training_batch_game_started")
-        training_orchestrator.db.mark_training_batch_game_running = record("mark_training_batch_game_running")
-        training_orchestrator.db.append_training_batch_generation_stats = record("append_training_batch_generation_stats")
-        training_orchestrator.db.complete_training_batch = record("complete_training_batch")
-        training_orchestrator.db.mark_training_batch_game_failed = record("mark_training_batch_game_failed")
-        training_orchestrator.db.mark_training_batch_game_completed = record("mark_training_batch_game_completed")
-        training_orchestrator.db.record_training_batch_heartbeat = record("record_training_batch_heartbeat")
-        training_orchestrator.db.update_training_batch_status = record("update_training_batch_status")
-        training_orchestrator.db.store_genome = record("store_genome")
+        self.database.create_training_batch = record("create_training_batch")
+        self.database.mark_training_batch_game_started = record("mark_training_batch_game_started")
+        self.database.mark_training_batch_game_running = record("mark_training_batch_game_running")
+        self.database.append_training_batch_generation_stats = record("append_training_batch_generation_stats")
+        self.database.complete_training_batch = record("complete_training_batch")
+        self.database.mark_training_batch_game_failed = record("mark_training_batch_game_failed")
+        self.database.mark_training_batch_game_completed = record("mark_training_batch_game_completed")
+        self.database.record_training_batch_heartbeat = record("record_training_batch_heartbeat")
+        self.database.update_training_batch_status = record("update_training_batch_status")
+        self.database.store_genome = record("store_genome")
+        self.runtime = training_orchestrator.TrainingRuntime(
+            database=self.database,
+            game_factory=lambda **_kwargs: "game-1",
+        )
 
     async def test_start_training_session_accepts_games_per_generation(self):
         posts = []
@@ -201,13 +167,13 @@ class TrainingOrchestratorRobustnessTests(unittest.IsolatedAsyncioTestCase):
 
             async def post(self, url, json, timeout):
                 posts.append((url, json, timeout))
+                return type("Response", (), {"status_code": 200})()
 
         original_client = training_orchestrator.httpx.AsyncClient
-        original_create_game = training_orchestrator.create_game
         training_orchestrator.httpx.AsyncClient = FakeClient
-        training_orchestrator.create_game = lambda **_kwargs: "game-1"
         try:
             session_id = await training_orchestrator.start_training_session(
+                self.runtime,
                 "default",
                 bot_count=3,
                 generations=2,
@@ -217,9 +183,8 @@ class TrainingOrchestratorRobustnessTests(unittest.IsolatedAsyncioTestCase):
             )
         finally:
             training_orchestrator.httpx.AsyncClient = original_client
-            training_orchestrator.create_game = original_create_game
 
-        session = training_orchestrator.active_training_sessions[session_id]
+        session = self.runtime.sessions[session_id]
         self.assertEqual(session["games_per_generation"], 3)
         self.assertEqual(session["current_generation_game_index"], 3)
         self.assertEqual(len(posts), 3)
@@ -249,14 +214,14 @@ class TrainingOrchestratorRobustnessTests(unittest.IsolatedAsyncioTestCase):
             async def get(self, *_args, **_kwargs):
                 return FakeResponse()
 
-        async def fake_trigger(session_id):
+        async def fake_trigger(_runtime, session_id):
             triggered.append(session_id)
 
         original_client = training_orchestrator.httpx.AsyncClient
         original_trigger = training_orchestrator._trigger_next_game
         training_orchestrator.httpx.AsyncClient = FakeClient
         training_orchestrator._trigger_next_game = fake_trigger
-        training_orchestrator.active_training_sessions["session-1"] = {
+        self.runtime.sessions["session-1"] = {
             "ruleset": "default",
             "bot_count": 2,
             "generations_left": 1,
@@ -277,12 +242,13 @@ class TrainingOrchestratorRobustnessTests(unittest.IsolatedAsyncioTestCase):
             "all_fitness_entries": [],
         }
         try:
-            await training_orchestrator.handle_training_game_ended("game-1", "session-1")
+            await training_orchestrator.handle_training_game_ended(
+                self.runtime, "game-1", "session-1")
         finally:
             training_orchestrator.httpx.AsyncClient = original_client
             training_orchestrator._trigger_next_game = original_trigger
 
-        session = training_orchestrator.active_training_sessions["session-1"]
+        session = self.runtime.sessions["session-1"]
         self.assertEqual(session["games_completed"], 1)
         self.assertEqual(session["games_failed"], 1)
         self.assertFalse(session.get("processing_game_end"))
@@ -301,6 +267,7 @@ class TrainingOrchestratorRobustnessTests(unittest.IsolatedAsyncioTestCase):
 
             async def post(self, url, json, timeout):
                 posts.append((url, json, timeout))
+                return type("Response", (), {"status_code": 200})()
 
         def fake_create_game(**_kwargs):
             game_id = f"game-{len(created_game_ids) + 1}"
@@ -308,11 +275,11 @@ class TrainingOrchestratorRobustnessTests(unittest.IsolatedAsyncioTestCase):
             return game_id
 
         original_client = training_orchestrator.httpx.AsyncClient
-        original_create_game = training_orchestrator.create_game
         training_orchestrator.httpx.AsyncClient = FakeClient
-        training_orchestrator.create_game = fake_create_game
+        self.runtime.game_factory = fake_create_game
         try:
             session_id = await training_orchestrator.start_training_session(
+                self.runtime,
                 "default",
                 bot_count=3,
                 generations=1,
@@ -323,13 +290,12 @@ class TrainingOrchestratorRobustnessTests(unittest.IsolatedAsyncioTestCase):
             await asyncio.sleep(0)
         finally:
             training_orchestrator.httpx.AsyncClient = original_client
-            training_orchestrator.create_game = original_create_game
 
         self.assertEqual(created_game_ids, ["game-1", "game-2", "game-3"])
         self.assertEqual(len(posts), 3)
         self.assertTrue(all(
             post[1]["baseGenome"]
-            is training_orchestrator.active_training_sessions[session_id]["population"]
+            is self.runtime.sessions[session_id]["population"]
             for post in posts
         ))
         started_calls = [
@@ -365,7 +331,7 @@ class TrainingOrchestratorRobustnessTests(unittest.IsolatedAsyncioTestCase):
 
         original_client = training_orchestrator.httpx.AsyncClient
         training_orchestrator.httpx.AsyncClient = FakeClient
-        training_orchestrator.active_training_sessions["session-1"] = {
+        self.runtime.sessions["session-1"] = {
             "ruleset": "default",
             "bot_count": 2,
             "generations_left": 1,
@@ -386,8 +352,10 @@ class TrainingOrchestratorRobustnessTests(unittest.IsolatedAsyncioTestCase):
             "all_fitness_entries": [],
         }
         try:
-            await training_orchestrator.handle_training_game_ended("game-1", "session-1")
-            await training_orchestrator.handle_training_game_ended("game-1", "session-1")
+            await training_orchestrator.handle_training_game_ended(
+                self.runtime, "game-1", "session-1")
+            await training_orchestrator.handle_training_game_ended(
+                self.runtime, "game-1", "session-1")
         finally:
             training_orchestrator.httpx.AsyncClient = original_client
 
@@ -417,7 +385,7 @@ class TrainingOrchestratorRobustnessTests(unittest.IsolatedAsyncioTestCase):
 
         original_client = training_orchestrator.httpx.AsyncClient
         training_orchestrator.httpx.AsyncClient = FakeClient
-        training_orchestrator.active_training_sessions["session-1"] = {
+        self.runtime.sessions["session-1"] = {
             "ruleset": "default",
             "bot_count": 2,
             "generations_left": 1,
@@ -438,7 +406,8 @@ class TrainingOrchestratorRobustnessTests(unittest.IsolatedAsyncioTestCase):
             "all_fitness_entries": [],
         }
         try:
-            await training_orchestrator.handle_training_game_ended("game-1", "session-1")
+            await training_orchestrator.handle_training_game_ended(
+                self.runtime, "game-1", "session-1")
         finally:
             training_orchestrator.httpx.AsyncClient = original_client
 
@@ -467,15 +436,14 @@ class TrainingOrchestratorRobustnessTests(unittest.IsolatedAsyncioTestCase):
                 self.status_updates.append((batch_id, status, error_message))
 
         fake_db = FakeDB()
-        original_db = training_orchestrator.db
-        training_orchestrator.db = fake_db
-        training_orchestrator.active_training_sessions.clear()
-        try:
-            await training_orchestrator.reconcile_stalled_training_sessions(
-                stale_after_seconds=30,
-            )
-        finally:
-            training_orchestrator.db = original_db
+        runtime = training_orchestrator.TrainingRuntime(
+            database=fake_db,
+            game_factory=lambda **_kwargs: "unused",
+        )
+        await training_orchestrator.reconcile_stalled_training_sessions(
+            runtime,
+            stale_after_seconds=30,
+        )
 
         self.assertEqual(len(fake_db.status_updates), 1)
         self.assertEqual(fake_db.status_updates[0][0], "batch-1")
@@ -483,7 +451,7 @@ class TrainingOrchestratorRobustnessTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("not active", fake_db.status_updates[0][2])
 
     async def test_reconcile_stalled_training_sessions_marks_stale_active_attempt_failed(self):
-        training_orchestrator.active_training_sessions["session-1"] = {
+        self.runtime.sessions["session-1"] = {
             "ruleset": "default",
             "bot_count": 2,
             "generations_left": 1,
@@ -515,6 +483,7 @@ class TrainingOrchestratorRobustnessTests(unittest.IsolatedAsyncioTestCase):
         }
 
         await training_orchestrator.reconcile_stalled_training_sessions(
+            self.runtime,
             stale_after_seconds=600,
             attempt_stale_after_seconds=30,
         )
@@ -526,22 +495,22 @@ class TrainingOrchestratorRobustnessTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(failed_calls), 1)
         self.assertEqual(failed_calls[0][1][0:2], ("session-1", "game-1"))
         self.assertIn("stale", failed_calls[0][1][2])
-        self.assertNotIn("session-1", training_orchestrator.active_training_sessions)
+        self.assertNotIn("session-1", self.runtime.sessions)
 
     async def test_cancel_training_session_marks_batch_cancelled_and_removes_active_session(self):
-        training_orchestrator.active_training_sessions["session-1"] = {
+        self.runtime.sessions["session-1"] = {
             "generation_lock": asyncio.Lock(),
         }
 
         result = await training_orchestrator.cancel_training_session(
-            "session-1", reason="operator requested cancel")
+            self.runtime, "session-1", reason="operator requested cancel")
 
         status_calls = [
             call for call in self.db_calls
             if call[0] == "update_training_batch_status"
         ]
         self.assertTrue(result)
-        self.assertNotIn("session-1", training_orchestrator.active_training_sessions)
+        self.assertNotIn("session-1", self.runtime.sessions)
         self.assertEqual(status_calls[0][1], (
             "session-1",
             "cancelled",

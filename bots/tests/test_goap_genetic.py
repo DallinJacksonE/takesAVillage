@@ -1,6 +1,5 @@
 import os
 import sys
-import types
 import unittest
 
 BOTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -8,13 +7,6 @@ ROOT_DIR = os.path.abspath(os.path.join(BOTS_DIR, ".."))
 for path in (BOTS_DIR, ROOT_DIR):
     if path not in sys.path:
         sys.path.insert(0, path)
-
-httpx_stub = types.ModuleType("httpx")
-setattr(httpx_stub, "AsyncClient", object)
-websockets_stub = types.ModuleType("websockets")
-setattr(websockets_stub, "connect", None)
-sys.modules.setdefault("httpx", httpx_stub)
-sys.modules.setdefault("websockets", websockets_stub)
 
 from models.goap_genetic.GOAPGenetic import GOAPGenetic
 from models.goap_genetic.action_generator import ActionGenerator

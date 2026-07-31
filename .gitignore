@@ -9,6 +9,7 @@ bots/*.jsonl
 bots/*.json
 bots/logs/
 service/logs/
+logs/
 
 bots/bot_training_data.jsonl
 .hermes/

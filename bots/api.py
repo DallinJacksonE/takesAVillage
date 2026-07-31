@@ -1,5 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+import hmac
+import os
 from typing import Optional, Any
 from pathlib import Path
 import json
@@ -22,6 +24,11 @@ class SpawnBotsRequest(BaseModel):
 async def spawn_bots(payload: SpawnBotsRequest):
     api_logger.info(f"Received request to spawn "
                     f"{payload.botCount} bots for game {payload.gameId}")
+
+    expected_secret = os.environ.get("BOT_SECRET")
+    if (not expected_secret
+            or not hmac.compare_digest(payload.botSecret, expected_secret)):
+        raise HTTPException(status_code=403, detail="Invalid bot secret")
 
     if payload.botCount <= 0 or payload.botCount > 100:
         api_logger.handled_error(

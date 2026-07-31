@@ -559,7 +559,7 @@ scarcity_value(bundle) = sum_r amount_r * (base_weight_r + desperation_weight_r 
 
 ### 7.4 Current trade records need careful interpretation
 
-`service/resolvers/social.py` executes trades with capped boxes:
+`service/game/actions/contracts.py` executes trades with capped boxes:
 
 ```text
 actual_amt = min(requested_amt, current_inventory)
@@ -1220,7 +1220,7 @@ The best first code change is not to add new goals. It is to make resolved excha
 
 Start here:
 
-1. Fix or extend `service/resolvers/social.py` so `trade_history` records the actual capped transfer boxes.
+1. Fix or extend `service/game/actions/contracts.py` so `trade_history` records the actual capped transfer boxes.
 2. Add trade reason metadata to `TradeContract`.
 3. Add a pure exchange classifier with tests.
 4. Add `SocialMemory` and tests.

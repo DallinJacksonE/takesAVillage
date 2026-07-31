@@ -302,7 +302,7 @@ class SocialMemory:
 
         The service sends bots `me.actions`, `me.timeline`, and
         `me.trade_history` through `Player.to_dict()` in
-        `service/serializers/state_builder.py`. We prefer timeline
+        `service/game/serializers/state.py`. We prefer timeline
         `TRADE_RESOLVED` boxes for actual transfer amounts because those are
         the resolved, inventory-capped quantities. Contract records provide the
         promised bundles and counterparty ids.

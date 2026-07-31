@@ -1,14 +1,8 @@
-import os
-import sys
 import unittest
 
-SERVICE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if SERVICE_DIR not in sys.path:
-    sys.path.insert(0, SERVICE_DIR)
-
-from research_visualizations.command import VisualizationCommand
-from research_visualizations.registry import VisualizationRegistry
-from research_visualizations.runner import VisualizationRunner
+from service.research.visualizations.command import VisualizationCommand
+from service.research.visualizations.registry import VisualizationRegistry
+from service.research.visualizations.runner import VisualizationRunner
 
 
 class _FakeFigure:

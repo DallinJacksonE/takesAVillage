@@ -37,7 +37,8 @@ The survival phase. At the end of each day, players must:
 This project is composed of two main parts:
 
 - **Frontend**: A React application built with TypeScript that serves as the game client. It uses a Model-View-Presenter (MVP) architecture for a clean separation of concerns.
-- **Backend**: A Python server using Flask and Flask-SocketIO to manage game logic, real-time communication, and data persistence with a MySQL database.
+- **Backend**: A FastAPI service that manages game logic, WebSocket communication, and persistence through memory or MySQL providers.
+- **Bots**: A separate FastAPI service that launches autonomous players and training workloads.
 
 ## Getting Started
 
@@ -48,7 +49,10 @@ To run the project, you will need to set up both the frontend and the backend se
 
 ## Docker Deployment
 
-```
+```bash
+cp .env.example .env
+# Replace the placeholder BOT_SECRET with a long, random value shared only by
+# the backend and bot service.
 sudo docker compose up --build
 ```
 

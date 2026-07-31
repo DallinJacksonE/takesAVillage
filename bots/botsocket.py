@@ -78,7 +78,8 @@ class BotSocket:
 
             await self._send("join_room", {
                 "userId": self.user_id,
-                "gameId": self.game_id
+                "gameId": self.game_id,
+                "botSecret": self.bot_secret,
             })
 
             self._listen_task = asyncio.create_task(self._listen_loop())

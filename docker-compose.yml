@@ -34,10 +34,11 @@ services:
       DB_USER: village
       DB_PASSWORD: village_db
       DB_NAME: village_db
-      BOT_SECRET: default_dev_secret
+      BOT_SECRET: ${BOT_SECRET:?Set BOT_SECRET in the environment or .env file}
       BOT_SERVICE_URL: http://bots:8001
     volumes:
       - ./service:/app/service
+      - ./logs:/app/logs
     # If DB_TYPE=memory, it won't crash if the DB container isn't up, 
     # but depends_on is still good practice for when you switch back.
     depends_on:
@@ -56,7 +57,7 @@ services:
       # Use the docker-compose service name 'backend' to route traffic
       - GAME_SERVER_HTTP_URL=http://backend:5000
       - GAME_SERVER_WS_URL=ws://backend:5000/ws
-      - BOT_SECRET=default_dev_secret # Must match what the backend expects
+      - BOT_SECRET=${BOT_SECRET:?Set BOT_SECRET in the environment or .env file}
     volumes:
       - ./bots:/app/bots
     depends_on:

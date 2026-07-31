@@ -42,7 +42,7 @@ Training Orchestrator
 ## Key Components Modified
 
 ### Backend
-- **[service/training_orchestrator.py](service/training_orchestrator.py)**
+- **[service/research/training/orchestrator.py](service/research/training/orchestrator.py)**
   - `_random_genome_dict()` - Create random genome
   - `_mutate_genome()` - Gaussian mutation
   - `_crossover_genomes()` - Two-point crossover
@@ -50,7 +50,7 @@ Training Orchestrator
   - `handle_training_game_ended()` - Implement genetic algorithm loop
   - Full population-based evolution (not just single champion)
 
-- **[service/api.py](service/api.py)**
+- **[service/api/routers/research_training.py](service/api/routers/research_training.py)**
   - `/api/research/train` - POST endpoint to start training
 
 - **[bots/api.py](bots/api.py)**
@@ -178,7 +178,7 @@ User: Ruleset=default, Bots=8, Generations=10, BaseGenome="random"
 
 ## Next Steps
 
-- **Tune hyperparameters**: Adjust mutation_rate, mutation_strength in [service/training_orchestrator.py](service/training_orchestrator.py)
+- **Tune hyperparameters**: Adjust mutation rate and strength through `TrainingConfig` in [service/research/training/service.py](service/research/training/service.py).
 - **Enhance fitness**: Modify `calculate_fitness()` in [bots/models/genetic/fitness.py](bots/models/genetic/fitness.py)
 - **Parallel training**: Run multiple training sessions (each gets unique session_id)
 - **Visualization**: Add graphs in Research Dashboard showing fitness over generations

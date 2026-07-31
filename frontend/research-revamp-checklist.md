@@ -6,10 +6,10 @@ Current context observed in this repo:
 - Frontend research page is currently one large React view: `frontend/src/views/Research.tsx`.
 - Existing MVP boundary is partial: `frontend/src/presenters/ResearchPresenter.ts` loads games and owns the training-session WebSocket subscription; `frontend/src/service/ResearchService.ts` hides `/api/research/games` and `/ws/research/training-sessions`.
 - DTOs live in `dtos/index.ts`. Current research DTOs include `ResearchGameDTO` and `TrainingSessionDTO`.
-- Backend research endpoints are in `service/api.py`: `/api/research/games`, `/api/research/genomes`, `/api/research/train`, `/api/research/training-sessions`, and `/ws/research/training-sessions`.
-- Current MySQL tables are created in `service/db.py`. Stored complete games live in `games`; phase history lives in `game_history`, `work_phase_snapshots`, `trade_phase_snapshots`, and `night_phase_snapshots`.
-- `service/training_orchestrator.py` already tracks active sessions in memory and stores generation fitness statistics in `generation_statistics`, but completed training sessions/batches are not persisted as first-class records.
-- `service/db.py` has a `store_visualization()` method stub for MySQL and an in-memory implementation, but there is no persisted visualization table or serving endpoint yet.
+- Backend research endpoints are grouped under `service/api/routers/research_*.py`; the training WebSocket lives in `service/api/websocket/training_router.py`.
+- MySQL persistence lives under `service/db/mysql/`. Stored complete games live in `games`; phase history lives in `game_history`, `work_phase_snapshots`, `trade_phase_snapshots`, and `night_phase_snapshots`.
+- `service/research/training/` tracks active sessions and persists training batches and generation statistics.
+- `service/research/visualizations/` renders visualizations and stores their metadata and image bytes through the database contract.
 
 Guiding decisions to keep unless we explicitly revisit them:
 - Use first-class training batch metadata in SQL instead of encoding only a batch number in `game_id`. Game IDs may still include a human-readable prefix/suffix for debugging, but DB columns should be the source of truth.
@@ -31,25 +31,25 @@ Open questions / decisions to clarify:
 ## Phase 1: Data model and API contracts
 
 - [x] Add durable training batch identity.
-  - Backend likely files: `service/db.py`, `service/training_orchestrator.py`, `service/game_manager.py`.
+  - Backend likely files: `service/db/`, `service/research/training/orchestrator.py`, `service/game_manager/`.
   - Add a `training_batches` table with at least: `batch_id`, `status`, `ruleset`, `bot_model`, `bot_count`, `total_generations`, `current_generation`, `current_game_id`, `started_at`, `completed_at`, `base_genome_id`, `final_champion_genome_id`, and JSON config for mutation/selection settings.
   - Add `training_batch_id` / `training_generation` columns to the durable game record so training games can be grouped without parsing `game_id`.
   - Keep `game_id` stable and unique; optional readable form can be `train_<batchShort>_g<generation>_<uuidShort>` if we still want visual traceability.
 
 - [x] Update DB provider contract and both providers.
-  - Backend file: `service/db.py`.
+  - Backend file: `service/db/`.
   - Extend `DatabaseProvider` with methods such as `create_training_batch`, `mark_training_batch_game_started`, `append_training_batch_generation_stats`, `complete_training_batch`, `get_training_batches`, and `get_training_batch(batch_id)`.
   - Implement both `InMemoryDB` and `MySQLDB` versions so dev mode stays usable.
 
 - [x] Persist active and completed training-loop progress.
-  - Backend files: `service/training_orchestrator.py`, `service/training_session_presenter.py`, `service/training_updates.py`.
+  - Backend files: `service/research/training/orchestrator.py`, `service/research/training/presenter.py`, `service/research/training/updates.py`.
   - When `start_training_session()` creates `session_id`, also create/persist a training batch.
   - When `_trigger_next_generation()` creates a game, attach the batch id/generation to the game record.
   - When `handle_training_game_ended()` computes `generation_statistics`, append those stats to the training batch.
   - When the loop finishes, mark the batch complete and keep it queryable after it leaves `active_training_sessions`.
 
 - [x] Add list/detail API endpoints for games and batches.
-  - Backend file: `service/api.py`.
+  - Backend files: `service/api/routers/research_games.py` and `service/api/routers/research_training.py`.
   - Replace or extend `/api/research/games` so the list supports search/sort inputs and returns compact rows, not full parsed game payloads for every row.
   - Add `/api/research/games/{game_id}` for full game details, parsed game data, and visualization metadata.
   - Add `/api/research/training-batches` for compact batch rows, including in-progress status.
@@ -80,7 +80,7 @@ Open questions / decisions to clarify:
   - Add a runner that takes a context plus a registry of commands and stores all generated outputs through the DB/storage layer.
 
 - [x] Implement durable visualization storage.
-  - Backend file: `service/db.py`.
+  - Backend file: `service/db/`.
   - Add a `research_visualizations` table with at least: `id`, `scope_type` (`game` or `training_batch`), `scope_id`, `name`, `title`, `mime_type`, `image_bytes` or `storage_path`, `created_at`, and optional JSON metadata.
   - Finish `MySQLDB.store_visualization()` or replace it with explicit `store_research_visualization()` / `get_research_visualizations()` methods.
   - Add a serving endpoint such as `/api/research/visualizations/{visualization_id}` that returns the image with the correct content type.
@@ -101,7 +101,7 @@ Open questions / decisions to clarify:
 
 - [x] Build training batch visualization commands.
   - Champion fitness and average fitness over games/generations on the same chart.
-    - Inputs: persisted `generation_statistics`; current code already provides `best_fitness`, but average fitness may need to be added to `service/training_population.py` because it currently stores best/median/worst, survival, resources, developments, illegal actions, and gene diversity.
+    - Inputs: persisted `generation_statistics`; population statistics are built in `service/research/training/population.py`.
   - Trading and contesting per game.
     - Inputs: linked game ids in the batch plus game-level trade/contest counts.
     - Output: two-series line/bar chart per generation/game.

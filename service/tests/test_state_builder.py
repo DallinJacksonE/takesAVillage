@@ -1,15 +1,7 @@
-import os
-import sys
 import types
 import unittest
 
-SERVICE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-ROOT_DIR = os.path.abspath(os.path.join(SERVICE_DIR, ".."))
-for path in (SERVICE_DIR, ROOT_DIR):
-    if path not in sys.path:
-        sys.path.insert(0, path)
-
-from serializers.state_builder import build_player_state
+from service.game.serializers.state import build_player_state
 
 
 class _Player:

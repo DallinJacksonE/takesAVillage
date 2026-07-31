@@ -1,46 +1,10 @@
-import importlib
 import os
-import sys
-import types
 import unittest
 
+from service import db as research_db
+
+
 SERVICE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if SERVICE_DIR not in sys.path:
-    sys.path.insert(0, SERVICE_DIR)
-
-mysql_stub = types.ModuleType("mysql")
-connector_stub = types.ModuleType("mysql.connector")
-setattr(connector_stub, "Error", Exception)
-setattr(connector_stub, "errorcode", types.SimpleNamespace())
-setattr(connector_stub, "connect", lambda **_kwargs: None)
-setattr(mysql_stub, "connector", connector_stub)
-sys.modules["mysql"] = mysql_stub
-sys.modules["mysql.connector"] = connector_stub
-
-logger_stub = types.ModuleType("logger")
-
-class _Logger:
-    def __init__(self, *_args, **_kwargs):
-        pass
-
-    def info(self, *_args, **_kwargs):
-        pass
-
-    def warning(self, *_args, **_kwargs):
-        pass
-
-    def error(self, *_args, **_kwargs):
-        pass
-
-setattr(logger_stub, "BackendLogger", _Logger)
-sys.modules["logger"] = logger_stub
-
-snapshots_stub = types.ModuleType("serializers.snapshots")
-setattr(snapshots_stub, "_safe_serialize", lambda value: value)
-sys.modules["serializers.snapshots"] = snapshots_stub
-
-sys.modules.pop("db", None)
-research_db = importlib.import_module("db")
 
 
 class ResearchPersistenceTests(unittest.TestCase):
@@ -270,7 +234,9 @@ class ResearchPersistenceTests(unittest.TestCase):
         self.assertIn("CREATE TABLE IF NOT EXISTS `research_visualizations`", schema)
 
     def test_mysql_training_games_query_selects_contest_and_lie_counts_separately(self):
-        source_path = os.path.join(SERVICE_DIR, "db.py")
+        source_path = os.path.join(
+            SERVICE_DIR, "db", "mysql", "games.py"
+        )
         with open(source_path, "r", encoding="utf-8") as source_file:
             source = source_file.read()
 

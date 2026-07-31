@@ -15,13 +15,8 @@ fi
 # 2. Activate
 source "$VENV_DIR/bin/activate"
 
-# 3. Install Flask using the venv's pip specifically
+# 3. Install the reproducible dependency manifest from the repository root.
 echo "Installing dependencies..."
 pip install --upgrade pip
-pip install flask
-pip install flask-socketio
-pip install eventlet
-pip install mysql-connector-python
-pip install matplotlib
-pip install uuid
+pip install -r ../requirements-dev.txt
 echo "Setup complete!"

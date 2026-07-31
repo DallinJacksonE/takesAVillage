@@ -1,10 +1,10 @@
 FROM python:3.10-slim
-WORKDIR /app/service
+WORKDIR /app
 
-# Added 'uvicorn' to the end of the installation list
-RUN pip install --no-cache-dir fastapi mysql-connector-python matplotlib uvicorn websockets httpx pytest
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the backend source
-COPY service/ .
+# Copy the backend package
+COPY service/ service/
 EXPOSE 5000
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]
+CMD ["uvicorn", "service.main:app", "--host", "0.0.0.0", "--port", "5000"]
