@@ -1,5 +1,5 @@
 import { useGameState } from "./useGameState";
-import { DevelopmentDTO } from "../../dtos/index";
+import { DevelopmentDTO } from "@takes-a-village/shared";
 
 export const usePlayerDevelopments = (playerId: string | undefined): DevelopmentDTO[] => {
   const gameState = useGameState();

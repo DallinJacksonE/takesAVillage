@@ -9,7 +9,9 @@ from bot_multiprocessing import (
     training_data_queue,
     active_bot_processes
 )
+from config import get_bot_config
 
+get_bot_config()
 main_logger = Logger("MAIN_SERVER")
 
 

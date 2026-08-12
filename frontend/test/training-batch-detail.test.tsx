@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { TrainingBatchDetail } from "../src/components/research/TrainingBatchDetail";
-import { TrainingBatchDetailDTO } from "../src/dtos";
+import { TrainingBatchDetailDTO } from "@takes-a-village/shared";
 
 const batch: TrainingBatchDetailDTO = {
   batch_id: "batch-1",

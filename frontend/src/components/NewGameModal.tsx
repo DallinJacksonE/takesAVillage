@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { GenomeDTO } from "../dtos";
+import { GenomeDTO, genomesResponseSchema } from "@takes-a-village/shared";
 
 import styles from "./NewGameModal.module.css";
 export interface GameSetupOptions {
@@ -66,7 +66,7 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
           throw new Error(`Genome request failed: ${genomeRes.status}`);
         }
 
-        const genomeData = await genomeRes.json();
+        const genomeData = genomesResponseSchema.parse(await genomeRes.json());
 
         console.log(`[NewGameModal] Loaded ${genomeData.genomes?.length || 0} genomes and ${genomeData.models?.length || 0} models`);
 

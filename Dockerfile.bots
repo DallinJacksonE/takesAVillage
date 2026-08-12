@@ -2,16 +2,11 @@ FROM python:3.10-slim
 
 WORKDIR /app/bots
 
-# Standardize dependencies
-RUN pip install --no-cache-dir \
-    websockets \
-    httpx \
-    fastapi \
-    uvicorn \
-    pydantic \
-    pytest
+COPY bots/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY bots/ .
+ENV SERVICE_CONFIG_PATH=/app/config/service.json
 EXPOSE 8001
 # Start the FastAPI server on port 8001
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]

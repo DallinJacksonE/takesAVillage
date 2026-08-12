@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useEffect, useRef } from "react";
-import { MapTileDTO, DevelopmentCostsDict } from "../../dtos/index";
+import { MapTileDTO, DevelopmentCostsDict } from "@takes-a-village/shared";
 import { usePlayerName } from "../hooks/usePlayerName";
 import PlayerInfo from "./playerInfo/PlayerInfo";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -13,7 +13,7 @@ import {
 import { usePlayerColors } from "../hooks/usePlayerColor";
 import styles from "./VillageMap.module.css";
 interface Props {
-  mapData: MapTileDTO[];
+  mapData: Record<string, MapTileDTO>;
   onBuild: (tileId: string) => void;
   playerId: string;
   development_costs: DevelopmentCostsDict;
@@ -230,7 +230,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
                 </div>
                 <button
                   className={`btn-tooltip success ${styles.field8}`}
-                  
+
                   onClick={() => {
                     onBuild(selectedTile.id);
                     setSelectedTile(null);

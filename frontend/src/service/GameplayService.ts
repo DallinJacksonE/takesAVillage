@@ -1,8 +1,10 @@
 import {
-  GameStateDTO,
-  GameActionPayload,
-  ChatMessageDTO
-} from "../dtos";
+  inboundGameEventSchema,
+  outboundGameEventSchema,
+  type GameStateDTO,
+  type GameActionPayload,
+  type ChatMessageDTO,
+} from "@takes-a-village/shared";
 
 export type ConnectionState = "CONNECTING" | "CONNECTED" | "DISCONNECTED" | "RECONNECTING";
 
@@ -99,7 +101,13 @@ export class GameplayService {
     };
 
     this.socket.onmessage = (event) => {
-      const payload = JSON.parse(event.data);
+      let payload;
+      try {
+        payload = outboundGameEventSchema.parse(JSON.parse(event.data));
+      } catch {
+        this._onError?.("Invalid server message");
+        return;
+      }
       switch (payload.event) {
         case "room_update":
           this._onPlayerCount?.(payload.data.player_count);
@@ -119,8 +127,6 @@ export class GameplayService {
         case "error":
           this._onError?.(payload.data.message);
           break;
-        default:
-          console.warn("Unknown WS event:", payload.event);
       }
     };
 
@@ -147,8 +153,8 @@ export class GameplayService {
   public setOnGameStarted(callback: () => void) { this._onGameStarted = callback; }
   public setOnError(callback: (message: string) => void) { this._onError = callback; }
 
-  private emit(eventName: string, data: any) {
-    const payload = JSON.stringify({ event: eventName, data: data });
+  private emit(eventName: string, data: unknown) {
+    const payload = JSON.stringify(inboundGameEventSchema.parse({ event: eventName, data }));
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(payload);
     }
@@ -159,7 +165,7 @@ export class GameplayService {
   public createChat(gameId: string, userId: string, name: string, memberIds: string[]) { this.emit("create_chat", { gameId, userId, name, memberIds }); }
   public requestUpdate(gameId: string, userId: string) { this.emit("request_update", { gameId, userId }); }
   public sendChat(gameId: string, userId: string, content: string, toId: string) { this.emit("send_chat", { gameId, userId, content, to_id: toId }); }
-  public submitAction(payload: GameActionPayload) { this.emit("submit_action", payload); }
+  public submitAction<T>(payload: GameActionPayload<T>) { this.emit("submit_action", payload); }
 
   public destroy() {
     this.isIntentionalDisconnect = true;

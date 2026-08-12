@@ -1,11 +1,22 @@
 import {
-	NewGameOptionsDTO,
-	ResearchGameDetailDTO,
-	ResearchGameListItemDTO,
-	TrainingBatchDetailDTO,
-	TrainingBatchListItemDTO,
-	TrainingSessionsDTO,
-} from "../dtos";
+	genomesResponseSchema,
+	httpContractSchemas,
+	messageResponseSchema,
+	newGameOptionsSchema,
+	researchGameDetailSchema,
+	researchGameListItemSchema,
+	trainingBatchDetailSchema,
+	trainingRequestSchema,
+	trainingSessionsEventSchema,
+	type GenomeDTO,
+	type NewGameOptionsDTO,
+	type ResearchGameDetailDTO,
+	type ResearchGameListItemDTO,
+	type TrainingBatchDetailDTO,
+	type TrainingBatchListItemDTO,
+	type TrainingRequest,
+	type TrainingSessionsDTO,
+} from "@takes-a-village/shared";
 
 export type ResearchSortMode = "time_desc" | "name_asc" | "name_desc";
 export type TrainingSessionsHandler = (sessions: TrainingSessionsDTO) => void;
@@ -25,45 +36,45 @@ export class ResearchService {
 			params.set("search", searchQuery.trim());
 		}
 		params.set("sort", sortMode);
-		return this.fetchJson<ResearchGameListItemDTO[]>(
+		return researchGameListItemSchema.array().parse(await this.fetchJson(
 			`/api/research/games?${params.toString()}`,
 			"Failed to fetch research games",
-		);
+		));
 	}
 
 	static async fetchGameDetail(gameId: string): Promise<ResearchGameDetailDTO> {
-		return this.fetchJson<ResearchGameDetailDTO>(
+		return researchGameDetailSchema.parse(await this.fetchJson(
 			`/api/research/games/${encodeURIComponent(gameId)}`,
 			"Failed to fetch game detail",
-		);
+		));
 	}
 
 	static async fetchTrainingBatchList(): Promise<TrainingBatchListItemDTO[]> {
-		const payload = await this.fetchJson<{ batches: TrainingBatchListItemDTO[] }>(
+		const payload = httpContractSchemas.trainingBatches.parse(await this.fetchJson(
 			"/api/research/training-batches",
 			"Failed to fetch training batches",
-		);
+		));
 		return payload.batches ?? [];
 	}
 
 	static async fetchTrainingBatchDetail(batchId: string): Promise<TrainingBatchDetailDTO> {
-		return this.fetchJson<TrainingBatchDetailDTO>(
+		return trainingBatchDetailSchema.parse(await this.fetchJson(
 			`/api/research/training-batches/${encodeURIComponent(batchId)}`,
 			"Failed to fetch training batch detail",
-		);
+		));
 	}
 
 	static async fetchTrainingOptions(): Promise<{
 		gameOptions: NewGameOptionsDTO["options"];
-		genomes: any[];
+		genomes: GenomeDTO[];
 		models: string[];
 	}> {
 		const [rulesData, genomeData] = await Promise.all([
-			this.fetchJson<NewGameOptionsDTO>("/api/newGame", "Failed to fetch rulesets"),
-			this.fetchJson<{ genomes: any[]; models?: string[] }>(
+			this.fetchJson("/api/newGame", "Failed to fetch rulesets").then((value) => newGameOptionsSchema.parse(value)),
+			this.fetchJson(
 				"/api/research/genomes",
 				"Failed to fetch genomes",
-			),
+			).then((value) => genomesResponseSchema.parse(value)),
 		]);
 		return {
 			gameOptions: rulesData.options || {},
@@ -72,20 +83,21 @@ export class ResearchService {
 		};
 	}
 
-	static async startTrainingLoop(options: Record<string, any>): Promise<void> {
-		await this.fetchJson<{ message: string }>(
+	static async startTrainingLoop(options: TrainingRequest): Promise<void> {
+		const request = trainingRequestSchema.parse(options);
+		messageResponseSchema.parse(await this.fetchJson(
 			"/api/research/train",
 			"Failed to start training loop",
 			{
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(options),
+				body: JSON.stringify(request),
 			},
-		);
+		));
 	}
 
 	static async cancelTrainingBatch(batchId: string, reason?: string): Promise<void> {
-		await this.fetchJson<{ message: string }>(
+		messageResponseSchema.parse(await this.fetchJson(
 			`/api/research/training-batches/${encodeURIComponent(batchId)}/cancel`,
 			"Failed to cancel training batch",
 			{
@@ -93,15 +105,15 @@ export class ResearchService {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ reason }),
 			},
-		);
+		));
 	}
 
 	static async rerunTrainingBatch(batchId: string): Promise<void> {
-		await this.fetchJson<{ message: string }>(
+		messageResponseSchema.parse(await this.fetchJson(
 			`/api/research/training-batches/${encodeURIComponent(batchId)}/rerun`,
 			"Failed to rerun training batch",
 			{ method: "POST" },
-		);
+		));
 	}
 
 	static subscribeToTrainingSessions(
@@ -111,9 +123,11 @@ export class ResearchService {
 		const socket = new WebSocket(this.trainingSessionsWebSocketUrl());
 
 		socket.onmessage = (event) => {
-			const message = JSON.parse(event.data);
-			if (message.event === "training_sessions") {
-				onUpdate(message.data as TrainingSessionsDTO);
+			try {
+				const message = trainingSessionsEventSchema.parse(JSON.parse(event.data));
+				onUpdate(message.data);
+			} catch {
+				onError?.(new Event("error"));
 			}
 		};
 
@@ -126,11 +140,11 @@ export class ResearchService {
 		};
 	}
 
-	private static async fetchJson<T>(
+	private static async fetchJson(
 		url: string,
 		errorMessage: string,
 		init?: RequestInit,
-	): Promise<T> {
+	): Promise<unknown> {
 		const response = init ? await fetch(url, init) : await fetch(url);
 		if (!response.ok) {
 			throw new Error(`${errorMessage}: ${response.status} ${response.statusText}`);

@@ -1,6 +1,6 @@
 import React from "react";
 import { usePlayers } from "../../hooks/usePlayerName";
-import { DevelopmentDTO } from "../../../dtos/index";
+import { DevelopmentDTO } from "@takes-a-village/shared";
 import { useGameState } from "../../hooks/useGameState";
 
 import styles from "./PlayerDevelopmentsInfo.module.css";

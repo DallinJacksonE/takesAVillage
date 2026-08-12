@@ -15,6 +15,31 @@ CREATE TABLE IF NOT EXISTS `users` (
                 INDEX(`day_num`),
                 INDEX(`phase`)
             );
+            CREATE TABLE IF NOT EXISTS `player_snapshots` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `game_id` VARCHAR(64) NOT NULL,
+                `day_num` INT NOT NULL,
+                `phase` VARCHAR(32) NOT NULL,
+                `player_id` VARCHAR(64) NOT NULL,
+                `name` VARCHAR(32) NOT NULL,
+                `health` VARCHAR(16) NOT NULL,
+                `sickness_chance` FLOAT NOT NULL,
+                `resources` JSON NOT NULL,
+                `fire_status` VARCHAR(16) NOT NULL,
+                `fire_guests` JSON NOT NULL,
+                `developments` JSON NOT NULL,
+                `actions` JSON NOT NULL,
+                `committed_action` JSON,
+                `available_work` JSON NOT NULL,
+                `finished_phase` BOOLEAN NOT NULL,
+                `timeline` JSON NOT NULL,
+                `trade_history` JSON NOT NULL,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX(`game_id`),
+                INDEX(`player_id`),
+                INDEX(`day_num`),
+                INDEX(`phase`)
+            );
             CREATE TABLE IF NOT EXISTS `work_phase_snapshots` (
                 `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
                 `game_id` VARCHAR(64) NOT NULL,

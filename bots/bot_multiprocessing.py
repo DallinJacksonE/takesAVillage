@@ -9,7 +9,8 @@ from fitness import calculate_fitness_report
 from botsocket import BotSocket
 from training_seeder import seed_genomes
 import multiprocessing
-from logger import Logger  # <-- Import the Logger
+from logger import Logger
+from config import get_bot_config  # <-- Import the Logger
 
 active_bot_processes = []
 training_data_queue = multiprocessing.Queue()
@@ -132,14 +133,13 @@ def run_bot_process(game_id: str,
         submission_gate = ActionSubmissionGate()
 
         # Pass the logger into the socket client
+        bot_config = get_bot_config()
         socket = BotSocket(
             game_id=game_id,
             bot_secret=bot_secret,
             logger=bot_logger,  # <-- Inject here
-            http_url=os.environ.get(
-                "GAME_SERVER_HTTP_URL", "http://localhost:5000"),
-            ws_url=os.environ.get("GAME_SERVER_WS_URL",
-                                  "ws://localhost:5000/ws")
+            http_url=bot_config["gameServerHttpUrl"],
+            ws_url=bot_config["gameServerWsUrl"]
         )
 
         async def on_game_state(state):

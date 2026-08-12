@@ -5,7 +5,7 @@ import {
 	TrainingBatchDetailDTO,
 	TrainingBatchListItemDTO,
 	TrainingSessionDTO,
-} from "../dtos";
+} from "@takes-a-village/shared";
 import { Presenter } from "./Presenter";
 import { View } from "./View";
 

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { GameStateDTO, TradeActionDTO, Resource, ResourceBundle } from "../../../dtos/index";
+import { GameStateDTO, TradeActionDTO, Resource, ResourceBundle } from "@takes-a-village/shared";
 import { usePlayerName } from "../../hooks/usePlayerName";
 import TradeCard, { renderItems } from "../trading/TradeCard";
 import ShippingWindow from "../trading/ShippingWindow";

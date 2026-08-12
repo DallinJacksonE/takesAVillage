@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ChatDTO, ChatMessageDTO, PlayerDTO } from "../../../dtos/index";
+import { ChatDTO, ChatMessageDTO, PlayerDTO } from "@takes-a-village/shared";
 import { usePlayerName } from "../../hooks/usePlayerName";
 import ActiveChat from "./ActiveChat";
 import ChatTabsRail from "./ChatTabsRail";

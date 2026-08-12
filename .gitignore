@@ -1,9 +1,13 @@
 node_modules/
+dist/
+*.tsbuildinfo
+.env
+.env.*
 venv/
 .venv/
 __pycache__/
 *.pyc
-config.json
+service/config.json
 frontend/vite.config.ts
 bots/*.jsonl
 bots/*.json

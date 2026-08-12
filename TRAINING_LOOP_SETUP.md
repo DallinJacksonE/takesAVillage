@@ -19,7 +19,7 @@ The full training pipeline is now operational from the Research view. Here's how
 Research View (Frontend)
     ↓ POST /api/research/train
 Service API (/api/research/train)
-    ↓ asyncio.create_task()
+    ↓ injected background scheduler
 Training Orchestrator
     ├─ Generate initial population (seed or mutate base genome)
     ├─ Create headless game via create_game()
@@ -42,15 +42,13 @@ Training Orchestrator
 ## Key Components Modified
 
 ### Backend
-- **[service/research/training/orchestrator.py](service/research/training/orchestrator.py)**
-  - `_random_genome_dict()` - Create random genome
-  - `_mutate_genome()` - Gaussian mutation
-  - `_crossover_genomes()` - Two-point crossover
-  - `start_training_session()` - Initialize population, track session
-  - `handle_training_game_ended()` - Implement genetic algorithm loop
-  - Full population-based evolution (not just single champion)
+- **[service/src/research/training/orchestrator.ts](service/src/research/training/orchestrator.ts)**
+  - `start()` initializes the population and persisted session.
+  - Generation scheduling creates the configured number of games and bot spawns.
+  - Completion aggregates fitness, evolves the population, and schedules the next generation.
+  - Cancellation, reruns, heartbeats, and stale-session reconciliation remain service-owned.
 
-- **[service/api/routers/research_training.py](service/api/routers/research_training.py)**
+- **[service/src/app.ts](service/src/app.ts)**
   - `/api/research/train` - POST endpoint to start training
 
 - **[bots/api.py](bots/api.py)**
@@ -148,8 +146,8 @@ User: Ruleset=default, Bots=8, Generations=10, BaseGenome="random"
 ## Monitoring
 
 ### Live Logs
-- Docker: `docker logs -f takesavillage_service_1`
-- Bots: `docker logs -f takesavillage_bots_1`
+- Service: `node docker/compose.mjs development logs -f backend`
+- Bots: `node docker/compose.mjs development logs -f bots`
 
 ### View Results
 - Research Dashboard → Game Logs tab shows all training games
@@ -164,7 +162,7 @@ User: Ruleset=default, Bots=8, Generations=10, BaseGenome="random"
 ### Training doesn't start
 - Check service logs for "Received request for training loop"
 - Verify `/api/research/train` endpoint is hit
-- Ensure bot service is running (`docker logs takesavillage_bots_1`)
+- Ensure the bot service is healthy (`node docker/compose.mjs development ps`)
 
 ### No genomes returned in modal
 - Run one complete training session first to generate champions
@@ -178,7 +176,7 @@ User: Ruleset=default, Bots=8, Generations=10, BaseGenome="random"
 
 ## Next Steps
 
-- **Tune hyperparameters**: Adjust mutation rate and strength through `TrainingConfig` in [service/research/training/service.py](service/research/training/service.py).
+- **Tune hyperparameters**: Adjust mutation rate and strength through `TrainingConfig` in [service/src/research/training/config.ts](service/src/research/training/config.ts).
 - **Enhance fitness**: Modify `calculate_fitness()` in [bots/models/genetic/fitness.py](bots/models/genetic/fitness.py)
 - **Parallel training**: Run multiple training sessions (each gets unique session_id)
 - **Visualization**: Add graphs in Research Dashboard showing fitness over generations

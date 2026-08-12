@@ -34,10 +34,12 @@ The survival phase. At the end of each day, players must:
 
 ## Technical Overview
 
-This project is composed of two main parts:
+This project is an npm workspace with three TypeScript packages plus a separate
+Python bot service:
 
 - **Frontend**: A React application built with TypeScript that serves as the game client. It uses a Model-View-Presenter (MVP) architecture for a clean separation of concerns.
-- **Backend**: A FastAPI service that manages game logic, WebSocket communication, and persistence through memory or MySQL providers.
+- **Shared**: Zod runtime schemas and inferred TypeScript types for every HTTP, WebSocket, game, research, bot, and configuration boundary.
+- **Backend**: A Fastify TypeScript service that manages game logic, WebSocket communication, training orchestration, and memory/MySQL persistence.
 - **Bots**: A separate FastAPI service that launches autonomous players and training workloads.
 
 ## Getting Started
@@ -50,10 +52,30 @@ To run the project, you will need to set up both the frontend and the backend se
 ## Docker Deployment
 
 ```bash
-cp .env.example .env
-# Replace the placeholder BOT_SECRET with a long, random value shared only by
-# the backend and bot service.
-sudo docker compose up --build
+cp service/config.example.json service/config.json
+chmod 600 service/config.json
+# Replace every placeholder. This ignored file contains database credentials,
+# the bot shared secret, and internal container URLs.
+node docker/compose.mjs development up --build -d
+```
+
+Use `production` instead of `development` for the committed production host-port
+profile. `frontend/config.json` is public browser configuration and must never
+contain credentials. Stop a profile with:
+
+```bash
+node docker/compose.mjs development down
+```
+
+## Workspace Development
+
+```bash
+npm ci
+npm run test
+npm run typecheck
+npm run lint
+npm run build
+python3 -m pytest bots/tests -q
 ```
 
 ## Development

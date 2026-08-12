@@ -1,0 +1,16 @@
+{
+  "database": {
+    "type": "memory",
+    "host": "db",
+    "port": 3306,
+    "user": "test",
+    "password": "test",
+    "name": "test"
+  },
+  "bots": {
+    "secret": "characterization-secret",
+    "httpUrl": "http://127.0.0.1:18001",
+    "gameServerHttpUrl": "http://127.0.0.1:15000",
+    "gameServerWsUrl": "ws://127.0.0.1:15000/ws"
+  }
+}

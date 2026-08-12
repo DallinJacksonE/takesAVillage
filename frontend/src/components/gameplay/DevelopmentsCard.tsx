@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { EmploymentActionDTO, Resource } from "../../dtos/index";
+import { EmploymentActionDTO, Resource } from "@takes-a-village/shared";
 import { usePlayerName } from "../hooks/usePlayerName";
 import { usePlayerColors } from "../hooks/usePlayerColor";
 import { useGameState } from "../hooks/useGameState";
@@ -147,7 +147,7 @@ const DevelopmentsCard: React.FC<Props> = ({
                       {dev.is_contested ? (
                         <button
                           className={`btn danger ${styles.field4}`}
-                          
+
                           onClick={() => onContest(dev.id, "OWNER")}
                         >
                           Defend Property
@@ -158,7 +158,7 @@ const DevelopmentsCard: React.FC<Props> = ({
                           <InfoTooltip infoText={maintenanceInfoText}>
                             <button
                               className={`btn-tooltip ${styles.field5}`}
-                              
+
                               onClick={() => onMaintain(dev.id)}
                             >
                               Maintenance: {
@@ -205,7 +205,7 @@ const DevelopmentsCard: React.FC<Props> = ({
                         <strong className={styles.field7}>⚔️ Your Property is Under Contest</strong>
 
                         <span>
-                          Initiator: {getPlayerName(dev.contest_initiator_id)}
+                          Initiator: {getPlayerName(dev.contest_initiator_id ?? undefined)}
                         </span>
 
                         <span>
@@ -315,7 +315,7 @@ const DevelopmentsCard: React.FC<Props> = ({
 
                         <button
                           className={`btn-tooltip success ${styles.field19}`}
-                          
+
                           onClick={() =>
                             onApplyForJob(
                               dev.owner_id,
@@ -339,7 +339,7 @@ const DevelopmentsCard: React.FC<Props> = ({
                         <InfoTooltip infoText={contestInfoText} >
                           <button
                             className={`btn-tooltip danger ${styles.field21}`}
-                            
+
                             onClick={() => onContest(dev.id, "INITIATOR")}
                           >
                             Contest Ownership
@@ -355,7 +355,7 @@ const DevelopmentsCard: React.FC<Props> = ({
                           <InfoTooltip infoText={"Spend work phase supporting attackers"}>
                             <button
                               className={`btn-tooltip warning ${styles.field22}`}
-                              
+
                               onClick={() => onContest(dev.id, "CONTESTER")}
                             >
                               Support Contesters
@@ -366,7 +366,7 @@ const DevelopmentsCard: React.FC<Props> = ({
                           <InfoTooltip infoText={"Spend work phase supporting the owner"}>
                             <button
                               className={`btn-tooltip success ${styles.field23}`}
-                              
+
                               onClick={() => onContest(dev.id, "OWNER")}
                             >
                               Support Owner
@@ -380,7 +380,7 @@ const DevelopmentsCard: React.FC<Props> = ({
                           className={styles.field24}
                         >
                           <span>
-                            ⚔️ Initiator: {getPlayerName(dev.contest_initiator_id)}
+                            ⚔️ Initiator: {getPlayerName(dev.contest_initiator_id ?? undefined)}
                           </span>
 
                           <span>

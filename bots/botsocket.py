@@ -138,7 +138,12 @@ class BotSocket:
 
     async def _send(self, event: str, payload: dict):
         if self.websocket:
-            packet = json.dumps({"event": event, "data": payload})
+            data = {
+                "gameId": self.game_id,
+                "userId": self.user_id,
+                **payload,
+            }
+            packet = json.dumps({"event": event, "data": data})
             try:
                 await self.websocket.send(packet)
             except Exception as e:

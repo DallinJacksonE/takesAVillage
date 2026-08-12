@@ -1,19 +1,20 @@
 import {
-  ActiveGamesDTO,
-  ConsentDTO,
-  JoinGameDTO,
-  NewGameDTO,
-  NewGameOptionsDTO
-} from "../dtos";
+  activeGamesSchema,
+  consentSchema,
+  newGameOptionsSchema,
+  newGameResponseSchema,
+  type ActiveGamesDTO,
+  type ConsentDTO,
+  type JoinGameDTO,
+  type NewGameDTO,
+  type NewGameOptionsDTO,
+} from "@takes-a-village/shared";
 
 export class UserService {
   async consent(): Promise<ConsentDTO | null> {
     try {
       const response = await fetch("/api/consent", { method: "POST" });
-      if (response.ok) {
-        return await response.json();
-      }
-      return null;
+      return response.ok ? consentSchema.parse(await response.json()) : null;
     } catch (error) {
       console.error("Error sending consent:", error);
       return null;
@@ -23,12 +24,7 @@ export class UserService {
   async getActiveGames(): Promise<ActiveGamesDTO> {
     try {
       const response = await fetch("/api/activeGames");
-      if (response.ok) {
-        const obj = await response.json();
-        //console.log(obj);
-        return obj;
-      }
-      return { games: [] };
+      return response.ok ? activeGamesSchema.parse(await response.json()) : { games: [] };
     } catch (error) {
       console.error("Error fetching active games:", error);
       return { games: [] };
@@ -38,31 +34,17 @@ export class UserService {
   async newGame(
     ruleset: string,
     botCount: number,
-    botGenome: string = "random",
-    botModel: string
+    botGenome = "random",
+    botModel: string,
   ): Promise<NewGameDTO | null> {
     try {
-      console.log(
-        "Creating game:",
-        { ruleset, botCount, botGenome }
-      );
-
+      console.log("Creating game:", { ruleset, botCount, botGenome });
       const response = await fetch("/api/newGame", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ruleset,
-          botCount,
-          botGenome,
-          botModel
-        })
+        body: JSON.stringify({ ruleset, botCount, botGenome, botModel }),
       });
-
-      if (response.ok) {
-        return await response.json();
-      }
-
-      return null;
+      return response.ok ? newGameResponseSchema.parse(await response.json()) : null;
     } catch (error) {
       console.error("Error starting game:", error);
       return null;
@@ -72,10 +54,7 @@ export class UserService {
   async newGameOptions(): Promise<NewGameOptionsDTO | null> {
     try {
       const response = await fetch("/api/newGame", { method: "GET" });
-      if (response.ok) {
-        return await response.json();
-      }
-      return null;
+      return response.ok ? newGameOptionsSchema.parse(await response.json()) : null;
     } catch (error) {
       console.error("Error getting game options:", error);
       return null;
@@ -89,11 +68,7 @@ export class UserService {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ gameId }),
       });
-
-      if (response.ok) {
-        return await response.json();
-      }
-      return null;
+      return response.ok ? newGameResponseSchema.parse(await response.json()) : null;
     } catch (error) {
       console.error("Error joining game:", error);
       return null;

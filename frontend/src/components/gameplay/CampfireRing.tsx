@@ -1,5 +1,5 @@
 import React from "react";
-import { GameStateDTO, CampfireActionDTO } from "../../dtos/index";
+import { GameStateDTO, CampfireActionDTO } from "@takes-a-village/shared";
 import { usePlayerName } from "../hooks/usePlayerName";
 
 import styles from "./CampfireRing.module.css";

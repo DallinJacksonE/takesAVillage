@@ -14,7 +14,7 @@ import {
   ContractActionPayload,
   CommitWorkPayload,
   ChatMessageDTO
-} from "../dtos";
+} from "@takes-a-village/shared";
 import { Presenter } from "./Presenter";
 import { View } from "./View";
 import { GameplayService, ConnectionState } from "../service/GameplayService";

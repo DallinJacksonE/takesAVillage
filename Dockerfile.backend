@@ -1,10 +1,35 @@
-FROM python:3.10-slim
+FROM node:22-alpine AS builder
 WORKDIR /app
 
-COPY requirements.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+COPY package.json package-lock.json ./
+COPY shared/package.json shared/tsconfig.json ./shared/
+COPY service/package.json service/tsconfig.json service/tsconfig.build.json ./service/
+COPY frontend/package.json ./frontend/
+RUN npm ci
 
-# Copy the backend package
-COPY service/ service/
+COPY shared/src ./shared/src
+COPY service/src ./service/src
+COPY service/db/schema ./service/db/schema
+COPY service/test ./service/test
+COPY service/config.test.json service/vitest.config.ts ./service/
+RUN npm run build -w @takes-a-village/shared \
+    && npm run typecheck -w @takes-a-village/service \
+    && npm run test -w @takes-a-village/service \
+    && npm run build -w @takes-a-village/service
+
+FROM node:22-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY package.json package-lock.json ./
+COPY shared/package.json ./shared/
+COPY service/package.json ./service/
+COPY frontend/package.json ./frontend/
+RUN npm ci --omit=dev
+
+COPY --from=builder /app/shared/dist ./shared/dist
+COPY --from=builder /app/service/dist ./service/dist
+COPY service/db/schema ./service/db/schema
+USER node
 EXPOSE 5000
-CMD ["uvicorn", "service.main:app", "--host", "0.0.0.0", "--port", "5000"]
+CMD ["node", "service/dist/main.js"]

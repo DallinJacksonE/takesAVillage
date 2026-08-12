@@ -1,5 +1,5 @@
 import React from "react";
-import { ResearchGameDetailDTO } from "../../dtos";
+import { ResearchGameDetailDTO } from "@takes-a-village/shared";
 import { ExpandableJsonPanel } from "./ExpandableJsonPanel";
 import { VisualizationGallery } from "./VisualizationGallery";
 

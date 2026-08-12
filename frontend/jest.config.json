@@ -5,6 +5,8 @@
     "^.+\\.(ts|tsx|js|jsx)$": "babel-jest"
   },
   "moduleNameMapper": {
+    "^@takes-a-village/shared$": "<rootDir>/../shared/src/index.ts",
+    "^(\\.{1,2}/.*)\\.js$": "$1",
     "\\.(css|less|scss|sass)$": "identity-obj-proxy"
   },
   "testMatch": ["<rootDir>/test/**/*.test.{ts,tsx}"],

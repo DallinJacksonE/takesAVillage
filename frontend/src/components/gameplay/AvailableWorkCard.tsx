@@ -1,5 +1,5 @@
 import React from "react";
-import { EmploymentActionDTO, WorkActionDTO, CommitWorkPayload } from "../../dtos/index";
+import { EmploymentActionDTO, WorkActionDTO, CommitWorkPayload } from "@takes-a-village/shared";
 import { usePlayerName } from "../hooks/usePlayerName";
 import { useGameState } from "../hooks/useGameState";
 

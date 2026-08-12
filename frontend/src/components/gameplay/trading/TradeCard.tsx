@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { TradeActionDTO, Resource, ResourceBundle } from "../../../dtos/index";
+import { TradeActionDTO, Resource, ResourceBundle } from "@takes-a-village/shared";
 import styles from "./TradeCard.module.css";
 import ResourceStepper from "../ResourceStepper"; // <-- Import the stepper
 

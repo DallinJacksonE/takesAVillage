@@ -15,7 +15,7 @@ import {
   ResearchGameDetailDTO,
   ResearchGameListItemDTO,
   TrainingBatchDetailDTO,
-} from "../dtos";
+} from "@takes-a-village/shared";
 
 const Research: React.FC = () => {
   const [presenter, setPresenter] = useState<ResearchPresenter | null>(null);

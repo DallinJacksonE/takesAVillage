@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import { PlayerDTO } from "../../dtos";
+import { PlayerDTO } from "@takes-a-village/shared";
 
 interface PlayerContextType {
   players: PlayerDTO[];

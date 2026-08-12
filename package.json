@@ -1,0 +1,21 @@
+{
+  "name": "takes-a-village",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "shared",
+    "service",
+    "frontend"
+  ],
+  "scripts": {
+    "build": "npm run build -w shared && npm run build -w service && npm run build -w frontend",
+    "test": "npm run test -ws --if-present",
+    "typecheck": "npm run typecheck -ws --if-present",
+    "lint": "npm run lint -w frontend",
+    "docker:dev": "node docker/compose.mjs development",
+    "docker:prod": "node docker/compose.mjs production"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

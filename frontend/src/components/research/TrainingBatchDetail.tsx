@@ -1,5 +1,5 @@
 import React from "react";
-import { TrainingBatchDetailDTO } from "../../dtos";
+import { TrainingBatchDetailDTO } from "@takes-a-village/shared";
 import { ExpandableJsonPanel } from "./ExpandableJsonPanel";
 import { VisualizationGallery } from "./VisualizationGallery";
 

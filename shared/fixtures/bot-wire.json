@@ -1,0 +1,44 @@
+{
+  "spawnRequest": {
+    "gameId": "game-1",
+    "botCount": 1,
+    "botSecret": "test-secret",
+    "botModel": "GOAPGenetic",
+    "baseGenome": null
+  },
+  "spawnResponse": {
+    "status": "success",
+    "message": "Spawned 1 bots"
+  },
+  "botJoinRequest": {
+    "gameId": "game-1",
+    "botSecret": "test-secret"
+  },
+  "outboundWebSocketPackets": [
+    {
+      "event": "request_update",
+      "data": {
+        "gameId": "game-1",
+        "userId": "bot_1"
+      }
+    },
+    {
+      "event": "send_chat",
+      "data": {
+        "gameId": "game-1",
+        "userId": "bot_1",
+        "content": "hello",
+        "to_id": "GLOBAL"
+      }
+    },
+    {
+      "event": "submit_action",
+      "data": {
+        "gameId": "game-1",
+        "userId": "bot_1",
+        "action_command": "FINISH_PHASE",
+        "payload": {}
+      }
+    }
+  ]
+}

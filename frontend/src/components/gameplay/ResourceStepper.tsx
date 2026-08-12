@@ -1,5 +1,5 @@
 import React from "react";
-import { Resource } from "../../dtos/index";
+import { Resource } from "@takes-a-village/shared";
 
 import styles from "./ResourceStepper.module.css";
 // Map your resources to emojis

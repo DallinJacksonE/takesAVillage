@@ -1,5 +1,5 @@
 import React from "react";
-import { ResearchGameListItemDTO } from "../../dtos";
+import { ResearchGameListItemDTO } from "@takes-a-village/shared";
 import { ResearchTab, ResearchTrainingBatchRow } from "../../presenters/ResearchPresenter";
 import { ResearchSortMode } from "../../service/ResearchService";
 import { ResearchListSearch } from "./ResearchListSearch";

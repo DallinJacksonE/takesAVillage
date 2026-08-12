@@ -1,0 +1,17 @@
+{
+  "database": {
+    "type": "mysql",
+    "host": "db",
+    "port": 3306,
+    "user": "village",
+    "password": "replace-with-database-password",
+    "name": "village_db",
+    "rootPassword": "replace-with-root-password"
+  },
+  "bots": {
+    "secret": "replace-with-a-long-random-value",
+    "httpUrl": "http://bots:8001",
+    "gameServerHttpUrl": "http://service:5000",
+    "gameServerWsUrl": "ws://service:5000/ws"
+  }
+}

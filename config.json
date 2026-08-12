@@ -1,0 +1,14 @@
+{
+  "development": {
+    "database": 23308,
+    "service": 25000,
+    "bots": 28001,
+    "frontend": 24999
+  },
+  "production": {
+    "database": 33308,
+    "service": 35000,
+    "bots": 38001,
+    "frontend": 34999
+  }
+}

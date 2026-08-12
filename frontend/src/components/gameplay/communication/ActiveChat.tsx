@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { ChatMessageDTO } from "../../../dtos/index";
+import { ChatMessageDTO } from "@takes-a-village/shared";
 import { ActiveChatViewModel } from "./chatViewTypes";
 
 import styles from "./ActiveChat.module.css";

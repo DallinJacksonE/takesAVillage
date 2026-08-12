@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { PlayPresenter, PlayView } from "../presenters/PlayPresenter";
-import { JoinableGameDTO } from "../dtos";
+import { JoinableGameDTO } from "@takes-a-village/shared";
 import { NewGameModal } from "../components/NewGameModal"; // adjust path as needed
 
 const Play: React.FC = () => {

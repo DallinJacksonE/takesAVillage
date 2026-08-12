@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ResearchVisualizationDTO } from "../../dtos";
+import { ResearchVisualizationDTO } from "@takes-a-village/shared";
 
 import styles from "./VisualizationGallery.module.css";
 interface VisualizationGalleryProps {

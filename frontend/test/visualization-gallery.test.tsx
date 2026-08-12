@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { VisualizationGallery } from "../src/components/research/VisualizationGallery";
-import { ResearchVisualizationDTO } from "../src/dtos";
+import { ResearchVisualizationDTO } from "@takes-a-village/shared";
 
 const visualization: ResearchVisualizationDTO = {
   id: "42",
@@ -8,7 +8,7 @@ const visualization: ResearchVisualizationDTO = {
   scope_id: "g_1",
   name: "inventory_over_time",
   title: "Inventory Over Time",
-  mime_type: "image/png",
+  mime_type: "image/svg+xml",
   url: "/api/research/visualizations/42",
   metadata: {},
   created_at: "2026-06-26T00:00:00",

@@ -1,4 +1,4 @@
-import { ChatDTO, ChatMessageDTO } from "../../../dtos/index";
+import { ChatDTO, ChatMessageDTO } from "@takes-a-village/shared";
 
 export type ActiveChatId = "global" | string;
 

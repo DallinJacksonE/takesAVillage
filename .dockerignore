@@ -1,0 +1,13 @@
+.git
+.github
+.hermes
+.venv
+node_modules
+**/node_modules
+**/dist
+**/__pycache__
+**/*.pyc
+.env
+.env.*
+service/config.json
+logs

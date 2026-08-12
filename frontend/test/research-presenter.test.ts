@@ -6,7 +6,7 @@ import {
   TrainingBatchDetailDTO,
   TrainingBatchListItemDTO,
   TrainingSessionsDTO,
-} from "../src/dtos";
+} from "@takes-a-village/shared";
 
 function flushPromises() {
   return new Promise((resolve) => setTimeout(resolve, 0));

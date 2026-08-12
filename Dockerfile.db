@@ -1,0 +1,8 @@
+FROM mysql:8.0
+
+RUN microdnf install -y jq && microdnf clean all
+COPY docker/mysql-config-entrypoint.sh /usr/local/bin/mysql-config-entrypoint
+RUN chmod 0555 /usr/local/bin/mysql-config-entrypoint
+
+ENTRYPOINT ["/usr/local/bin/mysql-config-entrypoint"]
+CMD ["mysqld"]

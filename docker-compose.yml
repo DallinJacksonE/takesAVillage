@@ -1,78 +1,93 @@
 services:
   db:
-    image: mysql:8.0
-    container_name: village_db
-    restart: always
-    environment:
-      - MYSQL_ROOT_PASSWORD=root_password
-      - MYSQL_DATABASE=village_db
-      - MYSQL_USER=village
-      - MYSQL_PASSWORD=village_db
+    build:
+      context: .
+      dockerfile: Dockerfile.db
+    restart: unless-stopped
     ports:
-      - "${PROD_DB_PORT:-3308}:3306"
+      - "${HOST_DATABASE_PORT:-3308}:3306"
+    configs:
+      - source: service_config
+        target: /run/config/service.json
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "village", "-pvillage_db" ]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$(jq -r '.database.rootPassword' /run/config/service.json)\""]
       interval: 10s
       timeout: 10s
       retries: 15
-      start_period: 90s
+      start_period: 60s
 
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    container_name: village_backend
-    restart: always
+    restart: unless-stopped
     ports:
-      - "${PROD_BACKEND_PORT:-5000}:5000"
+      - "${HOST_SERVICE_PORT:-5000}:5000"
     environment:
-      PYTHONUNBUFFERED: 1
-      DB_TYPE: mysql
-      DB_HOST: db
-      DB_USER: village
-      DB_PASSWORD: village_db
-      DB_NAME: village_db
-      BOT_SECRET: ${BOT_SECRET:?Set BOT_SECRET in the environment or .env file}
-      BOT_SERVICE_URL: http://bots:8001
-    volumes:
-      - ./service:/app/service
-      - ./logs:/app/logs
-    # If DB_TYPE=memory, it won't crash if the DB container isn't up, 
-    # but depends_on is still good practice for when you switch back.
+      SERVICE_CONFIG_PATH: /app/config/service.json
+      PORT: "5000"
+    configs:
+      - source: service_config
+        target: /app/config/service.json
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5000/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   bots:
     build:
       context: .
       dockerfile: Dockerfile.bots
-    container_name: village_bots
-    restart: always
+    restart: unless-stopped
     ports:
-      - "${PROD_BOTS_PORT:-8001}:8001"
+      - "${HOST_BOTS_PORT:-8001}:8001"
     environment:
-      # Use the docker-compose service name 'backend' to route traffic
-      - GAME_SERVER_HTTP_URL=http://backend:5000
-      - GAME_SERVER_WS_URL=ws://backend:5000/ws
-      - BOT_SECRET=${BOT_SECRET:?Set BOT_SECRET in the environment or .env file}
-    volumes:
-      - ./bots:/app/bots
+      SERVICE_CONFIG_PATH: /app/config/service.json
+    configs:
+      - source: service_config
+        target: /app/config/service.json
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/models')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
-    container_name: village_frontend
-    restart: always
+    restart: unless-stopped
     ports:
-      - "${PROD_FRONTEND_PORT:-4999}:4999"
+      - "${HOST_FRONTEND_PORT:-4999}:4999"
+    configs:
+      - source: frontend_config
+        target: /app/frontend/dist/config.json
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4999/').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+configs:
+  service_config:
+    file: ./service/config.json
+  frontend_config:
+    file: ./frontend/config.json
 
 volumes:
   db_data:

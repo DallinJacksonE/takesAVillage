@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { PlayerDTO } from "../../../dtos/index";
+import { PlayerDTO } from "@takes-a-village/shared";
 
 import styles from "./CreateChatModal.module.css";
 interface Props {

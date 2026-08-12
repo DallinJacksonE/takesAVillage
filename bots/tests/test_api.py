@@ -9,8 +9,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import api  # noqa: E402
 
 
-def test_spawn_bots_fails_closed_without_configured_secret(monkeypatch):
-    monkeypatch.delenv("BOT_SECRET", raising=False)
+def test_spawn_bots_fails_closed_with_wrong_configured_secret(monkeypatch):
+    monkeypatch.setattr(api, "get_bot_config", lambda: {"secret": "configured-secret"})
     monkeypatch.setattr(
         api, "spawn_bot_processes",
         lambda **_kwargs: pytest.fail("unauthenticated request spawned bots"),
@@ -29,7 +29,7 @@ def test_spawn_bots_fails_closed_without_configured_secret(monkeypatch):
 
 def test_spawn_bots_requires_matching_configured_secret(monkeypatch):
     spawned = []
-    monkeypatch.setenv("BOT_SECRET", "test-secret")
+    monkeypatch.setattr(api, "get_bot_config", lambda: {"secret": "test-secret"})
     monkeypatch.setattr(
         api, "spawn_bot_processes",
         lambda **kwargs: spawned.append(kwargs),
