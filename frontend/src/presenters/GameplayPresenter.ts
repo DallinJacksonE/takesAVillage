@@ -17,7 +17,7 @@ import {
 } from "../dtos";
 import { Presenter } from "./Presenter";
 import { View } from "./View";
-import { GameplayService, ConnectionState } from "../service/GameplayService";
+import { GameplayService, ConnectionState, GameNotification } from "../service/GameplayService";
 
 export interface GameplayView extends View {
   setGameState(gameState: GameStateDTO | null): void;
@@ -25,6 +25,7 @@ export interface GameplayView extends View {
   setTimeLeft(timeLeft: number): void;
   setUserId(userId: string): void;
   showAlert(message: string): void;
+  showToast(notification: GameNotification): void;
   setConnectionState(state: ConnectionState): void;
   setChatHistory(messages: ChatMessageDTO[]): void;
   addChatMessage(message: ChatMessageDTO): void;
@@ -93,6 +94,10 @@ export class GameplayPresenter extends Presenter<GameplayView> {
 
     this.service.setOnError((message: string) => {
       this._view.showAlert(message);
+    });
+
+    this.service.setOnNotification((notification: GameNotification) => {
+      this._view.showToast(notification);
     });
 
 

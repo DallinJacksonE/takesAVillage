@@ -1,6 +1,7 @@
 import math
 import uuid
 from datetime import datetime
+from service.game.state.events import PlayerResourcesTransferred, TradeFinalized
 from service.logging import BackendLogger
 
 contract_logger = BackendLogger("contracts")
@@ -36,7 +37,7 @@ class Contract:
         return f"UPDATED_{self.status}"
 
     def _handle_cancel(self, user_id, data, context):
-        self.status = 'CANCELED'
+        self.status = 'DENIED'
         self.waiting_on_id = None
         return f"UPDATED_{self.status}"
 
@@ -90,24 +91,21 @@ class TradeContract(Contract):
 
         if self.initiator_finalized and self.target_finalized:
 
-            if self.actual_request_items != self.request_items:
-                game.lie_count[self.target_id] = (
-                    game.lie_count.get(self.target_id, 0) + 1
-                )
-
-            if self.actual_offer_items != self.offer_items:
-                game.lie_count[self.initiator_id] = (
-                    game.lie_count.get(self.initiator_id, 0) + 1
-                )
+            target_lied = self.actual_request_items != self.request_items
+            initiator_lied = self.actual_offer_items != self.offer_items
             
             contract_logger.info(
                 f"Lie count after finalize: {game.lie_count}"
             )
 
-            self.status = "COMPLETED"
+            self.status = "FINALIZED"
             self.waiting_on_id = None
-            game.trade_count += 1
-            return "UPDATED_COMPLETED"
+            game.apply_event(TradeFinalized(
+                self.id,
+                initiator_lied=initiator_lied,
+                target_lied=target_lied,
+            ))
+            return "UPDATED_FINALIZED"
 
         return f"UPDATED_{self.status}"
 
@@ -128,45 +126,6 @@ class EmploymentContract(Contract):
         self.command_map['ACCEPT'] = self._handle_accept
 
     def _handle_accept(self, user_id, data, context):
-        players = context.get('players', {})
-        developments = context.get('developments', {})
-        worker_id = self.initiator_id if getattr(
-            self, 'is_application', False) else self.target_id
-        employer_id = self.target_id if getattr(
-            self, 'is_application', False) else self.initiator_id
-        worker = players.get(worker_id)
-        employer = players.get(employer_id)
-        development = developments.get(self.dev_id)
-
-        if development:
-            development.worker_id = worker_id
-            contract_logger.info(f"Successfully bound Worker "
-                                 f"{worker_id} to Development {self.dev_id}")
-            if worker:
-                hired_job = {"development": development.to_dict() if hasattr(development, 'to_dict') else development.__dict__, "wage": getattr(
-                    self, 'wage', 1), "wage_type": getattr(self, 'wage_type', 'food'), "employer_id": employer_id, "action_id": self.id}
-                if not hasattr(worker, 'available_work'):
-                    worker.available_work = []
-                worker.available_work.append(hired_job)
-                try:
-                    wage_amt = int(getattr(self, 'wage', 0))
-                except Exception:
-                    wage_amt = 0
-                if wage_amt > 0 and isinstance(employer_id, str) and employer_id.startswith("bot_"):
-                    trade = TradeContract(employer_id, worker_id, {
-                                          getattr(self, 'wage_type', 'food'): wage_amt}, {})
-                    if worker:
-                        if not hasattr(worker, 'actions'):
-                            worker.actions = {}
-                        worker.actions[trade.id] = trade
-                    if employer:
-                        if not hasattr(employer, 'actions'):
-                            employer.actions = {}
-                        employer.actions[trade.id] = trade
-        else:
-            contract_logger.warning(
-                f"Development {self.dev_id} not found during contract acceptance.")
-
         self.status = 'ACCEPTED'
         self.waiting_on_id = None
         return f"UPDATED_{self.status}"
@@ -196,7 +155,7 @@ class CampfireContract(Contract):
             contract_logger.info(f"Ignoring duplicate ACCEPT for contract "
                                  f"{self.id} (status={self.status})")
             return "ILLEGAL"
-        from service.game.actions.campfire import seat_guest
+        from service.game.packet_handling.campfire import seat_guest
 
         if not seat_guest(context["game"], self):
             return "ILLEGAL"
@@ -250,21 +209,27 @@ def execute_trade(game_state, action):
             action, 'actual_offer_items', {}).items():
         transferred = min(amount, initiator.resources.get(resource, 0))
         initiator_box[resource] = transferred
-        initiator.resources[resource] -= transferred
 
     target_box = {}
     for resource, amount in getattr(
             action, 'actual_request_items', {}).items():
         transferred = min(amount, target.resources.get(resource, 0))
         target_box[resource] = transferred
-        target.resources[resource] -= transferred
 
-    for resource, amount in initiator_box.items():
-        target.resources[resource] = (
-            target.resources.get(resource, 0) + amount)
-    for resource, amount in target_box.items():
-        initiator.resources[resource] = (
-            initiator.resources.get(resource, 0) + amount)
+    transfer_events = []
+    if initiator_box:
+        transfer_events.append(PlayerResourcesTransferred(
+            initiator.session_id,
+            target.session_id,
+            initiator_box.copy(),
+        ))
+    if target_box:
+        transfer_events.append(PlayerResourcesTransferred(
+            target.session_id,
+            initiator.session_id,
+            target_box.copy(),
+        ))
+    game_state.apply_events(transfer_events)
 
     initiator.add_timeline_event(
         "TRADE_RESOLVED",
@@ -298,3 +263,4 @@ def execute_trade(game_state, action):
     initiator.trade_count += 1
     target.trade_count += 1
     return True
+

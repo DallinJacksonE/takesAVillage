@@ -1,6 +1,12 @@
 import time
 import uuid
 
+from service.game.state.projections import (
+    build_night_projection,
+    build_trade_projection,
+    build_work_projection,
+)
+
 
 def _safe_serialize(obj):
 
@@ -53,6 +59,7 @@ def build_game_snapshot(game):
             for dev_id, dev in game.developments.items()
         }
     }
+
 
 def build_player_snapshot(player, day):
     """
@@ -150,6 +157,7 @@ def build_player_snapshot(player, day):
         )
     }
 
+
 def build_work_snapshot(player, game_state):
     """
     Creates a snapshot of the work phase for a given player, including
@@ -159,23 +167,8 @@ def build_work_snapshot(player, game_state):
     - informing the frontend of work options
     - AI decision-making during the work phase
     """
+    return build_work_projection(game_state, player.session_id)
 
-    return {
-        "game_id": game_state.id,
-        "player_id": player.session_id,
-        "health": player.health,
-        "sickness_chance": player.sickness_chance,
-        "day_num": game_state.day,
-        "wood": player.resources.get("wood", 0),
-        "food": player.resources.get("food", 0),
-        "iron": player.resources.get("iron", 0),
-        "available_work": [
-            _safe_serialize(work)
-            for work in player.available_work
-        ],
-        "day_num": game_state.day,
-        "committed_action": _safe_serialize(player.committed_action)
-    }
 
 def build_trade_snapshot(player, game_state):
     """
@@ -186,18 +179,8 @@ def build_trade_snapshot(player, game_state):
     - informing the frontend of trade options and history
     - AI decision-making during the trade phase
     """
+    return build_trade_projection(game_state, player.session_id)
 
-    return {
-        "game_id": game_state.id,
-        "player_id": player.session_id,
-        "health": player.health,
-        "sickness_chance": player.sickness_chance,
-        "wood": player.resources.get("wood", 0),
-        "food": player.resources.get("food", 0),
-        "iron": player.resources.get("iron", 0),
-        "day_num": game_state.day,  
-        "trade_history": _safe_serialize(player.trade_history)
-    }
 
 def build_night_snapshot(player, game_state):
     """
@@ -208,16 +191,4 @@ def build_night_snapshot(player, game_state):
     - informing the frontend of night phase outcomes
     - AI decision-making during the night phase
     """
-
-    return {
-        "game_id": game_state.id,
-        "player_id": player.session_id,
-        "health": player.health,
-        "day_num": game_state.day,
-        "sickness_chance": player.sickness_chance,
-        "wood": player.resources.get("wood", 0),
-        "food": player.resources.get("food", 0),
-        "iron": player.resources.get("iron", 0),
-        "fire_status": player.fire_status,
-        "fire_guests": _safe_serialize(player.fire_guests)
-    }
+    return build_night_projection(game_state, player.session_id)

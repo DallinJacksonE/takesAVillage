@@ -1,4 +1,7 @@
 
+from service.game.state.developments import DevelopmentState
+
+
 class Development:
     def __init__(self, dev_id, dev_type, dev_owner, MAX_LEVEL, MAINTENANCE_DAYS, RESOURCE_COSTS):
         self.id = dev_id
@@ -6,7 +9,7 @@ class Development:
         self.level = 2
         self.owner = dev_owner  # the id
         self.maintenance_days = MAINTENANCE_DAYS
-        self.is_contested = False
+        self.state = DevelopmentState.STABLE.value
         self.contest_initiator_id = None
         self.contester_supporters = []
         self.owner_supporters = []
@@ -16,6 +19,18 @@ class Development:
 
         self.MAX_LEVEL = MAX_LEVEL
         self.MAINTENANCE_DAYS = MAINTENANCE_DAYS
+
+    @property
+    def is_contested(self):
+        return self.state == DevelopmentState.CONTESTED.value
+
+    @is_contested.setter
+    def is_contested(self, contested):
+        self.state = (
+            DevelopmentState.CONTESTED.value
+            if contested
+            else DevelopmentState.STABLE.value
+        )
 
     @property
     def can_upgrade(self):
@@ -81,6 +96,7 @@ class Development:
             "level": self.level,
             "maintenance_days": self.maintenance_days,
             "owner_id": self.owner,
+            "state": self.state,
             "is_contested": self.is_contested,
             "contest_initiator_id": self.contest_initiator_id,
             "contester_supporters": self.contester_supporters,

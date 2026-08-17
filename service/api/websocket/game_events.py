@@ -1,3 +1,14 @@
+async def _send_queued_notifications(game, game_id, manager):
+    if not hasattr(game, "drain_notifications"):
+        return
+    for player_id in list(getattr(game, "players", {}).keys()):
+        for notification in game.drain_notifications(player_id):
+            await manager.send_personal_message({
+                "event": "game_notification",
+                "data": notification,
+            }, game_id, player_id)
+
+
 async def process_game_event(event, payload, game_id, user_id, game, manager):
     if event == "start_game_request":
         if game.host_id == user_id and game.start_game():
@@ -34,6 +45,7 @@ async def process_game_event(event, payload, game_id, user_id, game, manager):
         if command == "FINISH_PHASE" and player and player.finished_phase:
             return
         if game.handle_action(user_id, payload):
+            await _send_queued_notifications(game, game_id, manager)
             await manager.broadcast_game_state(game_id, game)
         else:
             await manager.send_personal_message({

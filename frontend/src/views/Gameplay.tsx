@@ -7,7 +7,7 @@ import {
   GameplayPresenter,
   GameplayView,
 } from "../presenters/GameplayPresenter";
-import { ConnectionState } from "../service/GameplayService";
+import { ConnectionState, GameNotification } from "../service/GameplayService";
 import InfoTooltip from "../components/InfoTooltip"
 import PlayerStatusCard from "../components/gameplay/playerInfo/PlayerStatusCard";
 import DevelopmentsCard from "../components/gameplay/DevelopmentsCard";
@@ -32,6 +32,7 @@ const Gameplay: React.FC = () => {
   const [userId, setUserId] = useState("");
   const [messages, setMessages] = useState<ChatMessageDTO[]>([]);
   const [connectionState, setConnectionState] = useState<ConnectionState>("CONNECTING");
+  const [toasts, setToasts] = useState<Array<GameNotification & { id: number }>>([]);
 
   const getPhaseTooltip = (phase: string) => {
     switch (phase) {
@@ -56,6 +57,13 @@ const Gameplay: React.FC = () => {
       setTimeLeft,
       setUserId,
       showAlert: (msg: string) => alert(msg),
+      showToast: (notification: GameNotification) => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { ...notification, id }]);
+        window.setTimeout(() => {
+          setToasts(prev => prev.filter(toast => toast.id !== id));
+        }, 5000);
+      },
       setChatHistory: setMessages,
       addChatMessage: (msg: ChatMessageDTO) =>
         setMessages(prev => [...prev, msg]),
@@ -91,10 +99,46 @@ const Gameplay: React.FC = () => {
     );
   };
 
+  const ToastStack = () => (
+    <div style={{
+      position: "fixed",
+      top: 16,
+      right: 16,
+      zIndex: 2000,
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      maxWidth: 360,
+    }}>
+      {toasts.map(toast => (
+        <div
+          key={toast.id}
+          role="status"
+          style={{
+            background:
+              toast.level === "error"
+                ? "#b71c1c"
+                : toast.level === "warning"
+                  ? "#f57c00"
+                  : "#1565c0",
+            color: "white",
+            padding: "12px 14px",
+            borderRadius: 8,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            fontWeight: 600,
+          }}
+        >
+          {toast.message}
+        </div>
+      ))}
+    </div>
+  );
+
   if (!gameState || !presenter) {
     return (
       <div style={{ padding: "40px", textAlign: "center" }}>
         <ConnectionBanner />
+        <ToastStack />
         <h2>Loading Village...</h2>
       </div>
     );
@@ -104,6 +148,7 @@ const Gameplay: React.FC = () => {
     return (
       <div style={{ padding: "40px", textAlign: "center" }}>
         <ConnectionBanner />
+        <ToastStack />
         <h2>Waiting Room: Village {gameId}</h2>
         <p>Players: {playerCount} / 10</p>
         {gameState.is_host ? (
@@ -129,6 +174,7 @@ const Gameplay: React.FC = () => {
   if (gameState.status === "ENDED") {
     return (
       <div style={{ padding: "40px", textAlign: "center" }}>
+        <ToastStack />
         <h2>Game Over: Village {gameId}</h2>
         <p>Thank you for playing</p>
       </div>
@@ -140,6 +186,7 @@ const Gameplay: React.FC = () => {
   if (isDead) {
     return (
       <div className="observation-screen">
+        <ToastStack />
         <GameStateProvider gameState={gameState}>
           <PlayerProvider players={gameState.player_list}>
             <h2>You have perished.</h2>
@@ -162,6 +209,7 @@ const Gameplay: React.FC = () => {
   return (
     <div style={{ padding: "20px" }}>
       <ConnectionBanner />
+      <ToastStack />
       <GameStateProvider gameState={gameState}>
         <PlayerColorProvider gameState={gameState}>
           <PlayerProvider players={gameState.player_list}>

@@ -606,7 +606,7 @@ class GOAPLegalActionSource:
         return any(
             action.get("type") == "TRADE"
             and action.get("initiator_id") == me.get("id")
-            and action.get("status") in ["PENDING", "NEGOTIATING", "ACCEPTED"]
+            and action.get("status") in ["PENDING", "ACCEPTED"]
             for action in me.get("actions", []) or []
         )
 
@@ -614,7 +614,7 @@ class GOAPLegalActionSource:
         return any(
             action.get("type") == "TRADE"
             and target_id in [action.get("initiator_id"), action.get("target_id")]
-            and action.get("status") in ["PENDING", "NEGOTIATING", "ACCEPTED"]
+            and action.get("status") in ["PENDING", "ACCEPTED"]
             for action in me.get("actions", []) or []
         )
 

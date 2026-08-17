@@ -33,6 +33,7 @@ class EventGame:
         self.chats = []
         self.actions = []
         self.created_chats = []
+        self.notifications = {}
 
     def start_game(self):
         self.status = "RUNNING"
@@ -43,7 +44,12 @@ class EventGame:
 
     def handle_action(self, user_id, payload):
         self.actions.append((user_id, payload))
+        for target, notification in payload.get("notifications", {}).items():
+            self.notifications.setdefault(target, []).append(notification)
         return payload.get("accepted", True)
+
+    def drain_notifications(self, user_id):
+        return self.notifications.pop(user_id, [])
 
     def handle_chat(self, user_id, payload):
         return SimpleNamespace(
@@ -107,6 +113,49 @@ def test_successful_action_broadcasts_state_and_rejected_action_sends_error():
             "action_command": "BUILD_DEV",
         },
     }
+
+
+def test_successful_action_sends_queued_game_notifications_before_state():
+    manager = RecordingManager()
+    game = EventGame()
+    game.status = "RUNNING"
+
+    run_event(
+        "submit_action",
+        {
+            "action_command": "CONTEST_DEV",
+            "accepted": True,
+            "notifications": {
+                "player": {
+                    "message": "Choose a new action.",
+                    "level": "warning",
+                },
+                "host": {
+                    "message": "Village contest started.",
+                    "level": "info",
+                },
+            },
+        },
+        manager,
+        "player",
+        game,
+    )
+
+    assert (
+        {"event": "game_notification",
+         "data": {"message": "Choose a new action.",
+                  "level": "warning"}},
+        "game-1",
+        "player",
+    ) in manager.personal
+    assert (
+        {"event": "game_notification",
+         "data": {"message": "Village contest started.",
+                  "level": "info"}},
+        "game-1",
+        "host",
+    ) in manager.personal
+    assert manager.states == [("game-1", game)]
 
 
 def test_global_chat_and_chat_creation_are_broadcast():

@@ -1,8 +1,12 @@
 import uuid
 
-from service.game.actions.base import Command
-from service.game.models.development import Development
+from service.game.packet_handling.base import Command
 from service.game.models.map import MapTile
+from service.game.state.events import (
+    DevelopmentBuilt,
+    PlayerResourcesSpent,
+)
+from service.game.state.intents import MaintainIntent, UpgradeIntent
 
 
 class BuildDevelopmentCommand(Command):
@@ -29,23 +33,20 @@ class BuildDevelopmentCommand(Command):
         build_costs = game_state.development_costs.get(
             dev_type, {}
         ).get("build", {})
-        if not build_costs or not self._deduct_resources(
-            player, build_costs
+        if not build_costs:
+            return False
+        if any(
+            player.resources.get(resource, 0) < amount
+            for resource, amount in build_costs.items()
         ):
             return False
 
         dev_id = str(uuid.uuid4())
-        new_dev = Development(
-            dev_id,
-            dev_type,
-            player.session_id,
-            game_state.rules.MAX_DEVELOPMENT_LEVEL,
-            game_state.rules.MAINTENANCE_DAYS,
-            game_state.rules.RESOURCE_COSTS,
-        )
-        game_state.developments[dev_id] = new_dev
-        player.developments.append(dev_id)
-        target_tile.development = new_dev
+        game_state.apply_events([
+            PlayerResourcesSpent(player.session_id, build_costs.copy()),
+            DevelopmentBuilt(
+                dev_id, tile_id, player.session_id, dev_type),
+        ])
         player.add_timeline_event(
             "ACTION_COMPLETED",
             {"action": "BUILD_DEV", "dev_id": dev_id, "type": dev_type},
@@ -67,14 +68,18 @@ class MaintainDevelopmentCommand(Command):
         if not dev or dev.owner != player.session_id:
             return False
 
-        if self._deduct_resources(player, dev.get_maintenance_cost()):
-            dev.maintenance()
-            player.add_timeline_event(
-                "ACTION_COMPLETED",
-                {"action": "MAINTAIN_DEV", "dev_id": dev_id},
-            )
-            return True
-        return False
+        maintenance_cost = dev.get_maintenance_cost()
+        if any(
+            player.resources.get(resource, 0) < amount
+            for resource, amount in maintenance_cost.items()
+        ):
+            return False
+        game_state.set_intent(MaintainIntent(player.session_id, dev_id))
+        player.add_timeline_event(
+            "ACTION_INTENT_SUBMITTED",
+            {"action": "MAINTAIN_DEV", "dev_id": dev_id},
+        )
+        return True
 
 
 class UpgradeDevelopmentCommand(Command):
@@ -88,11 +93,16 @@ class UpgradeDevelopmentCommand(Command):
                 or not dev.can_upgrade):
             return False
 
-        if self._deduct_resources(player, dev.get_upgrade_cost()):
-            dev.upgrade()
-            player.add_timeline_event(
-                "ACTION_COMPLETED",
-                {"action": "UPGRADE_DEV", "dev_id": dev_id},
-            )
-            return True
-        return False
+        upgrade_cost = dev.get_upgrade_cost()
+        if any(
+            player.resources.get(resource, 0) < amount
+            for resource, amount in upgrade_cost.items()
+        ):
+            return False
+
+        game_state.set_intent(UpgradeIntent(player.session_id, dev_id))
+        player.add_timeline_event(
+            "ACTION_INTENT_SUBMITTED",
+            {"action": "UPGRADE_DEV", "dev_id": dev_id},
+        )
+        return True

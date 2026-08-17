@@ -87,7 +87,7 @@ class FitnessSurvivalPriorityTests(unittest.TestCase):
                     {"actual_sent": {"wood": 1}, "actual_received": {"food": 2}},
                 ],
                 "actions": [
-                    {"type": "TRADE", "status": "COMPLETED"},
+                    {"type": "TRADE", "status": "FINALIZED"},
                 ],
             },
         }

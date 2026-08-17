@@ -14,7 +14,7 @@ class MapTile:
         self.r = r
         self.type = tile_type
         self.owner_id = ""
-        self.development = None
+        self.development = None  # Development | None
 
     def to_dict(self) -> dict:
         """

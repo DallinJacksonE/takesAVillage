@@ -1,4 +1,4 @@
-from service.game.actions import work
+from service.game.packet_handling import work
 from service.game_manager.lifecycle import GameLifecycleService
 from service.game_manager.persistence import persist_phase_completion
 from service.game_manager.registry import GameRegistry

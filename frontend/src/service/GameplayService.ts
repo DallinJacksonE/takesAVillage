@@ -5,6 +5,12 @@ import {
 } from "../dtos";
 
 export type ConnectionState = "CONNECTING" | "CONNECTED" | "DISCONNECTED" | "RECONNECTING";
+export interface GameNotification {
+  level?: "info" | "warning" | "error";
+  message: string;
+  reason?: string;
+  development_id?: string;
+}
 
 export class GameplayService {
   private socket: WebSocket | null = null;
@@ -25,6 +31,7 @@ export class GameplayService {
   private _onPlayerCount?: (count: number) => void;
   private _onGameStarted?: () => void;
   private _onError?: (message: string) => void;
+  private _onNotification?: (notification: GameNotification) => void;
 
   constructor() { }
 
@@ -119,6 +126,9 @@ export class GameplayService {
         case "error":
           this._onError?.(payload.data.message);
           break;
+        case "game_notification":
+          this._onNotification?.(payload.data);
+          break;
         default:
           console.warn("Unknown WS event:", payload.event);
       }
@@ -146,6 +156,7 @@ export class GameplayService {
   public setOnPlayerCount(callback: (count: number) => void) { this._onPlayerCount = callback; }
   public setOnGameStarted(callback: () => void) { this._onGameStarted = callback; }
   public setOnError(callback: (message: string) => void) { this._onError = callback; }
+  public setOnNotification(callback: (notification: GameNotification) => void) { this._onNotification = callback; }
 
   private emit(eventName: string, data: any) {
     const payload = JSON.stringify({ event: eventName, data: data });

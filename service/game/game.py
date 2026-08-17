@@ -8,11 +8,16 @@ from service.game.models.map import MapFactory
 from service.game.models.chat_message import ChatMessage
 from service.game.serializers.state import build_player_state
 from service.game.serializers.game_history import add_player_hist, add_map_hist
-from service.game.actions.contract_service import ContractFactory
-from service.game.actions.dispatcher import ActionDispatcher
-from service.game.actions.phase_resolution import PhaseResolver
+from service.game.packet_handling.contract_service import ContractFactory
+from service.game.packet_handling.dispatcher import PacketDispatcher
+from service.game.packet_handling.phase_resolution import PhaseResolver
 from service.game.models.chat import Chat
 from service.game.phases import Phase
+from service.game.state.developments import MapDevelopmentStore
+from service.game.state.legal_actions import get_legal_actions
+from service.game.state.player_phase import PlayerPhaseState
+from service.game.state.phases import PhaseMachine
+from service.game.state.reducer import GameStateReducer
 from service.logging import BackendLogger
 
 
@@ -20,7 +25,7 @@ class Game:
     def __init__(self, game_id, host_id, ruleset_name="default", bots=0,
                  training=False, training_session_id=None,
                  training_generation=None, *, clock=time.time, rng=random,
-                 logger=None, dispatcher=ActionDispatcher,
+                 logger=None, dispatcher=PacketDispatcher,
                  phase_resolver=PhaseResolver,
                  on_phase_completed=None):
         self.id = game_id
@@ -30,6 +35,8 @@ class Game:
         self._rng = rng
         self._dispatcher = dispatcher
         self._phase_resolver = phase_resolver
+        self._phase_machine = PhaseMachine(phase_resolver)
+        self._reducer = GameStateReducer()
         self._on_phase_completed = on_phase_completed or (
             lambda _game, _phase: None)
 
@@ -70,8 +77,8 @@ class Game:
                          f"Game Length: {self.game_length} days")
 
         self.players = {}
-        self.developments = {}
         self.map_data = {}
+        self._development_store = MapDevelopmentStore(self)
         self.contract_factory = ContractFactory(
             self.players, self.developments, self)
         self.chat_messages = []
@@ -88,6 +95,9 @@ class Game:
         self.trade_count = 0
         self.contest_count = 0
         self.lie_count = {}
+        self.phase_intents = {}
+        self._notifications = {}
+        self.domain_events = []
 
         self.add_player_hist = add_player_hist
         self.add_map_hist = add_map_hist
@@ -148,6 +158,9 @@ class Game:
 
     def check_timer(self):
         if self._clock() >= self.phase_end_time:
+            if self.phase == Phase.WORK.value:
+                from service.game.packet_handling.work import assign_default_work_intents
+                assign_default_work_intents(self)
             self.next_phase()
             return True
         return False
@@ -164,40 +177,31 @@ class Game:
             self.next_phase()
 
     def next_phase(self):
-        self._on_phase_completed(self, self.phase)
+        return self._phase_machine.advance(self)
 
-        if self.phase == 'WORK':
-            self.resolve_work_phase()
-            self.start_phase('TRADE')
-        elif self.phase == 'TRADE':
-            self._phase_resolver.resolve_trade(self)
-            self.start_phase('NIGHT')
-        elif self.phase == 'NIGHT':
-            self.resolve_night_phase()
-            if self.status == "ENDED":
-                return
-            self.day += 1
-            self.start_phase('WORK')
-
-    def start_phase(self, phase_name):
+    def start_phase(self, phase_name, resolver=None):
+        resolver = resolver or self._phase_resolver
         phase_name = Phase.value_of(phase_name)
         self.phase = phase_name
         self.phase_end_time = self._clock() + self.phase_length
 
         if phase_name == 'WORK':
-            self._phase_resolver.start_day(self)
+            resolver.start_day(self)
 
         for player in self.players.values():
             if player.health == "dead":
-                player.finished_phase = True
+                player.phase_state = PlayerPhaseState.DEAD.value
             else:
-                player.finished_phase = False
+                player.phase_state = PlayerPhaseState.ACTIVE.value
 
             if phase_name == "TRADE":
                 player.last_committed_action = player.committed_action
                 player.committed_action = None
             else:
                 player.committed_action = None
+
+        if phase_name != "WORK":
+            self.phase_intents = {}
 
     def get_time_remaining(self):
         return max(0, int(self.phase_end_time - self._clock()))
@@ -260,6 +264,82 @@ class Game:
         if user_id is None:
             return
         return self._dispatcher.dispatch(self, user_id, data)
+
+    def get_legal_actions(self, player_id):
+        return get_legal_actions(self, player_id)
+
+    def apply_event(self, event):
+        return self._reducer.apply(self, event)
+
+    def apply_events(self, events):
+        return self._reducer.apply_all(self, events)
+
+    @property
+    def developments(self):
+        return self._development_store
+
+    @developments.setter
+    def developments(self, values):
+        self._development_store.clear()
+        for dev_id, development in dict(values).items():
+            self._development_store[dev_id] = development
+
+    def set_intent(self, intent):
+        self.phase_intents[intent.player_id] = intent
+        player = self.players.get(intent.player_id)
+        if player:
+            player.committed_action = intent.committed_action
+            player.submit_phase_intent()
+        return intent
+
+    def get_intent(self, player_id):
+        return self.phase_intents.get(player_id)
+
+    def clear_intent(self, player_id):
+        intent = self.phase_intents.pop(player_id, None)
+        player = self.players.get(player_id)
+        if player:
+            player.committed_action = None
+            player.require_phase_replacement()
+        return intent
+
+    def intents_for_development(self, development_id):
+        return [
+            intent for intent in self.phase_intents.values()
+            if getattr(intent, "development_id", None) == development_id
+        ]
+
+    def invalidate_intents_for_development(self, development_id, reason):
+        invalidated = []
+        for intent in list(self.intents_for_development(development_id)):
+            if intent.__class__.__name__ not in {
+                "WorkIntent",
+                "MaintainIntent",
+                "UpgradeIntent",
+            }:
+                continue
+            invalidated.append(self.clear_intent(intent.player_id))
+            self.notify_player(intent.player_id, {
+                "level": "warning",
+                "reason": reason,
+                "message": "Your chosen work is now under contest. Choose a new action.",
+                "development_id": development_id,
+            })
+        return invalidated
+
+    def notify_player(self, player_id, notification):
+        self._notifications.setdefault(player_id, []).append(notification)
+
+    def notify_village(self, notification):
+        for player_id in self.players:
+            self.notify_player(player_id, notification.copy())
+
+    def drain_notifications(self, player_id):
+        return self._notifications.pop(player_id, [])
+
+    def extend_phase_timer_for_contest(self):
+        extension = getattr(self.rules, "CONTEST_REACTION_SECONDS", 15)
+        self.phase_end_time += extension
 
     def resolve_work_phase(self):
         self._phase_resolver.resolve_work(self)

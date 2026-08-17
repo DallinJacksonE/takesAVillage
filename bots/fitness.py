@@ -165,10 +165,10 @@ def _bundle_total(bundle: dict | None) -> float:
 def _fulfilled_contract_count(actions: list[dict], timeline: list[dict]) -> int:
     completed_actions = sum(
         1 for action in actions
-        if action.get("status") == "COMPLETED"
+        if action.get("status") == "FINALIZED"
     )
     finalized_events = sum(
-        1 for event in _events(timeline, "ACTION_UPDATED_COMPLETED")
+        1 for event in _events(timeline, "ACTION_UPDATED_FINALIZED")
         if (event.get("data", {}) or {}).get("type") in {"TRADE", "EMPLOYMENT"}
     )
     return completed_actions + finalized_events

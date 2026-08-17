@@ -939,7 +939,7 @@ class GeneticBot(BaseBot):
         
         existing_outgoing_trade = any(
             a.get("type") == "TRADE" and a.get("initiator_id") == me.get("id")
-            and a.get("status") in ["PENDING", "NEGOTIATING", "ACCEPTED"]
+            and a.get("status") in ["PENDING", "ACCEPTED"]
             for a in me.get("actions", [])
         )
 

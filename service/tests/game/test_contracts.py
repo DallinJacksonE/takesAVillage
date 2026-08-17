@@ -1,11 +1,20 @@
 from math import nan
 
-from service.game.actions.contracts import (
+from service.game.packet_handling.contracts import (
     CampfireContract,
     EmploymentContract,
     execute_trade,
 )
 from service.game.models.development import Development
+from service.game.state.events import (
+    ContractCreated,
+    ContractExpired,
+    ContractRemoved,
+    ContractUpdated,
+    EmploymentAccepted,
+    PlayerResourcesTransferred,
+    TradeFinalized,
+)
 
 
 def create_contract(game, actor_id, payload):
@@ -18,6 +27,18 @@ def create_contract(game, actor_id, payload):
 def update_contract(game, actor_id, contract, action_command, payload=None):
     data = {"action_id": contract.id, **(payload or {})}
     return game.contract_factory.process_contract(actor_id, data, action_command)
+
+
+def owned_development(game, owner, dev_id="dev-1"):
+    development = Development(
+        dev_id, "Farm", owner.session_id,
+        game.rules.MAX_DEVELOPMENT_LEVEL,
+        game.rules.MAINTENANCE_DAYS,
+        game.rules.RESOURCE_COSTS,
+    )
+    game.developments[development.id] = development
+    owner.developments.append(development.id)
+    return development
 
 
 def test_trade_finalization_swaps_inventory_and_records_history(make_game):
@@ -44,10 +65,16 @@ def test_trade_finalization_swaps_inventory_and_records_history(make_game):
 
     assert created == "CREATED"
     assert accepted == "UPDATED_ACCEPTED"
-    assert completed == "UPDATED_COMPLETED"
+    assert completed == "UPDATED_FINALIZED"
     assert executed is True
     assert first.resources == {"food": 1, "wood": 1, "iron": 0}
     assert second.resources == {"food": 2, "wood": 1, "iron": 0}
+    assert game.domain_events[-2:] == [
+        PlayerResourcesTransferred(
+            first.session_id, second.session_id, {"food": 2}),
+        PlayerResourcesTransferred(
+            second.session_id, first.session_id, {"wood": 1}),
+    ]
     assert first.trade_history[0]["actual_sent"] == {"food": 2}
     assert second.trade_history[0]["actual_received"] == {"food": 2}
 
@@ -72,6 +99,8 @@ def test_trade_execution_caps_actual_items_to_available_inventory(make_game):
 
     assert first.resources["food"] == 0
     assert second.resources["food"] == 1
+    assert game.domain_events[-1] == PlayerResourcesTransferred(
+        first.session_id, second.session_id, {"food": 1})
     assert first.trade_history[0]["actual_sent"] == {"food": 1}
     assert second.trade_history[0]["actual_received"] == {"food": 1}
 
@@ -88,7 +117,7 @@ def test_trade_rejects_negative_actual_amounts_without_mutating_inventory(make_g
         "offer_items": {"food": 1},
         "request_items": {},
     })
-    trade.status = "COMPLETED"
+    trade.status = "FINALIZED"
     trade.actual_offer_items = {"food": -2}
     trade.actual_request_items = {}
 
@@ -136,9 +165,14 @@ def test_deceptive_trade_finalization_increments_lie_count(make_game):
     update_contract(game, second.session_id, trade, "FINALIZE", {"actual_items": {}})
 
     assert game.lie_count == {first.session_id: 1}
+    assert game.domain_events[-2] == TradeFinalized(
+        trade.id,
+        initiator_lied=True,
+        target_lied=False,
+    )
 
 
-def test_employment_acceptance_assigns_worker_and_available_job(make_game):
+def test_employment_acceptance_projects_available_job_without_worker_binding(make_game):
     game = make_game()
     employer = game.players["player-1"]
     worker = game.players["player-2"]
@@ -162,9 +196,20 @@ def test_employment_acceptance_assigns_worker_and_available_job(make_game):
 
     assert status == "UPDATED_ACCEPTED"
     assert accepted.status == "ACCEPTED"
-    assert development.worker_id == worker.session_id
+    assert getattr(development, "worker_id", None) is None
     assert worker.available_work[0]["development"]["id"] == development.id
     assert worker.available_work[0]["wage"] == 2
+    assert game.domain_events[-2:] == [
+        ContractUpdated(accepted),
+        EmploymentAccepted(
+            contract.id,
+            employer.session_id,
+            worker.session_id,
+            development.id,
+            2,
+            "food",
+        ),
+    ]
 
 
 def test_employment_creation_rejects_development_owned_by_another_player(make_game):
@@ -256,7 +301,7 @@ def test_campfire_acceptance_rejects_full_fire_without_mutation(make_game):
     assert len(host.fire_guests) == game.max_fire_seats
 
 
-def test_barter_and_cancel_update_existing_trade_contract(make_game):
+def test_barter_denies_original_and_creates_counter_trade(make_game):
     game = make_game()
     first = game.players["player-1"]
     second = game.players["player-2"]
@@ -267,18 +312,106 @@ def test_barter_and_cancel_update_existing_trade_contract(make_game):
         "request_items": {"wood": 1},
     })
 
-    bartered, trade = update_contract(
+    bartered, counter = update_contract(
         game, second.session_id, trade, "BARTER",
         {"offer_items": {"food": 2}, "request_items": {}},
     )
+
+    assert bartered == "CREATED"
+    trade = game.contract_factory.find_contract(trade.id)
+    assert trade.status == "DENIED"
+    assert counter.id != trade.id
+    assert counter.initiator_id == second.session_id
+    assert counter.target_id == first.session_id
+    assert counter.offer_items == {"food": 2}
+    assert counter.request_items == {}
+
+
+def test_cancel_denies_pending_contract(make_game):
+    game = make_game()
+    first = game.players["player-1"]
+    second = game.players["player-2"]
+    _created, trade = create_contract(game, first.session_id, {
+        "type": "TRADE",
+        "target_id": second.session_id,
+        "offer_items": {"food": 1},
+        "request_items": {"wood": 1},
+    })
+
     cancelled, trade = update_contract(
         game, first.session_id, trade, "CANCEL",
     )
 
-    assert bartered == "UPDATED_PENDING"
-    assert trade.offer_items == {"food": 2}
-    assert cancelled == "UPDATED_CANCELED"
-    assert trade.status == "CANCELED"
+    assert cancelled == "UPDATED_DENIED"
+    assert trade.status == "DENIED"
+
+
+def test_contract_updates_are_recorded_as_domain_events(make_game):
+    game = make_game()
+    first = game.players["player-1"]
+    second = game.players["player-2"]
+    _created, trade = create_contract(game, first.session_id, {
+        "type": "TRADE",
+        "target_id": second.session_id,
+        "offer_items": {"food": 1},
+        "request_items": {},
+    })
+
+    accepted_status, accepted_trade = update_contract(
+        game, second.session_id, trade, "ACCEPT")
+
+    event = game.domain_events[-1]
+    assert accepted_status == "UPDATED_ACCEPTED"
+    assert event == ContractUpdated(accepted_trade)
+    assert first.actions[trade.id] is accepted_trade
+    assert second.actions[trade.id] is accepted_trade
+
+
+def test_contract_creation_is_applied_by_state_event(make_game):
+    game = make_game()
+    first = game.players["player-1"]
+    second = game.players["player-2"]
+
+    status, trade = create_contract(game, first.session_id, {
+        "type": "TRADE",
+        "target_id": second.session_id,
+        "offer_items": {"food": 1},
+        "request_items": {},
+    })
+
+    assert status == "CREATED"
+    assert game.domain_events[-1] == ContractCreated(trade)
+    assert first.actions[trade.id] is trade
+    assert second.actions[trade.id] is trade
+
+
+def test_contract_cleanup_removes_and_expires_through_state_events(make_game):
+    game = make_game()
+    first = game.players["player-1"]
+    second = game.players["player-2"]
+    _created_trade, trade = create_contract(game, first.session_id, {
+        "type": "TRADE",
+        "target_id": second.session_id,
+        "offer_items": {"food": 1},
+        "request_items": {},
+    })
+    development = owned_development(game, first)
+    _created_employment, employment = create_contract(game, first.session_id, {
+        "type": "EMPLOYMENT",
+        "target_id": second.session_id,
+        "dev_id": development.id,
+        "wage": 1,
+        "wage_type": "food",
+    })
+
+    game.contract_factory.cleanup_end_of_phase()
+
+    assert trade.status == "EXPIRED"
+    assert trade.waiting_on_id is None
+    assert employment.id not in first.actions
+    assert employment.id not in second.actions
+    assert ContractExpired(trade.id) in game.domain_events
+    assert ContractRemoved(employment.id) in game.domain_events
 
 
 def test_contract_rejects_non_party_and_wrong_turn_updates(make_game):

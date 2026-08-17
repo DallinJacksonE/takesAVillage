@@ -2,6 +2,12 @@ import time
 import uuid
 import random
 
+from service.game.state.health import next_sickness_chance, transition_health
+from service.game.state.player_phase import (
+    LOCKED_PHASE_STATES,
+    PlayerPhaseState,
+)
+
 
 class Player:
     def __init__(self, session_id, name, starting_resources, sickness_chance):
@@ -23,10 +29,36 @@ class Player:
         self.fire_status = "COLD"  # COLD, HOST, GUEST
         self.fire_guests = []
         self.available_work = []
-        self.finished_phase = False
+        self.phase_state = PlayerPhaseState.ACTIVE.value
         self.committed_action = None
         self.last_committed_action = None
         self.trade_count = 0
+
+    @property
+    def finished_phase(self):
+        return self.phase_state in LOCKED_PHASE_STATES
+
+    @finished_phase.setter
+    def finished_phase(self, is_finished):
+        if self.phase_state == PlayerPhaseState.DEAD.value:
+            return
+        self.phase_state = (
+            PlayerPhaseState.RESOLVED.value
+            if is_finished
+            else PlayerPhaseState.ACTIVE.value
+        )
+
+    def submit_phase_intent(self):
+        if self.phase_state != PlayerPhaseState.DEAD.value:
+            self.phase_state = PlayerPhaseState.INTENT_SUBMITTED.value
+
+    def require_phase_replacement(self):
+        if self.phase_state != PlayerPhaseState.DEAD.value:
+            self.phase_state = PlayerPhaseState.NEEDS_REPLACEMENT.value
+
+    def resolve_phase(self):
+        if self.phase_state != PlayerPhaseState.DEAD.value:
+            self.phase_state = PlayerPhaseState.RESOLVED.value
 
     def add_timeline_event(self, event_type, data):
         """
@@ -42,45 +74,17 @@ class Player:
 
     def update_sickness_chance(self, ate: bool, warm: bool, sickness_rules):
 
-        if self.sickness_chance is None:
-            self.sickness_chance = sickness_rules["default"]
-        if not ate:
-            self.sickness_chance += sickness_rules["hunger_increase"]
-        if not warm:
-            self.sickness_chance += sickness_rules["cold_increase"]
-
-        # Recovery only happens with both eating and warm
-        if warm and ate:
-            self.sickness_chance = max(
-                sickness_rules["default"],
-                self.sickness_chance - sickness_rules["recovery"])
+        self.sickness_chance = next_sickness_chance(
+            self.sickness_chance, ate, warm, sickness_rules)
 
     def update_health(self, ate: bool, warm: bool,
                   check: float, sickness_rules):
 
-        self.update_sickness_chance(ate, warm, sickness_rules)
-
-        if self.health == "dead":
-            return "dead"
-
-        # Recovery path first
-        if ate and warm:
-            if self.health == "sick":
-                return "recovering"
-
-            elif self.health == "recovering":
-                self.sickness_chance = sickness_rules["default"]
-                return "healthy"
-
-        # Normal sickness checks
-        if check < self.sickness_chance:
-            if self.health == "sick":
-                return "dead"
-            else:
-                return "sick"
-
-        # No sickness roll triggered
-        return self.health
+        result = transition_health(
+            self.health, self.sickness_chance, ate, warm, check,
+            sickness_rules)
+        self.sickness_chance = result.sickness_chance
+        return result.health
 
     def consume_daily(self, sickness_rules):
         """Logic for nightly consumption and sickness calculation."""
@@ -116,9 +120,9 @@ class Player:
 
     def reset_phase(self):
         if self.health != "dead":
-            self.finished_phase = False
+            self.phase_state = PlayerPhaseState.ACTIVE.value
         else:
-            self.finished_phase = True
+            self.phase_state = PlayerPhaseState.DEAD.value
         self.fire_guests = []
 
     def to_dict(self) -> dict:
@@ -147,6 +151,7 @@ class Player:
             ],
             "timeline": self.timeline,
             "finished_phase": self.finished_phase,
+            "phase_state": self.phase_state,
 
             "available_work": [
                 w.to_dict() if hasattr(w, 'to_dict') else w

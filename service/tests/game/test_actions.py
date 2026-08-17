@@ -1,11 +1,20 @@
-from service.game.actions.base import FinishPhaseCommand
-from service.game.actions.campfire import StartFireCommand
-from service.game.actions.development import (
+from service.game.packet_handling.base import FinishPhaseCommand
+from service.game.packet_handling.campfire import StartFireCommand
+from service.game.packet_handling.development import (
     MaintainDevelopmentCommand,
     UpgradeDevelopmentCommand,
 )
+from service.game.packet_handling.work import resolve_work_phase
 from service.game.models.development import Development
 from service.game.models.map import MapTile
+from service.game.state.events import (
+    DevelopmentBuilt,
+    DevelopmentMaintained,
+    DevelopmentUpgraded,
+    FireStarted,
+    PlayerResourcesSpent,
+)
+from service.game.state.intents import MaintainIntent
 
 
 def make_development(game, owner_id="player-1", dev_id="dev-1", dev_type="Farm"):
@@ -43,6 +52,30 @@ def test_build_action_deducts_cost_and_assigns_development(make_game):
     assert player.finished_phase is True
 
 
+def test_build_action_records_authoritative_domain_events(make_game):
+    game = make_game()
+    game.start_game()
+    player = game.players["player-1"]
+    tile = MapTile("farm-tile", 0, 0, "Farm")
+    game.map_data = {tile.id: tile}
+
+    accepted = game.handle_action("player-1", {
+        "action_command": "BUILD_DEV",
+        "payload": {"tile_id": tile.id},
+    })
+
+    assert accepted is True
+    assert game.domain_events[-3:-1] == [
+        PlayerResourcesSpent(player.session_id, {"wood": 2}),
+        DevelopmentBuilt(
+            tile.development.id,
+            tile.id,
+            player.session_id,
+            "Farm",
+        ),
+    ]
+
+
 def test_build_action_rejects_occupied_tile_without_spending_resources(make_game):
     game = make_game()
     game.start_game()
@@ -73,15 +106,70 @@ def test_maintenance_and_upgrade_apply_dynamic_costs(make_game):
     maintained = MaintainDevelopmentCommand(player.session_id, {
         "dev_id": development.id
     }).execute(game, player)
+    assert maintained is True
+    assert development.maintenance_days == 1
+    assert isinstance(game.get_intent(player.session_id), MaintainIntent)
+
+    resolve_work_phase(game)
+    assert development.maintenance_days == game.rules.MAINTENANCE_DAYS
+
+    development.maintenance_days = 1
     previous_level = development.level
     upgraded = UpgradeDevelopmentCommand(player.session_id, {
         "dev_id": development.id
     }).execute(game, player)
 
-    assert maintained is True
-    assert development.maintenance_days == game.rules.MAINTENANCE_DAYS
     assert upgraded is True
+    assert development.level == previous_level
+    assert game.get_intent(player.session_id).development_id == development.id
+
+    resolve_work_phase(game)
+
     assert development.level == previous_level + 1
+
+
+def test_maintenance_resolution_records_authoritative_domain_events(make_game):
+    game = make_game()
+    game.phase = "WORK"
+    player = game.players["player-1"]
+    player.resources = {"food": 20, "wood": 20, "iron": 20}
+    development = make_development(game)
+    development.maintenance_days = 1
+
+    accepted = MaintainDevelopmentCommand(player.session_id, {
+        "dev_id": development.id,
+    }).execute(game, player)
+
+    assert accepted is True
+    assert game.domain_events == []
+
+    resolve_work_phase(game)
+
+    assert game.domain_events[-2:] == [
+        PlayerResourcesSpent(
+            player.session_id, development.get_maintenance_cost()),
+        DevelopmentMaintained(development.id),
+    ]
+
+
+def test_upgrade_resolution_records_authoritative_domain_events(make_game):
+    game = make_game()
+    game.phase = "WORK"
+    player = game.players["player-1"]
+    player.resources = {"food": 20, "wood": 20, "iron": 20}
+    development = make_development(game)
+    upgrade_cost = development.get_upgrade_cost()
+
+    accepted = UpgradeDevelopmentCommand(player.session_id, {
+        "dev_id": development.id,
+    }).execute(game, player)
+    resolve_work_phase(game)
+
+    assert accepted is True
+    assert game.domain_events[-2:] == [
+        PlayerResourcesSpent(player.session_id, upgrade_cost),
+        DevelopmentUpgraded(development.id),
+    ]
 
 
 def test_maintenance_and_upgrade_require_work_phase_and_owner(make_game):
@@ -120,6 +208,10 @@ def test_upgrade_uses_ruleset_maximum(make_game):
     }).execute(game, owner)
 
     assert accepted is True
+    assert development.level == 3
+
+    resolve_work_phase(game)
+
     assert development.level == 4
 
 
@@ -147,6 +239,20 @@ def test_start_fire_requires_night_and_consumes_wood(make_game):
     assert accepted is True
     assert player.fire_status == "HOST"
     assert player.resources["wood"] == starting_wood - 1
+
+
+def test_start_fire_records_authoritative_domain_events(make_game):
+    game = make_game()
+    game.phase = "NIGHT"
+    player = game.players["player-1"]
+
+    accepted = StartFireCommand(player.session_id, {}).execute(game, player)
+
+    assert accepted is True
+    assert game.domain_events[-2:] == [
+        PlayerResourcesSpent(player.session_id, {"wood": 1}),
+        FireStarted(player.session_id),
+    ]
 
 
 def test_finish_phase_marks_player_finished(make_game):
