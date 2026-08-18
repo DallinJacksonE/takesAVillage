@@ -1,0 +1,41 @@
+.sprite {
+  width: calc(var(--frame-width) * 1px);
+  height: calc(var(--frame-height) * 1px);
+  overflow: hidden;
+  image-rendering: pixelated;
+  transform: scale(var(--sprite-scale)) scaleX(var(--sprite-direction));
+  transform-origin: center bottom;
+}
+
+.frameStrip {
+  width: 100%;
+  height: 100%;
+  background-image: var(--sprite-src);
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: auto 100%;
+  animation-name: spriteStep;
+  animation-duration: var(--animation-duration);
+  animation-timing-function: steps(var(--frame-count));
+  animation-iteration-count: infinite;
+}
+
+.paused .frameStrip {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frameStrip {
+    animation: none;
+  }
+}
+
+@keyframes spriteStep {
+  from {
+    background-position-x: 0;
+  }
+
+  to {
+    background-position-x: calc(var(--frame-width) * var(--frame-count) * -1px);
+  }
+}

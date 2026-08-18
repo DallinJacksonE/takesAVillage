@@ -20,6 +20,8 @@ import { PlayerColorProvider } from "../components/hooks/usePlayerColor";
 import PlayerInfo from "../components/gameplay/playerInfo/PlayerInfo";
 import { GameStateProvider } from "../components/hooks/useGameState";
 import styles from "./Gameplay.module.css";
+import PlayerSprite from "../components/gameplay/player/PlayerSprite";
+import { goblinPlayerSprites } from "../components/gameplay/player/playerSpriteCatalog";
 
 
 const Gameplay: React.FC = () => {
@@ -258,6 +260,16 @@ const Gameplay: React.FC = () => {
                     : ""}
                 </span>
               </h2>
+
+              <div className={styles.playerSpritePreview}>
+                <PlayerSprite
+                  {...goblinPlayerSprites.idle}
+                  animation="idle"
+                  alt="Idle goblin player"
+                  scale={1.5}
+                />
+                <span className={styles.playerSpriteLabel}>Your goblin is idling</span>
+              </div>
 
               <div style={{ fontSize: "1.3rem" }}>
                 <strong>Day {gameState.day}</strong>
