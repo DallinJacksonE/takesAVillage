@@ -1,83 +1,120 @@
 # Takes a Village
 
-Takes a Village is a multiplayer social dilemma game about specialization, societies, and survival. Players must gather resources, build a community, and navigate complex social interactions to thrive.
+Takes a Village is a multiplayer social-dilemma game about specialization,
+cooperation, negotiation, deception, and survival. Players gather resources,
+build developments, trade with each other, hire workers, contest ownership, and
+try to keep their village alive through repeated day/night cycles.
 
-## Game Overview
+The codebase is intentionally split into small services so students can learn
+how a browser game, an API, autonomous bots, WebSockets, Docker, and MySQL fit
+together in a real project.
 
-Welcome to the Village. You spawn in an undeveloped area with raw resources. Your goal is to survive the longest and build the most prosperous village. To do this, you must manage your resources, your developments, and your social relationships with other players.
+## Game loop
 
-Each day in the game is divided into three distinct phases:
+Each in-game day moves through an explicit finite state machine (FSM):
 
-### 1. Work Phase
+1. `WORK` — players build, maintain, upgrade, work developments, or contest a
+   development.
+2. `TRADE` — players negotiate, accept/deny/counter contracts, and finalize
+   trades or wages.
+3. `NIGHT` — players eat food, stay warm by starting or joining fires, and may
+   become sick, recover, or die.
 
-This is the production phase. Players can:
+The backend owns the authoritative game state. The frontend sends player
+commands over WebSocket; backend command handlers validate them and emit domain
+events; reducers apply those events to the game state.
 
-- **Gather Resources:** Work at developments to produce essential resources like food and wood.
-- **Build & Upgrade:** Construct new developments on the map or upgrade existing ones to increase their output.
-- **Offer Employment:** Hire other players to work at your developments in exchange for wages.
-- **Initiate Conflict:** Attempt to seize a development from another player, leading to a multi-day conflict that other players can join.
+## Services
 
-### 2. Trade Phase
+- `frontend/` — React, TypeScript, Vite, and an Express production server. The
+  React app uses Model-View-Presenter (MVP): views render UI, presenters handle
+  user intent, and service classes talk to HTTP/WebSocket endpoints.
+- `service/` — FastAPI backend. It owns API routes, WebSocket routing, active
+  game lifecycle, FSM/reducer game logic, persistence, research tooling, and bot
+  orchestration hooks.
+- `bots/` — FastAPI bot service plus autonomous bot models. Bots join games over
+  HTTP, then play over the same WebSocket protocol as people.
+- `db` Docker service — MySQL 8.0 for persisted users, finished games, research
+  snapshots, training batches, visualizations, and genomes.
 
-This phase is all about negotiation and exchange. Players can:
+In Docker, browser traffic enters the frontend container first. The Express
+server serves the compiled React app and proxies `/api` and `/ws` to the backend
+container.
 
-- **Pay Employees:** Employers distribute wages to players who worked for them. However, employers can choose to pay less than what was agreed upon, introducing an element of deception.
-- **Trade Resources:** Freely trade resources with other players. Similar to employment, players can lie during a trade, promising one set of items but sending another.
-- **Barter:** Negotiate the terms of employment offers and trades.
+```text
+browser
+  -> frontend container on :4999
+      -> static React files from frontend/dist
+      -> /api proxy to backend:5000
+      -> /ws proxy to backend:5000/ws
+  -> backend container
+      -> MySQL db container
+      -> bots container for bot spawning/training
+```
 
-### 3. Night Phase
+## Getting started with Docker
 
-The survival phase. At the end of each day, players must:
-
-- **Eat:** Consume one unit of food. Failing to eat will impact your health.
-- **Stay Warm:** Consume one unit of wood to build a fire. Players can invite others to share their fire, saving resources. Failing to stay warm increases the chance of sickness, which prevents you from working the next day.
-
-## Technical Overview
-
-This project is composed of two main parts:
-
-- **Frontend**: A React application built with TypeScript that serves as the game client. It uses a Model-View-Presenter (MVP) architecture for a clean separation of concerns.
-- **Backend**: A FastAPI service that manages game logic, WebSocket communication, and persistence through memory or MySQL providers.
-- **Bots**: A separate FastAPI service that launches autonomous players and training workloads.
-
-## Getting Started
-
-To run the project, you will need to set up both the frontend and the backend services. Detailed instructions for each part can be found in their respective directories:
-
-- **For the frontend application, see: [`frontend/README.md`](/frontend/README.md)**
-- **For the backend service, see: [`service/README.md`](/service/README.md)**
-
-## Docker Deployment
+Docker Compose is the easiest way to run the whole stack.
 
 ```bash
 cp .env.example .env
-# Replace the placeholder BOT_SECRET with a long, random value shared only by
-# the backend and bot service.
-sudo docker compose up --build
+# Edit BOT_SECRET in .env. Generate one with:
+# python3 -c 'import secrets; print(secrets.token_urlsafe(48))'
+
+docker compose up --build
 ```
 
-## Development
+Default local ports:
 
-- [x] Build DTOs for network transfer
-- [x] Fix gameplay bugs
-  - [x] Fix bartering by removing it and having the barter button just change the trade offer to a trade offer from the original recipeint to the original sender
-  - [x] UI fixes
-  - [x] add ability to seize an opponent's development, cancelling all previous work commitments and starting a seize commitment
-- [x] Add ending to game
-- [x] Store finished game in server sql table
-- [x] Build bot server
-  - [ ] A docker container with **n** processes that play as bots connecting to a certain game id passed as container ENV variable
-  - [ ] Premliminary bots: always cooperate, always lie, genetic bot for training
-  - [ ] set up autonomous training where bot server connects to game service and can start a training game of just bots, stored in separate training sql table of data lite objects
-  - [ ] Train genetic bot on 100,000 games of 8 other bots, mutating genes to favor richest bot material wise
-  - [ ] Train genetic bot on 100,000 games of 8 other bots, favoring richest social bot
+- frontend: http://localhost:4999
+- backend API: http://localhost:5000
+- bot service: http://localhost:8001
+- MySQL: localhost:3308
 
-## TODOs
+## Local development
 
-- [x] Counter offer bug (needs to update offer waiting on status)
-- [x] Fire hosting bug where people accept but their state stays cold
-- [x] Same name bug
-- [x] Sickness chance uses values from constants
-- [x] Death mechanics
-- [ ] Death screen
-- [ ] Hiring bug
+Backend:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements-dev.txt
+DB_TYPE=memory python3 -m uvicorn service.main:app --reload --port 5000
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The Vite development server runs at http://localhost:5173. The production Docker
+frontend uses `frontend/server.js` instead, because that server also proxies API
+and WebSocket traffic inside the Docker network.
+
+## Testing
+
+Python backend and bot tests use pytest:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -q
+python3 -m compileall -q service bots
+```
+
+Frontend tests use Jest and React Testing Library:
+
+```bash
+cd frontend
+npm test
+npm run build
+```
+
+## Where to learn more
+
+- `ONBOARDING.md` — a beginner-friendly guide to the full stack, with chapters
+  on MVP, Docker, git, GitHub Actions, testing, FSMs, WebSockets, and MySQL.
+- `frontend/README.md` — frontend setup and MVP architecture.
+- `service/README.md` — backend setup, package responsibilities, and FSM/reducer
+  architecture.
