@@ -34,6 +34,7 @@ class EventGame:
         self.actions = []
         self.created_chats = []
         self.notifications = {}
+        self.night_acks = []
 
     def start_game(self):
         self.status = "RUNNING"
@@ -61,6 +62,10 @@ class EventGame:
     def create_chat(self, user_id, name, member_ids):
         self.created_chats.append((user_id, name, member_ids))
         return object()
+
+    def acknowledge_night_transition(self, user_id, transition_id):
+        self.night_acks.append((user_id, transition_id))
+        return True
 
 
 def run_event(event, payload, manager, user_id="host", game=None):
@@ -186,3 +191,20 @@ def test_connection_manager_disconnect_removes_only_target_connection():
     manager.disconnect(first, "game-1", "first")
 
     assert manager.active_connections == {"game-1": {"second": second}}
+
+
+def test_night_animation_acknowledgement_advances_and_broadcasts_state():
+    manager = RecordingManager()
+    game = EventGame()
+    game.status = "RUNNING"
+
+    run_event(
+        "night_animation_complete",
+        {"transition_id": "night-1"},
+        manager,
+        "player",
+        game,
+    )
+
+    assert game.night_acks == [("player", "night-1")]
+    assert manager.states == [("game-1", game)]

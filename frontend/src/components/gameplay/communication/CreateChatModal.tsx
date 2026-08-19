@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { PlayerDTO } from "../../../dtos/index";
+import { PublicPlayerDTO } from "../../../dtos/index";
 
 import styles from "./CreateChatModal.module.css";
 interface Props {
-  players: PlayerDTO[];
+  players: PublicPlayerDTO[];
   playerId: string;
   onCreateChat: (name: string, memberIds: string[]) => void;
   onClose: () => void;

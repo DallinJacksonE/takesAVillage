@@ -77,3 +77,40 @@ def test_training_completion_does_not_block_other_game_ticks():
         await asyncio.gather(*loop._training_tasks)
 
     asyncio.run(scenario())
+
+
+def test_timer_phase_transition_delivers_queued_player_notifications():
+    registry = GameRegistry()
+    game = SimpleNamespace(
+        id="game-1",
+        status="RUNNING",
+        players={"player-1": object()},
+        check_timer=lambda: True,
+        drain_notifications=lambda _player_id: [{
+                "level": "warning",
+                "reason": "health_transition",
+                "message": "You became sick during the night.",
+        }],
+    )
+    registry.add(game.id, game)
+    personal = []
+
+    async def send_personal(message, game_id, player_id):
+        personal.append((message, game_id, player_id))
+
+    broadcaster = SimpleNamespace(
+        broadcast_game_state=lambda *_args: None,
+        send_personal_message=send_personal,
+    )
+    loop = GameLoop(registry, lambda _game: None, broadcaster)
+
+    asyncio.run(loop.tick_once())
+
+    assert personal == [({
+        "event": "game_notification",
+        "data": {
+            "level": "warning",
+            "reason": "health_transition",
+            "message": "You became sick during the night.",
+        },
+    }, "game-1", "player-1")]

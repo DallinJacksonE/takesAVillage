@@ -171,6 +171,9 @@ export class GameplayService {
   public requestUpdate(gameId: string, userId: string) { this.emit("request_update", { gameId, userId }); }
   public sendChat(gameId: string, userId: string, content: string, toId: string) { this.emit("send_chat", { gameId, userId, content, to_id: toId }); }
   public submitAction(payload: GameActionPayload) { this.emit("submit_action", payload); }
+  public acknowledgeNightAnimation(transitionId: string) {
+    this.emit("night_animation_complete", { transition_id: transitionId });
+  }
 
   public destroy() {
     this.isIntentionalDisconnect = true;

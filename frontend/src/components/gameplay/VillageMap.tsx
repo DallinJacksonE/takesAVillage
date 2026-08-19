@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useEffect, useRef } from "react";
-import { MapTileDTO, DevelopmentCostsDict } from "../../dtos/index";
+import { MapTileDTO, DevelopmentCostsDict, Phase, PublicPlayerDTO } from "../../dtos/index";
 import { usePlayerName } from "../hooks/usePlayerName";
 import PlayerInfo from "./playerInfo/PlayerInfo";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -12,14 +12,20 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { usePlayerColors } from "../hooks/usePlayerColor";
 import styles from "./VillageMap.module.css";
+import { axialToIsometric, getPlayerMapPosition, getTradeGroupOffset } from "./mapGeometry";
+import MapPlayerActor from "./player/MapPlayerActor";
+import { getPhaseScene } from "./phaseScene";
 interface Props {
   mapData: MapTileDTO[];
   onBuild: (tileId: string) => void;
   playerId: string;
   development_costs: DevelopmentCostsDict;
+  players: PublicPlayerDTO[];
+  phase: Phase;
+  onReact?: (emoji: "👍" | "❤️" | "😂" | "😠") => void;
 }
 
-const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_costs }) => {
+const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_costs, players, phase, onReact }) => {
   const [selectedTile, setSelectedTile] = useState<MapTileDTO | null>(null);
   const getPlayerNameFromHook = usePlayerName();
   const { getPlayerColor } = usePlayerColors();
@@ -27,6 +33,16 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [scale, setScale] = useState(1);
+  const scene = getPhaseScene(phase);
+  const tradeIds = players.flatMap((player) => (
+    player.visual_state.location.kind === "TRADE"
+      ? [player.visual_state.location.id]
+      : []
+  ));
+  const fireHosts = players.filter((player) => (
+    player.visual_state.location.kind === "FIRE"
+    && player.visual_state.location.slot === 0
+  ));
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -52,18 +68,16 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
   const pointyClipPath = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
 
   const hexToPixel = (q: number, r: number) => {
-    const x = HEX_SIZE * Math.sqrt(3) * (q + r / 2);
-    const y = HEX_SIZE * (3 / 2) * r;
-    return { x, y };
+    return axialToIsometric(q, r, HEX_SIZE);
   };
 
   // --- Styling Helpers ---
 
-  const woodsBackground: string = "#184E24";
-  const farmBackground = "#AF9631";
-  const mineBackground = "#4E5355";
-  const openBorder = "#F7F3E3";
-  const myBorder = "#53CA6D";
+  const woodsBackground: string = "#267447";
+  const farmBackground = "#D9AA3F";
+  const mineBackground = "#687783";
+  const openBorder = "#F5E6B8";
+  const myBorder = "#5BE58A";
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -122,6 +136,8 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
     <div
       ref={containerRef}
       className={`card ${styles.mapCard} ${styles.card}`}
+      aria-label={scene.label}
+      data-phase={scene.theme}
       style={{"--card-cursor": isDragging ? "grabbing" : "grab"} as React.CSSProperties}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -142,12 +158,13 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
           transformOrigin: "center center",
         }}
       >
-        {Object.values(mapData).map((tile) => {
+        {scene.showAxialMap && Object.values(mapData).map((tile) => {
           const { x, y } = hexToPixel(tile.q, tile.r);
           const isSelected = selectedTile?.id === tile.id;
 
           return (
             <div
+              className={styles.hexTile}
               key={tile.id}
               onClick={(e) => {
                 e.stopPropagation();
@@ -168,6 +185,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
               }}
             >
               <div
+                className={styles.hexCore}
                 style={{
                   position: "absolute",
                   top: "4px", left: "4px", right: "4px", bottom: "4px",
@@ -184,6 +202,58 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
                   {getTileContents(tile.type, tile.development?.owner_id || "")}</span>
               </div>
             </div>
+          );
+        })}
+
+        {!scene.showAxialMap && (
+          <div className={styles.sceneTitle}>{scene.label}</div>
+        )}
+
+        {phase === "NIGHT" && fireHosts.map((host) => {
+          const position = getPlayerMapPosition(
+            host.visual_state.location,
+            mapData,
+            0,
+            HEX_SIZE,
+          );
+          return (
+            <div
+              aria-label={`Campfire hosted by ${getPlayerNameFromHook(host.id)}`}
+              className={styles.campfire}
+              key={`fire-${host.id}`}
+              role="img"
+              style={{ left: position.x, top: position.y + 34 }}
+            >
+              🔥
+            </div>
+          );
+        })}
+
+        {players.map((player, index) => {
+          const position = getPlayerMapPosition(
+            player.visual_state.location,
+            mapData,
+            index,
+            HEX_SIZE,
+          );
+          const tradeOffset = player.visual_state.location.kind === "TRADE"
+            ? getTradeGroupOffset(player.visual_state.location.id, tradeIds)
+            : { x: 0, y: 0 };
+          const locationKey = JSON.stringify(player.visual_state.location);
+          const locationPeers = players.slice(0, index).filter(
+            (candidate) => JSON.stringify(candidate.visual_state.location) === locationKey,
+          ).length;
+
+          return (
+            <MapPlayerActor
+              color={getPlayerColor(player.id)}
+              key={player.id}
+              isLocal={player.id === playerId}
+              onReact={player.id === playerId ? onReact : undefined}
+              player={player}
+              x={position.x + tradeOffset.x + locationPeers * 24}
+              y={position.y + tradeOffset.y + locationPeers * 8}
+            />
           );
         })}
 

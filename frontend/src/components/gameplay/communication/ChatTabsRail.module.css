@@ -18,10 +18,10 @@
 }
 
 .column {
-  width: 150px;
+  width: clamp(170px, 42%, 220px);
   flex-shrink: 0;
   border-left: 1px solid var(--border-soft);
-  background: var(--border-muted);
+  background: linear-gradient(180deg, #edf3fb, #dde6f3);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -59,9 +59,9 @@
 }
 
 .text2 {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .tab {
@@ -77,11 +77,18 @@
   gap: 8px;
   text-align: left;
   color: var(--text-dark);
+  line-height: 1.25;
+}
+
+.tab:hover {
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .tabActive {
   border-left-color: var(--info-light);
-  background: var(--surface);
+  background: #fffaf0;
+  color: #1f4775;
+  box-shadow: inset 0 0 0 1px rgba(49, 105, 168, 0.12);
 }
 
 @media (max-width: 1420px) {
@@ -90,7 +97,7 @@
   }
 
   .columnExpanded {
-    width: clamp(220px, 45%, 320px);
+    width: clamp(165px, 40%, 190px);
   }
 
   .toggleButton {

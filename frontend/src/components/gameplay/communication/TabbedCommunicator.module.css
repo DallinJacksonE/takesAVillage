@@ -1,9 +1,12 @@
 .row {
   display: flex;
   flex-direction: row;
-  height: 100%;
+  flex: 1;
+  height: auto;
   min-height: 337px;
-  max-height: 337px;
   padding: 0;
   overflow: hidden;
+  border: 1px solid rgba(70, 102, 150, 0.35);
+  background: linear-gradient(145deg, #f9fbff, #e8eef8);
+  box-shadow: 0 10px 24px rgba(10, 28, 55, 0.22);
 }

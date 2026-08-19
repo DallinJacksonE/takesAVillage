@@ -26,6 +26,19 @@ class GameLoop:
         self._completing: set[str] = set()
         self._training_tasks: set[asyncio.Task] = set()
 
+    async def _send_queued_notifications(self, game: Any) -> None:
+        sender = getattr(self.broadcaster, "send_personal_message", None)
+        if sender is None or not hasattr(game, "drain_notifications"):
+            return
+        for player_id in list(getattr(game, "players", {})):
+            for notification in game.drain_notifications(player_id):
+                result = sender({
+                    "event": "game_notification",
+                    "data": notification,
+                }, game.id, player_id)
+                if inspect.isawaitable(result):
+                    await result
+
     async def _notify_training(self, game_id: str, session_id: str) -> None:
         callback = self.training_completion_callback
         if callback is None:
@@ -44,6 +57,7 @@ class GameLoop:
                         result = self.broadcaster.broadcast_game_state(game.id, game)
                         if inspect.isawaitable(result):
                             await result
+                        await self._send_queued_notifications(game)
                     except Exception as exc:
                         self.logger.error(
                             f"Failed to broadcast game state for {game.id}", exc=exc)

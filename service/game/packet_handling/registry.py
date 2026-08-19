@@ -9,6 +9,7 @@ from service.game.packet_handling.development import (
     UpgradeDevelopmentCommand,
 )
 from service.game.packet_handling.work import CommitWorkCommand
+from service.game.packet_handling.reactions import SetEmojiCommand
 
 
 COMMAND_HANDLERS = {
@@ -19,6 +20,7 @@ COMMAND_HANDLERS = {
     "START_FIRE": StartFireCommand,
     "COMMIT_WORK": CommitWorkCommand,
     "FINISH_PHASE": FinishPhaseCommand,
+    "SET_EMOJI": SetEmojiCommand,
 }
 
 AUTO_FINISH_COMMANDS = {
@@ -36,4 +38,5 @@ PHASE_LOCK_ALLOWED_COMMANDS = {
     "BARTER",
     "FINALIZE",
     "CONTEST_DEV",
+    "SET_EMOJI",
 }

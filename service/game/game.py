@@ -98,6 +98,7 @@ class Game:
         self.phase_intents = {}
         self._notifications = {}
         self.domain_events = []
+        self.night_transition = None
 
         self.add_player_hist = add_player_hist
         self.add_map_hist = add_map_hist
@@ -165,6 +166,43 @@ class Game:
             return True
         return False
 
+    def begin_night_transition(self, visuals, timeout_seconds=5):
+        affected_player_ids = sorted(visuals)
+        if not affected_player_ids or self.training:
+            return None
+        self.night_transition = {
+            "id": str(uuid.uuid4()),
+            "deadline": self._clock() + timeout_seconds,
+            "affected_player_ids": affected_player_ids,
+            "acknowledged_player_ids": set(),
+            "visuals": visuals,
+        }
+        self.phase_end_time = self.night_transition["deadline"]
+        return self.night_transition
+
+    def night_transition_ready(self):
+        transition = self.night_transition
+        if not transition:
+            return True
+        return (
+            set(transition["affected_player_ids"])
+            <= transition["acknowledged_player_ids"]
+            or self._clock() >= transition["deadline"]
+        )
+
+    def acknowledge_night_transition(self, player_id, transition_id):
+        transition = self.night_transition
+        if (
+            not transition
+            or transition["id"] != transition_id
+            or player_id not in transition["affected_player_ids"]
+        ):
+            return False
+        transition["acknowledged_player_ids"].add(player_id)
+        if self.night_transition_ready():
+            self.next_phase()
+        return True
+
     def check_all_players_locked(self):
         if self.status == "WAITING":
             return False
@@ -184,6 +222,9 @@ class Game:
         phase_name = Phase.value_of(phase_name)
         self.phase = phase_name
         self.phase_end_time = self._clock() + self.phase_length
+
+        if phase_name != "NIGHT":
+            self.night_transition = None
 
         if phase_name == 'WORK':
             resolver.start_day(self)

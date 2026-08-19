@@ -33,6 +33,7 @@ class Player:
         self.committed_action = None
         self.last_committed_action = None
         self.trade_count = 0
+        self.reaction = None
 
     @property
     def finished_phase(self):

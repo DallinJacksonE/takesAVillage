@@ -3,7 +3,8 @@
   width: 100%;
   box-sizing: border-box;
   margin: 0 auto;
-  height: 400px;
+  height: 100%;
+  min-height: 400px;
   position: relative;
   overflow: hidden;
   cursor: var(--card-cursor);
@@ -57,6 +58,70 @@
   padding: 4px 6px;
 }
 
-.mapCard {
-  background: var(--medium_blue);
+.card.mapCard {
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255, 226, 152, 0.34), transparent 32%),
+    linear-gradient(180deg, #6b95c8 0 39%, #496f67 39% 49%, #294a3b 49% 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  box-shadow: inset 0 0 60px rgba(10, 20, 35, 0.32), var(--shadow-panel);
+}
+
+.card.mapCard[data-phase="trade"] {
+  background:
+    radial-gradient(ellipse at 50% 70%, rgba(210, 180, 108, 0.46), transparent 34%),
+    radial-gradient(ellipse at 50% 72%, #668451 0 37%, #355440 38% 62%, #1e352d 63% 100%),
+    linear-gradient(180deg, #87aac1 0 42%, #355440 42% 100%);
+}
+
+.card.mapCard[data-phase="night"] {
+  background:
+    radial-gradient(circle at 50% 68%, rgba(231, 147, 58, 0.2), transparent 24%),
+    linear-gradient(180deg, #18233f 0 44%, #172d2c 44% 100%);
+}
+
+.sceneTitle {
+  position: absolute;
+  left: 50%;
+  top: -155px;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.campfire {
+  position: absolute;
+  z-index: 18;
+  width: 32px;
+  height: 48px;
+  transform: translate(-50%, -50%);
+  background-image: url("/images/sprites/effects/campfire.png");
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  background-size: 128px 48px;
+  filter: drop-shadow(0 0 12px rgba(255, 151, 55, 0.8));
+  image-rendering: pixelated;
+  animation: campfire-flicker 650ms steps(4) infinite;
+  font-size: 0;
+  text-align: center;
+}
+
+@keyframes campfire-flicker {
+  to { background-position-x: -128px; }
+}
+
+.hexTile {
+  filter: drop-shadow(0 5px 4px rgba(9, 20, 28, 0.32));
+}
+
+.hexTile:hover {
+  filter: brightness(1.08) drop-shadow(0 7px 6px rgba(9, 20, 28, 0.4));
+}
+
+.hexCore {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }

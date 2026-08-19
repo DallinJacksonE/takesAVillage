@@ -5,6 +5,7 @@ from service.game.state.events import (
     PlayerDailyNeedsConsumed,
 )
 from service.game.state.phase_resolution import resolve_work_phase
+from service.game.state.night import build_night_locations
 
 
 class PhaseResolver:
@@ -30,9 +31,34 @@ class PhaseResolver:
             game_state.apply_event(GameEnded())
             return
 
+        night_locations = build_night_locations(game_state)
+        previous_health = {
+            player.session_id: player.health
+            for player in game_state.players.values()
+        }
+
         game_state.contract_factory.cleanup_campfire_contracts()
         for player in game_state.players.values():
             game_state.apply_event(PlayerDailyNeedsConsumed(player.session_id))
+
+        transition_visuals = {}
+        for player in game_state.players.values():
+            old_health = previous_health[player.session_id]
+            if player.health == old_health or player.health not in {"sick", "dead"}:
+                continue
+            transition_visuals[player.session_id] = {
+                "animation": "DEAD" if player.health == "dead" else "HURT",
+                "location": night_locations[player.session_id],
+            }
+            game_state.notify_player(player.session_id, {
+                "level": "error" if player.health == "dead" else "warning",
+                "reason": "health_transition",
+                "message": (
+                    "You died during the night."
+                    if player.health == "dead"
+                    else "You became sick during the night."
+                ),
+            })
 
         for development in list(game_state.developments.values()):
             game_state.apply_event(DevelopmentDegraded(development.id))
@@ -40,6 +66,9 @@ class PhaseResolver:
         game_state.actions = []
         if game_state.is_game_over():
             game_state.apply_event(GameEnded())
+            return
+
+        game_state.begin_night_transition(transition_visuals)
 
     @staticmethod
     def start_day(game_state):

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ChatDTO, ChatMessageDTO, PlayerDTO } from "../../../dtos/index";
+import { ChatDTO, ChatMessageDTO, PublicPlayerDTO } from "../../../dtos/index";
 import { usePlayerName } from "../../hooks/usePlayerName";
 import ActiveChat from "./ActiveChat";
 import ChatTabsRail from "./ChatTabsRail";
@@ -17,7 +17,7 @@ import {
 interface Props {
   messages: ChatMessageDTO[];
   playerId: string;
-  players: PlayerDTO[];
+  players: PublicPlayerDTO[];
   chats: ChatDTO[];
   onSend: (content: string, toId: string) => void;
   onCreateChat: (name: string, memberIds: string[]) => void;
@@ -35,7 +35,7 @@ const TabbedCommunicator: React.FC<Props> = ({
   const [chatInput, setChatInput] = useState("");
   const [readMessages, setReadMessages] = useState<Set<string>>(new Set());
   const [showCreateChat, setShowCreateChat] = useState(false);
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const getPlayerName = usePlayerName();
 
   const chatIds = useMemo(() => new Set(chats.map((chat) => chat.id)), [chats]);
@@ -109,6 +109,10 @@ const TabbedCommunicator: React.FC<Props> = ({
     .sort((a, b) => b.lastMessageTime - a.lastMessageTime);
 
   const activeChat = getActiveChatView(activeChatId, chats);
+  const activeChatWithMembers = {
+    ...activeChat,
+    memberIds: activeChat.memberIds ?? players.map((player) => player.id),
+  };
 
   const handleSend = () => {
     if (!chatInput.trim()) return;
@@ -124,7 +128,7 @@ const TabbedCommunicator: React.FC<Props> = ({
         
       >
         <ActiveChat
-          activeChat={activeChat}
+          activeChat={activeChatWithMembers}
           messages={displayMessages}
           playerId={playerId}
           inputValue={chatInput}

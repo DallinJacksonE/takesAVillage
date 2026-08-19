@@ -32,6 +32,12 @@ const ActiveChat: React.FC<Props> = ({
 
   return (
     <div className={styles.column2}>
+      <header className={styles.chatHeader}>
+        <span className={styles.eyebrow}>Members</span>
+        <span className={styles.memberNames}>
+          {activeChat.memberIds?.map(getPlayerName).join(" · ") || "No members"}
+        </span>
+      </header>
       <div
         ref={chatContainerRef}
         className={styles.column}

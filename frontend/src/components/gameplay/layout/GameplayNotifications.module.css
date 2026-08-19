@@ -1,0 +1,54 @@
+.connectionBanner {
+  position: fixed;
+  z-index: 2200;
+  top: 0;
+  left: 50%;
+  width: min(32rem, calc(100vw - 2rem));
+  padding: 0.65rem 1rem;
+  border-radius: 0 0 10px 10px;
+  color: white;
+  font-weight: 800;
+  text-align: center;
+  transform: translateX(-50%);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+}
+
+.connecting {
+  background: #0277bd;
+}
+
+.disconnected {
+  background: #b71c1c;
+}
+
+.toastStack {
+  position: fixed;
+  z-index: 2300;
+  top: 5.5rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: min(22rem, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+.toast {
+  padding: 0.75rem 0.9rem;
+  border-radius: 9px;
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.3);
+}
+
+.info {
+  background: #1565c0;
+}
+
+.warning {
+  background: #ef6c00;
+}
+
+.error {
+  background: #b71c1c;
+}

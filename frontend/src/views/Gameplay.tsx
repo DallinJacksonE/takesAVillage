@@ -21,7 +21,12 @@ import PlayerInfo from "../components/gameplay/playerInfo/PlayerInfo";
 import { GameStateProvider } from "../components/hooks/useGameState";
 import styles from "./Gameplay.module.css";
 import PlayerSprite from "../components/gameplay/player/PlayerSprite";
-import { goblinPlayerSprites } from "../components/gameplay/player/playerSpriteCatalog";
+import { getGoblinSpriteForAnimation } from "../components/gameplay/player/playerSpriteCatalog";
+import GameplayShell from "../components/gameplay/layout/GameplayShell";
+import PlayerStatusBar from "../components/gameplay/layout/PlayerStatusBar";
+import ConnectionBanner from "../components/gameplay/layout/ConnectionBanner";
+import ToastStack from "../components/gameplay/layout/ToastStack";
+import NightTransitionAcknowledger from "../components/gameplay/NightTransitionAcknowledger";
 
 
 const Gameplay: React.FC = () => {
@@ -85,62 +90,11 @@ const Gameplay: React.FC = () => {
 
   const presenter = presenterRef.current;
 
-  const ConnectionBanner = () => {
-    if (connectionState === "CONNECTED") return null;
-    return (
-      <div style={{
-        position: "sticky", top: 0, zIndex: 1000,
-        backgroundColor: connectionState === "CONNECTING" ? "#0288d1" : "#d32f2f",
-        color: "white", textAlign: "center", padding: "10px", fontWeight: "bold",
-        borderRadius: "4px", marginBottom: "15px", boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
-      }}>
-        {connectionState === "CONNECTING"
-          ? "🔌 Negotiating connection..."
-          : "⚠️ Connection lost. Watchdog is reconnecting..."}
-      </div>
-    );
-  };
-
-  const ToastStack = () => (
-    <div style={{
-      position: "fixed",
-      top: 16,
-      right: 16,
-      zIndex: 2000,
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      maxWidth: 360,
-    }}>
-      {toasts.map(toast => (
-        <div
-          key={toast.id}
-          role="status"
-          style={{
-            background:
-              toast.level === "error"
-                ? "#b71c1c"
-                : toast.level === "warning"
-                  ? "#f57c00"
-                  : "#1565c0",
-            color: "white",
-            padding: "12px 14px",
-            borderRadius: 8,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-            fontWeight: 600,
-          }}
-        >
-          {toast.message}
-        </div>
-      ))}
-    </div>
-  );
-
   if (!gameState || !presenter) {
     return (
       <div style={{ padding: "40px", textAlign: "center" }}>
-        <ConnectionBanner />
-        <ToastStack />
+        <ConnectionBanner state={connectionState} />
+        <ToastStack toasts={toasts} />
         <h2>Loading Village...</h2>
       </div>
     );
@@ -149,8 +103,8 @@ const Gameplay: React.FC = () => {
   if (gameState.status === "WAITING") {
     return (
       <div style={{ padding: "40px", textAlign: "center" }}>
-        <ConnectionBanner />
-        <ToastStack />
+        <ConnectionBanner state={connectionState} />
+        <ToastStack toasts={toasts} />
         <h2>Waiting Room: Village {gameId}</h2>
         <p>Players: {playerCount} / 10</p>
         {gameState.is_host ? (
@@ -176,7 +130,7 @@ const Gameplay: React.FC = () => {
   if (gameState.status === "ENDED") {
     return (
       <div style={{ padding: "40px", textAlign: "center" }}>
-        <ToastStack />
+        <ToastStack toasts={toasts} />
         <h2>Game Over: Village {gameId}</h2>
         <p>Thank you for playing</p>
       </div>
@@ -188,7 +142,11 @@ const Gameplay: React.FC = () => {
   if (isDead) {
     return (
       <div className="observation-screen">
-        <ToastStack />
+        <ToastStack toasts={toasts} />
+        <NightTransitionAcknowledger
+          state={gameState}
+          onComplete={presenter.acknowledgeNightAnimation}
+        />
         <GameStateProvider gameState={gameState}>
           <PlayerProvider players={gameState.player_list}>
             <h2>You have perished.</h2>
@@ -196,7 +154,9 @@ const Gameplay: React.FC = () => {
             <PlayerRoster />
             <VillageMap
               mapData={gameState.map}
+              phase={gameState.phase}
               playerId={userId}
+              players={gameState.player_list}
               development_costs={gameState.development_costs}
               onBuild={(tileId) => presenter.buildDevelopment(tileId)}
             />
@@ -207,222 +167,119 @@ const Gameplay: React.FC = () => {
     );
   }
 
-  console.log(gameState)
+  const myVisualState = gameState.player_list.find(
+    (player) => player.id === gameState.me.id,
+  )?.visual_state ?? { animation: "IDLE" as const, location: { kind: "HOME" as const } };
+  const statusSprite = getGoblinSpriteForAnimation(myVisualState.animation);
+
   return (
-    <div style={{ padding: "20px" }}>
-      <ConnectionBanner />
-      <ToastStack />
+    <div className={styles.gameplayPage}>
+      <ConnectionBanner state={connectionState} />
+      <ToastStack toasts={toasts} />
+      <NightTransitionAcknowledger
+        state={gameState}
+        onComplete={presenter.acknowledgeNightAnimation}
+      />
       <GameStateProvider gameState={gameState}>
         <PlayerColorProvider gameState={gameState}>
           <PlayerProvider players={gameState.player_list}>
-            {/* --- HEADER --- */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-start",
-                marginBottom: "20px",
-                gap: "8px"
-              }}
-            >
-              <h2 style={{ margin: 0, fontSize: '1.8rem' }}>
-                Village: {gameId}{" "}
-                <PlayerInfo playerId={gameState.me.id} />
-
-                <span
-                  style={{
-                    marginLeft: 8,
-                    padding: "2px 8px",
-                    borderRadius: 12,
-                    fontSize: "0.75rem",
-                    color: "white",
-                    minWidth: 140,
-                    display: "inline-flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    background:
-                      gameState.phase === "WORK"
-                        ? gameState.me.finished_phase
-                          ? "#2e7d32"
-                          : "#6c757d"
-                        : "#444",
-                    opacity: gameState.phase === "WORK" ? 1 : 0,
-                    transition: "opacity 0.2s ease, background 0.2s ease",
-                    pointerEvents: "none"
-                  }}
-                >
-                  {gameState.phase === "WORK"
-                    ? gameState.me.health === "healthy"
-                      ? gameState.me.finished_phase
-                        ? "Action Locked In ✓"
-                        : "! Action Available !"
-                      : "No Action Available"
-                    : ""}
-                </span>
-              </h2>
-
-              <div className={styles.playerSpritePreview}>
-                <PlayerSprite
-                  {...goblinPlayerSprites.idle}
-                  animation="idle"
-                  alt="Idle goblin player"
-                  scale={1.5}
+            <GameplayShell
+              statusBar={(
+                <PlayerStatusBar
+                  day={gameState.day}
+                  phase={gameState.phase}
+                  playerName={gameState.me.name}
+                  timeLeft={timeLeft}
+                  sprite={(
+                    <PlayerSprite
+                      {...statusSprite}
+                      animation={myVisualState.animation}
+                      alt={`${gameState.me.name} goblin`}
+                      scale={1}
+                    />
+                  )}
                 />
-                <span className={styles.playerSpriteLabel}>Your goblin is idling</span>
-              </div>
-
-              <div style={{ fontSize: "1.3rem" }}>
-                <strong>Day {gameState.day}</strong>
-                {" | "}
-                <InfoTooltip infoText={getPhaseTooltip(gameState.phase)}>
-                  <span style={{ textDecoration: "underline", fontWeight: 600, cursor: "help", color: "white" }}>
-                    Phase: {gameState.phase}
-                  </span>
-                </InfoTooltip>
-                {" | "}
-                Time:{" "}
-
-                <span
-                  style={{
-                    color: timeLeft <= 20 ? "#8d1216" : "inherit",
-                    fontWeight: timeLeft <= 20 ? "bold" : "normal",
-                    transition: "color 0.3s ease"
-                  }}
-                >
-                  {timeLeft}s
-                </span>
-              </div>
-            </div>
-
-            {/* --- MAIN DASHBOARD GRID --- */}
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "2fr 1fr", /* Strict 2:1 ratio */
-              gap: "20px",
-              marginBottom: "20px",
-              alignItems: "start" /* Prevents the columns from forcibly matching heights */
-            }}>
-
-              {/* LEFT COLUMN: Player Stats & Phase Mechanics */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "20px", minWidth: 0 }}>
-                <PlayerStatusCard />
-
-                {/* Phase Routing */}
-                {gameState.phase === "WORK" && (
-                  <div style={{ display: "flex", gap: "20px" }}>
-                    <DevelopmentsCard
-                      onMaintain={(devId) => presenter.maintainDevelopment(devId)}
-                      onUpgrade={(devId) => presenter.upgradeDevelopment(devId)}
-                      onContest={(devId, side) => presenter.contestDevelopment(devId, side)}
-                      onApplyForJob={(targetId, devId, wage, wageType) => presenter.draftEmployment(targetId, devId, wage, wageType, true)}
-                      onAcceptApplicant={(actionId) => presenter.acceptContract(actionId, "EMPLOYMENT")}
-                      onDenyApplicant={(actionId) => presenter.denyContract(actionId, "EMPLOYMENT")}
-                    />
-                    <AvailableWorkCard
-                      onCommitWork={(payload) => presenter.commitWork(payload)}
-                      onAcceptOffer={(actionId) => presenter.acceptContract(actionId, "EMPLOYMENT")}
-                      onDenyOffer={(actionId) => presenter.denyContract(actionId, "EMPLOYMENT")}
-                    />
-                  </div>
-                )}
-
-                {gameState.phase === "TRADE" && (
-                  <TradeDesk
-                    state={gameState}
-                    onDraftTrade={(targetId, offer, req) => presenter.draftTrade(targetId, offer, req)}
-                    onCounterTrade={(actionId, offer, req) => presenter.counterTrade(actionId, offer, req)}
-                    onAcceptTrade={(actionId) => presenter.acceptContract(actionId)}
-                    onDenyTrade={(actionId) => presenter.denyContract(actionId)}
-                    onCancelTrade={(actionId) => presenter.cancelContract(actionId)}
-                    onFinalizeTrade={(actionId, items) => presenter.finalizeTrade(actionId, items)}
-                  />
-                )}
-
-                {gameState.phase === "NIGHT" && (
-                  <CampfireRing
-                    state={gameState}
-                    onStartFire={() => presenter.startFire()}
-                    onRequestSeat={(targetId) => presenter.draftCampfire(targetId, true)}
-                    onOfferSeat={(targetId) => presenter.draftCampfire(targetId, false)}
-                    onAccept={(actionId) => presenter.acceptContract(actionId)}
-                    onDeny={(actionId) => presenter.denyContract(actionId)}
-                  />
-                )}
-
-                {/* LEFT: Small End Phase Sidebar */}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "12px",
-                    position: "sticky",
-                    top: "20px",
-                    width: "100%",
-                    alignItems: "flex-start"
-                  }}
-                >
-                  <div
-                    className="card"
-                    style={{
-                      backgroundColor: "var(--medium_honey)",
-                      flex: 1,
-                      minWidth: 0,
-                      boxSizing: "border-box",
-                      overflow: "hidden"
-                    }}
-                  >
-                    <h3 style={{ marginTop: 0 }}>Village Map</h3>
-
-                    <VillageMap
-                      mapData={gameState.map}
-                      playerId={userId}
-                      development_costs={gameState.development_costs}
-                      onBuild={(tileId) =>
-                        presenter.buildDevelopment(tileId)
-                      }
-                    />
-                  </div>
-                </div>
-
-              </div>
-
-              {/* RIGHT COLUMN: Roster & Social Chat */}
-              {/* minWidth: 0 prevents the chat from blowing out the grid horizontally */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "20px", minWidth: 0 }}>
-                <PlayerRoster />
-                <TabbedCommunicator
-                  messages={messages}
-                  playerId={gameState.me.id}
+              )}
+              map={(
+                <VillageMap
+                  mapData={gameState.map}
+                  phase={gameState.phase}
+                  playerId={userId}
                   players={gameState.player_list}
-                  chats={gameState.chats ?? []}
-                  onSend={presenter.sendChat}
-                  onCreateChat={(name, memberIds) => {
-                    presenter.createChat(name, memberIds);
-                  }}
+                  development_costs={gameState.development_costs}
+                  onBuild={(tileId) => presenter.buildDevelopment(tileId)}
+                  onReact={presenter.setEmoji}
                 />
-
-                {!gameState.me.finished_phase ? (
-                  <div
-                    className={`card ${styles.finishPhaseCard}`}
-                  >
-                    <button
-                      className={`btn ${styles.finishPhaseButton}`}
-                      onClick={() => presenter.finishPhase()}
-                    >
-                      {gameState.phase === "NIGHT" ? "End Day" : "End Phase"}
-                    </button>
+              )}
+              actionPanel={(
+                <div className={styles.panelStack}>
+                  <div className={styles.phaseHeading}>
+                    <h2>{gameState.phase} phase</h2>
+                    <InfoTooltip infoText={getPhaseTooltip(gameState.phase)} />
                   </div>
-                ) : (
-                  <div
-                    className={`card ${styles.waitingCard}`}
-                  >
-                    {/* Assuming your waiting text goes here */}
-                    Waiting...
-                  </div>
-                )}
-
-              </div>
-            </div>
-
+                  <PlayerStatusCard />
+                  {gameState.phase === "WORK" && (
+                    <>
+                      <DevelopmentsCard
+                        onMaintain={(devId) => presenter.maintainDevelopment(devId)}
+                        onUpgrade={(devId) => presenter.upgradeDevelopment(devId)}
+                        onContest={(devId, side) => presenter.contestDevelopment(devId, side)}
+                        onApplyForJob={(targetId, devId, wage, wageType) => presenter.draftEmployment(targetId, devId, wage, wageType, true)}
+                        onAcceptApplicant={(actionId) => presenter.acceptContract(actionId, "EMPLOYMENT")}
+                        onDenyApplicant={(actionId) => presenter.denyContract(actionId, "EMPLOYMENT")}
+                      />
+                      <AvailableWorkCard
+                        onCommitWork={(payload) => presenter.commitWork(payload)}
+                        onAcceptOffer={(actionId) => presenter.acceptContract(actionId, "EMPLOYMENT")}
+                        onDenyOffer={(actionId) => presenter.denyContract(actionId, "EMPLOYMENT")}
+                      />
+                    </>
+                  )}
+                  {gameState.phase === "TRADE" && (
+                    <TradeDesk
+                      state={gameState}
+                      onDraftTrade={(targetId, offer, req) => presenter.draftTrade(targetId, offer, req)}
+                      onCounterTrade={(actionId, offer, req) => presenter.counterTrade(actionId, offer, req)}
+                      onAcceptTrade={(actionId) => presenter.acceptContract(actionId)}
+                      onDenyTrade={(actionId) => presenter.denyContract(actionId)}
+                      onCancelTrade={(actionId) => presenter.cancelContract(actionId)}
+                      onFinalizeTrade={(actionId, items) => presenter.finalizeTrade(actionId, items)}
+                    />
+                  )}
+                  {gameState.phase === "NIGHT" && (
+                    <CampfireRing
+                      state={gameState}
+                      onStartFire={() => presenter.startFire()}
+                      onRequestSeat={(targetId) => presenter.draftCampfire(targetId, true)}
+                      onOfferSeat={(targetId) => presenter.draftCampfire(targetId, false)}
+                      onAccept={(actionId) => presenter.acceptContract(actionId)}
+                      onDeny={(actionId) => presenter.denyContract(actionId)}
+                    />
+                  )}
+                  {!gameState.me.finished_phase ? (
+                    <div className={`card ${styles.finishPhaseCard}`}>
+                      <button className={`btn ${styles.finishPhaseButton}`} onClick={() => presenter.finishPhase()}>
+                        {gameState.phase === "NIGHT" ? "End Day" : "End Phase"}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className={`card ${styles.waitingCard}`}>Waiting...</div>
+                  )}
+                </div>
+              )}
+              chatPanel={(
+                <div className={`${styles.panelStack} ${styles.chatStack}`}>
+                  <TabbedCommunicator
+                    messages={messages}
+                    playerId={gameState.me.id}
+                    players={gameState.player_list}
+                    chats={gameState.chats ?? []}
+                    onSend={presenter.sendChat}
+                    onCreateChat={(name, memberIds) => presenter.createChat(name, memberIds)}
+                  />
+                </div>
+              )}
+            />
           </PlayerProvider>
         </PlayerColorProvider>
       </GameStateProvider>

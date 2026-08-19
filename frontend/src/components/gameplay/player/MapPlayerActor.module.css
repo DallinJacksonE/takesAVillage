@@ -1,0 +1,83 @@
+.actor {
+  --player-color: white;
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 120px;
+  height: 106px;
+  pointer-events: none;
+  transform: translate(-50%, -72%);
+  filter: drop-shadow(2px 0 0 var(--player-color))
+    drop-shadow(-2px 0 0 var(--player-color))
+    drop-shadow(0 2px 0 var(--player-color));
+  transition: left 550ms ease, top 550ms ease;
+}
+
+.localActor {
+  pointer-events: auto;
+}
+
+.reaction {
+  position: absolute;
+  z-index: 4;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  filter: none;
+  font-size: 30px;
+}
+
+.reactionMenu {
+  position: absolute;
+  z-index: 5;
+  top: -44px;
+  left: 50%;
+  display: flex;
+  gap: 4px;
+  padding: 5px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(17, 28, 50, 0.96);
+  pointer-events: auto;
+}
+
+.reactionMenu button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  font-size: 19px;
+}
+
+.reactionMenu button:hover,
+.reactionMenu button:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+  outline: 2px solid white;
+}
+
+.name {
+  z-index: 1;
+  max-width: 110px;
+  padding: 2px 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(17, 28, 50, 0.88);
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actor {
+    transition: none;
+  }
+}

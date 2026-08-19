@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { PlayerDTO, GameStateDTO } from '../../dtos/index';
+import { PublicPlayerDTO, GameStateDTO } from '../../dtos/index';
 
 // 1. Define a palette of distinct colors for your players
 const PLAYER_PALETTE: string[] = [
@@ -44,7 +44,7 @@ export const PlayerColorProvider: React.FC<PlayerColorProviderProps> = ({ childr
     if (gameState?.player_list && Object.keys(colorMap).length === 0) {
       const newColorMap: Record<string, string> = {};
 
-      gameState.player_list.forEach((player: PlayerDTO, index: number) => {
+      gameState.player_list.forEach((player: PublicPlayerDTO, index: number) => {
         if (player.id === gameState.me.id) {
           newColorMap[player.id] = user_color;
         } else {

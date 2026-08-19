@@ -276,4 +276,12 @@ export class GameplayPresenter extends Presenter<GameplayView> {
   public finishPhase = () => {
     this.dispatchAction<{}>("FINISH_PHASE", {});
   }
+
+  public acknowledgeNightAnimation = (transitionId: string) => {
+    this.service.acknowledgeNightAnimation(transitionId);
+  }
+
+  public setEmoji = (emoji: "👍" | "❤️" | "😂" | "😠") => {
+    this.dispatchAction("SET_EMOJI", { emoji });
+  }
 }

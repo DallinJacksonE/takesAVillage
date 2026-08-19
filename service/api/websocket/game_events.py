@@ -19,6 +19,12 @@ async def process_game_event(event, payload, game_id, user_id, game, manager):
         await manager.send_personal_message(
             {"event": "game_state", "data": game.get_state_for_player(user_id)},
             game_id, user_id)
+    elif event == "night_animation_complete":
+        transition_id = payload.get("transition_id")
+        if transition_id and game.acknowledge_night_transition(
+            user_id, transition_id
+        ):
+            await manager.broadcast_game_state(game_id, game)
     elif event == "send_chat":
         message = game.handle_chat(user_id, payload)
         if message:

@@ -14,6 +14,7 @@ export interface ActiveChatViewModel {
   label: string;
   recipientId: string;
   showSenderNames: boolean;
+  memberIds: string[] | null;
 }
 
 export const GLOBAL_CHAT_ID = "global";
@@ -51,6 +52,7 @@ export const getActiveChatView = (
       label: "Village Square",
       recipientId: GLOBAL_RECIPIENT_ID,
       showSenderNames: true,
+      memberIds: null,
     };
   }
 
@@ -61,5 +63,6 @@ export const getActiveChatView = (
     label: activeChat ? `#${activeChat.name}` : "Chat",
     recipientId: activeChatId,
     showSenderNames: true,
+    memberIds: activeChat?.member_ids ?? [],
   };
 };

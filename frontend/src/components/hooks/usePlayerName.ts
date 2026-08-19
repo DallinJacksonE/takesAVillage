@@ -1,8 +1,8 @@
 import React, { useContext } from "react";
-import { PlayerDTO } from "../../dtos";
+import { PublicPlayerDTO } from "../../dtos";
 
 interface PlayerContextType {
-  players: PlayerDTO[];
+  players: PublicPlayerDTO[];
 }
 
 export const PlayerContext = React.createContext<PlayerContextType | undefined>(
@@ -10,7 +10,7 @@ export const PlayerContext = React.createContext<PlayerContextType | undefined>(
 );
 
 export const PlayerProvider: React.FC<{
-  players: PlayerDTO[];
+  players: PublicPlayerDTO[];
   children: React.ReactNode;
 }> = ({ players, children }) =>
     React.createElement(PlayerContext.Provider, { value: { players } }, children);

@@ -57,3 +57,49 @@
   font-size: 0.95rem;
   font-weight: 700;
 }
+
+.gameplayPage {
+  min-height: 100dvh;
+  background: #253555;
+}
+
+.panelStack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.panelStack > * {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.chatStack {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.chatStack > :last-child {
+  flex: 1;
+  min-height: 0;
+}
+
+.phaseHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: white;
+}
+
+.phaseHeading h2 {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .panelStack {
+    gap: 0.75rem;
+  }
+}

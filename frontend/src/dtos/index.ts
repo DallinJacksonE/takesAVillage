@@ -233,6 +233,48 @@ export interface DevelopmentCostConfig {
   upgrade: Partial<ResourceBundle>;
 }
 
+export type PlayerVisualAnimation =
+  | "IDLE"
+  | "WALK"
+  | "WORK_FARM"
+  | "WORK_WOODS"
+  | "WORK_MINE"
+  | "BUILD"
+  | "CONTEST"
+  | "CARRY"
+  | "HURT"
+  | "SICK"
+  | "DEAD";
+
+export type PlayerVisualLocation =
+  | { kind: "HOME" }
+  | { kind: "TILE"; id: string }
+  | { kind: "DEVELOPMENT"; id: string }
+  | { kind: "TRADE"; id: string; side: "INITIATOR" | "TARGET" }
+  | { kind: "FIRE"; id: string; slot: number }
+  | { kind: "NIGHT_COLD"; slot: number };
+
+export interface PlayerVisualStateDTO {
+  animation: PlayerVisualAnimation;
+  location: PlayerVisualLocation;
+}
+
+export interface PublicPlayerDTO {
+  id: string;
+  name: string;
+  health: "healthy" | "sick" | "recovering" | "dead";
+  fire_status: "COLD" | "HOST" | "GUEST";
+  fire_guests: string[];
+  developments: string[];
+  finished_phase: boolean;
+  phase_state: "ACTIVE" | "INTENT_SUBMITTED" | "NEEDS_REPLACEMENT" | "RESOLVED" | "DEAD";
+  visual_state: PlayerVisualStateDTO;
+  reaction?: {
+    emoji: "👍" | "❤️" | "😂" | "😠";
+    expires_at: number;
+  } | null;
+}
+
 export interface PlayerDTO {
   id: string;
   name: string;
@@ -247,6 +289,7 @@ export interface PlayerDTO {
   actions: ActionDTO[];
   timeline: any[]; // Lightweight research log left as any[]
   finished_phase: boolean;
+  phase_state: "ACTIVE" | "INTENT_SUBMITTED" | "NEEDS_REPLACEMENT" | "RESOLVED" | "DEAD";
   trade_history?: TradeHistoryDTO[];
   fire_history?: FireHistoryDTO[];
 }
@@ -266,7 +309,7 @@ export interface GameStateDTO {
   day: number;
   phase: Phase;
   time_remaining: number;
-  player_list: PlayerDTO[];
+  player_list: PublicPlayerDTO[];
   map: MapTileDTO[];
   developments: DevelopmentDTO[];
   chat_messages: ChatMessageDTO[];
@@ -282,6 +325,11 @@ export interface GameStateDTO {
   hunger_sickness_rate: number;
   recovery_rate: number;
   training: boolean;
+  night_transition?: {
+    id: string;
+    deadline: number;
+    affected_player_ids: string[];
+  };
 }
 
 // --- Network & Lobby DTOs ---

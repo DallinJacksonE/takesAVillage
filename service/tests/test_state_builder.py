@@ -7,6 +7,13 @@ from service.game.serializers.state import build_player_state
 class _Player:
     def __init__(self):
         self.session_id = "player-1"
+        self.name = "Player 1"
+        self.health = "healthy"
+        self.fire_status = "COLD"
+        self.fire_guests = []
+        self.developments = []
+        self.finished_phase = False
+        self.phase_state = "ACTIVE"
 
     def to_dict(self):
         return {
