@@ -56,21 +56,38 @@ class BotServiceClient:
             return BotServiceResult(ok=False, error_message=str(exc))
 
     async def fetch_game_genomes(self, game_id: str, max_attempts: int = 3,
-                                 timeout: float = 10.0) -> BotServiceResult:
+                                 timeout: float = 10.0,
+                                 expected_entry_count: int = 1) -> BotServiceResult:
+        expected_entry_count = max(1, expected_entry_count)
         async with self.client_factory() as client:
             last_error = None
+            latest_entries = []
             for attempt in range(max(1, max_attempts)):
                 try:
                     response = await client.get(
                         f"{self.base_url}/api/genomes/{game_id}/all", timeout=timeout)
                     if response.status_code == 200:
-                        return BotServiceResult(
-                            ok=True, entries=response.json().get("entries", []) or [])
-                    last_error = getattr(response, "text", "genome entries unavailable")
+                        entries = response.json().get("entries", []) or []
+                        if entries:
+                            latest_entries = entries
+                            if len(entries) >= expected_entry_count:
+                                return BotServiceResult(ok=True, entries=entries)
+                            last_error = (
+                                f"Received {len(entries)}/{expected_entry_count} "
+                                "genome entries"
+                            )
+                        else:
+                            last_error = "Genome endpoint returned no entries"
+                    else:
+                        last_error = getattr(response, "text", "genome entries unavailable")
                 except Exception as exc:
                     last_error = str(exc)
                 if attempt < max_attempts - 1:
                     await asyncio.sleep(self.retry_sleep_seconds)
+            # Do not discard reports that arrived just because one or more bots
+            # disconnected before submitting terminal fitness.
+            if latest_entries:
+                return BotServiceResult(ok=True, entries=latest_entries)
             try:
                 response = await client.get(
                     f"{self.base_url}/api/genomes/{game_id}", timeout=timeout)

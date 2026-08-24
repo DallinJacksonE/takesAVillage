@@ -130,11 +130,14 @@ class BotSocket:
 
         except websockets.exceptions.ConnectionClosed:
             self.logger.info(f"Bot {self.user_id} disconnected from server.")
-            if self.on_disconnect:
-                await self.on_disconnect()
         except Exception as e:
             self.logger.stdout_error(
                 "Unexpected error in websocket listen loop", exception=e)
+        finally:
+            self.websocket = None
+            self._listen_task = None
+            if self.on_disconnect:
+                await self.on_disconnect()
 
     async def _send(self, event: str, payload: dict):
         if self.websocket:

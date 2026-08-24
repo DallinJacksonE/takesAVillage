@@ -133,6 +133,50 @@ class BotServiceClientTests(unittest.IsolatedAsyncioTestCase):
             "http://bots:8001/api/genomes/game-1/all",
         ])
 
+    async def test_fetch_game_genomes_waits_for_expected_terminal_reports(self):
+        all_requests = 0
+
+        class FakeResponse:
+            status_code = 200
+            text = ""
+
+            def __init__(self, entries):
+                self.entries = entries
+
+            def json(self):
+                return {"entries": self.entries}
+
+        class FakeClient:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return False
+
+            async def get(self, _url, timeout):
+                nonlocal all_requests
+                all_requests += 1
+                entries = [{"fitness": 12, "genome": {"food_weight": 1.0}}]
+                if all_requests > 1:
+                    entries.append({"fitness": 9, "genome": {"food_weight": 0.5}})
+                return FakeResponse(entries)
+
+        client = bot_service_client.BotServiceClient(
+            base_url="http://bots:8001",
+            bot_secret="secret",
+            client_factory=FakeClient,
+            retry_sleep_seconds=0,
+        )
+
+        result = await client.fetch_game_genomes(
+            "game-1", expected_entry_count=2, max_attempts=2)
+
+        self.assertTrue(result.ok)
+        self.assertIsNotNone(result.entries)
+        entries = result.entries or []
+        self.assertEqual(len(entries), 2)
+        self.assertEqual(all_requests, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

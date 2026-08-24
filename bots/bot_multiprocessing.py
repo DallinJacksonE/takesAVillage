@@ -9,10 +9,15 @@ from fitness import calculate_fitness_report
 from botsocket import BotSocket
 from training_seeder import seed_genomes
 import multiprocessing
+from queue import Empty
 from logger import Logger  # <-- Import the Logger
 
 active_bot_processes = []
 training_data_queue = multiprocessing.Queue()
+# Training game reports are requested by the orchestrator immediately after a
+# game ends. Keep newly drained reports indexed by game so the API can serve
+# them without scanning the historical JSONL file or waiting on disk latency.
+training_results_by_game: dict[str, list[dict]] = {}
 
 # Instantiate a logger for the parent server process
 server_logger = Logger("SERVER_MANAGER")
@@ -129,6 +134,7 @@ def run_bot_process(game_id: str,
 
         host_ready_event = asyncio.Event()
         game_ended = False
+        last_state = None
         submission_gate = ActionSubmissionGate()
 
         # Pass the logger into the socket client
@@ -144,7 +150,8 @@ def run_bot_process(game_id: str,
 
         async def on_game_state(state):
 
-            nonlocal fitness_sent, game_ended, training
+            nonlocal fitness_sent, game_ended, training, last_state
+            last_state = state
 
             if not host_ready_event.is_set():
                 if state.get("host_connected") is True:
@@ -195,6 +202,19 @@ def run_bot_process(game_id: str,
                     "Failed to process game logic", exception=e)
 
         socket.on_game_state = on_game_state
+
+        async def on_socket_disconnect():
+            """Finish a training worker when the server closes its socket.
+
+            Training games are removed shortly after ending. A bot can miss the
+            terminal ENDED snapshot and otherwise reconnect forever without
+            letting the fallback fitness path finish the worker process.
+            """
+            nonlocal game_ended
+            if last_state and last_state.get("training"):
+                game_ended = True
+
+        socket.on_disconnect = on_socket_disconnect
         await asyncio.sleep(1.0)  # add backoff after reconnect attempt
         success = await socket.connect()
 
@@ -222,10 +242,16 @@ def run_bot_process(game_id: str,
 async def process_training_data(queue: multiprocessing.Queue):
     server_logger.info("Starting training data aggregation loop.")
     while True:
-        while not queue.empty():
-            result = queue.get()
+        while True:
+            try:
+                result = queue.get_nowait()
+            except Empty:
+                break
             with open("bot_training_data.jsonl", "a") as f:
                 f.write(json.dumps(result) + "\n")
+            game_id = result.get("game_id")
+            if game_id:
+                training_results_by_game.setdefault(game_id, []).append(result)
             server_logger.info(f"📊 Saved training data! Bot Fitness:    "
                                f"{result['fitness']}")
         await asyncio.sleep(0.5)
@@ -249,7 +275,8 @@ async def reap_zombies():
 def spawn_bot_processes(game_id: str, bot_count: int,
                         bot_secret: str,
                         bot_model: str = "genetic",
-                        base_genome: dict | None = None):
+                        base_genome: dict | None = None,
+                        training_attempt_index: int = 0):
     genomes = seed_genomes_for_model(bot_model, base_genome, bot_count)
 
     for i in range(bot_count):

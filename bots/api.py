@@ -5,7 +5,11 @@ import os
 from typing import Optional, Any
 from pathlib import Path
 import json
-from bot_multiprocessing import spawn_bot_processes, get_available_models
+from bot_multiprocessing import (
+    get_available_models,
+    spawn_bot_processes,
+    training_results_by_game,
+)
 from logger import Logger
 
 api_router = APIRouter()
@@ -18,6 +22,7 @@ class SpawnBotsRequest(BaseModel):
     botSecret: str
     botModel: str
     baseGenome: Optional[Any] = None
+    trainingAttemptIndex: Optional[int] = None
 
 
 @api_router.post("/api/spawn_bots")
@@ -41,7 +46,8 @@ async def spawn_bots(payload: SpawnBotsRequest):
             bot_count=payload.botCount,
             bot_secret=payload.botSecret,
             bot_model=payload.botModel,
-            base_genome=payload.baseGenome
+            base_genome=payload.baseGenome,
+            training_attempt_index=payload.trainingAttemptIndex or 0,
         )
         api_logger.info("Bot processes spawned successfully.")
         return {"status": "success",
@@ -54,6 +60,15 @@ async def spawn_bots(payload: SpawnBotsRequest):
 @api_router.get("/api/genomes/{game_id}")
 async def get_best_genome(game_id: str):
     api_logger.info(f"Fetching best genome for game {game_id}")
+    live_entries = training_results_by_game.get(game_id, [])
+    if live_entries:
+        best_entry = max(live_entries, key=lambda entry: entry.get("fitness", 0))
+        return {
+            "game_id": game_id,
+            "best_fitness": best_entry.get("fitness"),
+            "genome": best_entry.get("genome"),
+        }
+
     data_file = Path(__file__).resolve().parent / "bot_training_data.jsonl"
     if not data_file.exists():
         api_logger.handled_error(
@@ -100,6 +115,10 @@ async def get_models():
 
 @api_router.get("/api/genomes/{game_id}/all")
 async def get_all_genomes_for_game(game_id: str):
+    live_entries = training_results_by_game.get(game_id, [])
+    if live_entries:
+        return {"game_id": game_id, "entries": list(live_entries)}
+
     data_file = Path(__file__).resolve().parent / "bot_training_data.jsonl"
     if not data_file.exists():
         raise HTTPException(

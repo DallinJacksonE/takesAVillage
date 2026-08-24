@@ -159,7 +159,7 @@ async def start_training_session(runtime: TrainingRuntime, ruleset: str,
             population.append(random_genome_dict_for_model(bot_model))
 
     # Add the bot_model to the session state
-    
+
 
     session = {
         "ruleset": ruleset, "bot_count": bot_count, "generations_left": generations,
@@ -227,7 +227,7 @@ async def _start_generation_games(runtime: TrainingRuntime, session_id: str):
     session = active_training_sessions.get(session_id)
     if not session:
         return
-    
+
     if session.get("generation_scheduled"):
         orch_logger.warning(f"Generation already in progress for {session_id}")
         return
@@ -310,7 +310,11 @@ async def handle_training_game_ended(runtime: TrainingRuntime, game_id: str,
             return
 
     _record_heartbeat(runtime, training_session_id, "collecting_genomes")
-    entries = await _fetch_training_game_entries(runtime, game_id)
+    entries = await _fetch_training_game_entries(
+        runtime,
+        game_id,
+        expected_entry_count=session.get("bot_count", 1),
+    )
     await _record_terminal_game_attempt(
         runtime,
         training_session_id,
@@ -321,8 +325,16 @@ async def handle_training_game_ended(runtime: TrainingRuntime, game_id: str,
 
 
 async def _fetch_training_game_entries(runtime: TrainingRuntime,
-                                       game_id: str) -> list:
-    result = await _bot_service_client(runtime).fetch_game_genomes(game_id)
+                                       game_id: str,
+                                       expected_entry_count: int = 1) -> list:
+    # Bots publish terminal fitness asynchronously after a training game ends.
+    # Wait for the expected bot reports so generation statistics and charts do
+    # not get persisted from partial or zero-valued fallback data.
+    result = await _bot_service_client(runtime).fetch_game_genomes(
+        game_id,
+        expected_entry_count=expected_entry_count,
+        max_attempts=120,
+    )
     if result.ok:
         entries = result.entries or []
         orch_logger.info(f"Retrieved {len(entries)} genome entries for {game_id}")
