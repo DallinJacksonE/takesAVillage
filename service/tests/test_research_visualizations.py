@@ -6,8 +6,14 @@ from service.research.visualizations.runner import VisualizationRunner
 
 
 class _FakeFigure:
+    def __init__(self):
+        self.closed = False
+
     def savefig(self, buffer, format="png", **_kwargs):
         buffer.write(f"fake-{format}".encode("utf-8"))
+
+    def close(self):
+        self.closed = True
 
 
 class _FakeCommand(VisualizationCommand):
@@ -15,8 +21,12 @@ class _FakeCommand(VisualizationCommand):
     title = "Fake Visualization"
     description = "Test visualization"
 
+    def __init__(self):
+        self.figure = None
+
     def render(self, context):
-        return _FakeFigure()
+        self.figure = _FakeFigure()
+        return self.figure
 
 
 class _FakeStorage:
@@ -37,7 +47,8 @@ class VisualizationCommandTests(unittest.TestCase):
 
     def test_runner_stores_command_output_without_branching_per_command(self):
         storage = _FakeStorage()
-        runner = VisualizationRunner(storage, VisualizationRegistry([_FakeCommand()]))
+        command = _FakeCommand()
+        runner = VisualizationRunner(storage, VisualizationRegistry([command]))
 
         results = runner.run_all("game", "game-1", {"game_id": "game-1"})
 
@@ -48,6 +59,16 @@ class VisualizationCommandTests(unittest.TestCase):
         self.assertEqual(storage.calls[0]["title"], "Fake Visualization")
         self.assertEqual(storage.calls[0]["mime_type"], "image/png")
         self.assertEqual(storage.calls[0]["image_bytes"], b"fake-png")
+
+    def test_runner_closes_figures_after_storing_png_bytes(self):
+        storage = _FakeStorage()
+        command = _FakeCommand()
+        runner = VisualizationRunner(storage, VisualizationRegistry([command]))
+
+        runner.run_all("game", "game-1", {"game_id": "game-1"})
+
+        self.assertIsNotNone(command.figure)
+        self.assertTrue(command.figure.closed)
 
 
 if __name__ == "__main__":

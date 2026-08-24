@@ -26,6 +26,12 @@ class VisualizationService:
             if existing:
                 return existing
         if scope_type == "training_batch":
+            context = dict(context or {})
+            context_version = self._training_context_version(context)
+            existing = self.storage.get_research_visualizations(scope_type, scope_id)
+            if self._matches_context_version(existing, context_version):
+                return existing
+            context["_visualization_context_version"] = context_version
             self.storage.delete_research_visualizations(scope_type, scope_id)
         runner = self.game_runner if scope_type == "game" else self.batch_runner
         try:
@@ -35,3 +41,13 @@ class VisualizationService:
                 f"Failed to generate {scope_type} visualizations for {scope_id}: {exc}"
             )
         return self.storage.get_research_visualizations(scope_type, scope_id)
+
+    def _training_context_version(self, context: dict) -> str:
+        generation_count = len(context.get("generation_statistics", []) or [])
+        return f"generations:{generation_count}"
+
+    def _matches_context_version(self, existing: list, context_version: str) -> bool:
+        if not existing:
+            return False
+        metadata = existing[0].get("metadata", {}) or {}
+        return metadata.get("context_version") == context_version
