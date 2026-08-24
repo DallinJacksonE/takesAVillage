@@ -66,17 +66,21 @@ const AvailableWorkCard: React.FC<Props> = ({
         ) : (
           me.available_work.map((work: WorkActionDTO, index: number) => {
             const itemKey = work.action_id || `inherent-work-${index}`;
+            const developmentLabel = `${work.development?.type || "Property"} ${work.development?.id || ""}`.trim();
+            const wageLabel = `${work.wage} ${work.wage_type}`;
 
             return (
               <div
                 key={itemKey}
                 className={styles.row5}
               >
-                <span>
-                  <strong>{work.development?.type || 'Property'}</strong> - Wage: {work.wage} {work.wage_type}
+                <span className={styles.workDetails}>
+                  <strong>{developmentLabel}</strong>
+                  <span>Agreed wage: {wageLabel}</span>
                 </span>
 
                 <button
+                  aria-label={`Commit work at ${developmentLabel} for agreed wage ${wageLabel}`}
                   className="btn-tooltip success"
                   onClick={() => onCommitWork({ job: work })}
                   disabled={disabled}

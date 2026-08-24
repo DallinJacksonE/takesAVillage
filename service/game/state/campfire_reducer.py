@@ -2,8 +2,17 @@
 
 
 class CampfireReducer:
+    def _remove_guest_from_existing_fires(self, game, guest_id):
+        for player in game.players.values():
+            if guest_id in getattr(player, "fire_guests", []):
+                player.fire_guests = [
+                    current_id for current_id in player.fire_guests
+                    if current_id != guest_id
+                ]
+
     def _apply_fire_started(self, game, event):
         player = game.players[event.player_id]
+        self._remove_guest_from_existing_fires(game, player.session_id)
         player.fire_status = "HOST"
         player.fire_guests = []
         return player
@@ -11,7 +20,9 @@ class CampfireReducer:
     def _apply_guest_seated_at_fire(self, game, event):
         host = game.players[event.host_id]
         guest = game.players[event.guest_id]
-        host.fire_guests.append(guest.session_id)
+        self._remove_guest_from_existing_fires(game, guest.session_id)
+        if guest.session_id not in host.fire_guests:
+            host.fire_guests.append(guest.session_id)
         guest.fire_status = "GUEST"
         guests = list(host.fire_guests)
         guest.fire_history.append({

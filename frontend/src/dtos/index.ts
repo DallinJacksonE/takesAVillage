@@ -219,6 +219,8 @@ export interface MapTileDTO {
   development?: DevelopmentDTO;
 }
 
+export type MapDataDTO = MapTileDTO[] | Record<string, MapTileDTO>;
+
 export interface WorkActionDTO {
   development: DevelopmentDTO;
   wage: number;
@@ -310,7 +312,7 @@ export interface GameStateDTO {
   phase: Phase;
   time_remaining: number;
   player_list: PublicPlayerDTO[];
-  map: MapTileDTO[];
+  map: MapDataDTO;
   developments: DevelopmentDTO[];
   chat_messages: ChatMessageDTO[];
 

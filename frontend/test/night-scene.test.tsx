@@ -8,10 +8,10 @@ const makePlayer = (
   location: PublicPlayerDTO["visual_state"]["location"],
 ): PublicPlayerDTO => ({
   id,
-  name: id === "player-1" ? "Moss" : "Fern",
+  name: id === "player-1" ? "Moss" : id === "player-3" ? "Ash" : "Fern",
   health: "healthy",
-  fire_status: id === "player-1" ? "HOST" : "GUEST",
-  fire_guests: id === "player-1" ? ["player-2"] : [],
+  fire_status: location.kind === "FIRE" && location.slot === 0 ? "HOST" : "GUEST",
+  fire_guests: id === "player-1" ? ["player-2"] : id === "player-3" ? ["player-4"] : [],
   developments: [],
   finished_phase: false,
   phase_state: "ACTIVE",
@@ -39,5 +39,33 @@ describe("NIGHT village scene", () => {
 
     expect(screen.getByLabelText("Night clearing")).toBeTruthy();
     expect(screen.getByLabelText("Campfire hosted by Moss")).toBeTruthy();
+  });
+
+  it("renders multiple host campfires at separate clearing points", () => {
+    const players = [
+      makePlayer("player-1", { kind: "FIRE", id: "player-1", slot: 0 }),
+      makePlayer("player-2", { kind: "FIRE", id: "player-1", slot: 1 }),
+      makePlayer("player-3", { kind: "FIRE", id: "player-3", slot: 0 }),
+      makePlayer("player-4", { kind: "FIRE", id: "player-3", slot: 1 }),
+    ];
+    render(
+      <PlayerProvider players={players}>
+        <VillageMap
+          mapData={[]}
+          onBuild={jest.fn()}
+          playerId="player-1"
+          development_costs={{}}
+          players={players}
+          phase="NIGHT"
+        />
+      </PlayerProvider>,
+    );
+
+    const mossFire = screen.getByLabelText("Campfire hosted by Moss");
+    const ashFire = screen.getByLabelText("Campfire hosted by Ash");
+
+    expect(mossFire).toBeTruthy();
+    expect(ashFire).toBeTruthy();
+    expect(mossFire.getAttribute("style")).not.toEqual(ashFire.getAttribute("style"));
   });
 });

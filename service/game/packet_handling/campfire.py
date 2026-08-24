@@ -34,7 +34,9 @@ def seat_guest(game_state, contract):
 
     if not host or not guest:
         return False
-    if guest.fire_status == "GUEST":
+    if guest.fire_status == "HOST":
+        return False
+    if guest.session_id in getattr(host, "fire_guests", []):
         return False
     if getattr(host, "fire_status", "COLD") != "HOST":
         return False

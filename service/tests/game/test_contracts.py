@@ -284,6 +284,62 @@ def test_campfire_acceptance_seats_guest_once(make_game):
     assert guest.fire_status == "GUEST"
 
 
+def test_campfire_acceptance_rejects_host_joining_another_fire(make_game):
+    game = make_game()
+    first_host = game.players["player-1"]
+    second_host = game.players["player-2"]
+    first_host.fire_status = "HOST"
+    second_host.fire_status = "HOST"
+    contract = CampfireContract(
+        first_host.session_id,
+        second_host.session_id,
+        is_request=True,
+    )
+    game.contract_factory._add_contract_to_players(contract)
+
+    status, unchanged = update_contract(
+        game,
+        second_host.session_id,
+        contract,
+        "ACCEPT",
+    )
+
+    assert status == "ILLEGAL"
+    assert unchanged.status == "PENDING"
+    assert first_host.fire_status == "HOST"
+    assert second_host.fire_guests == []
+
+
+def test_guest_can_move_from_one_host_fire_to_another(make_game):
+    game = make_game(("player-1", "player-2", "player-3"))
+    old_host = game.players["player-1"]
+    new_host = game.players["player-2"]
+    guest = game.players["player-3"]
+    old_host.fire_status = "HOST"
+    old_host.fire_guests = [guest.session_id]
+    new_host.fire_status = "HOST"
+    guest.fire_status = "GUEST"
+    contract = CampfireContract(
+        guest.session_id,
+        new_host.session_id,
+        is_request=True,
+    )
+    game.contract_factory._add_contract_to_players(contract)
+
+    status, accepted = update_contract(
+        game,
+        new_host.session_id,
+        contract,
+        "ACCEPT",
+    )
+
+    assert status == "UPDATED_ACCEPTED"
+    assert accepted.status == "ACCEPTED"
+    assert old_host.fire_guests == []
+    assert new_host.fire_guests == [guest.session_id]
+    assert guest.fire_status == "GUEST"
+
+
 def test_campfire_acceptance_rejects_full_fire_without_mutation(make_game):
     game = make_game()
     host = game.players["player-1"]

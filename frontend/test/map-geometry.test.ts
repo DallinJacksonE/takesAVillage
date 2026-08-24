@@ -24,7 +24,7 @@ describe("axialToIsometric", () => {
       0,
     )).toEqual({
       x: expect.closeTo(65.8179, 3),
-      y: -36,
+      y: 0,
     });
   });
 
@@ -49,7 +49,7 @@ describe("axialToIsometric", () => {
     expect(getTradeGroupOffset("trade-c", tradeIds)).toEqual({ x: 140, y: 0 });
   });
 
-  it("places fire groups around shared campfires and cold players apart", () => {
+  it("places one fire group around a shared campfire and cold players apart", () => {
     expect(getPlayerMapPosition(
       { kind: "FIRE", id: "player-1", slot: 0 }, [], 0,
     )).toEqual({ x: 0, y: 26 });
@@ -59,5 +59,23 @@ describe("axialToIsometric", () => {
     expect(getPlayerMapPosition(
       { kind: "NIGHT_COLD", slot: 0 }, [], 2,
     )).toEqual({ x: -190, y: 96 });
+  });
+
+  it("places multiple fire hosts at deterministic polygon points with guests grouped around their host fire", () => {
+    const fireIds = ["fire-c", "fire-a", "fire-b"];
+
+    const firstHost = getPlayerMapPosition(
+      { kind: "FIRE", id: "fire-a", slot: 0 }, [], 0, 38, fireIds,
+    );
+    const secondHost = getPlayerMapPosition(
+      { kind: "FIRE", id: "fire-b", slot: 0 }, [], 1, 38, fireIds,
+    );
+    const guest = getPlayerMapPosition(
+      { kind: "FIRE", id: "fire-a", slot: 1 }, [], 2, 38, fireIds,
+    );
+
+    expect(firstHost).not.toEqual(secondHost);
+    expect(guest.x).toBeGreaterThan(firstHost.x);
+    expect(Math.abs(guest.y - firstHost.y)).toBeLessThanOrEqual(45);
   });
 });

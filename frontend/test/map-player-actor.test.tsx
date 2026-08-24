@@ -18,6 +18,12 @@ const player: PublicPlayerDTO = {
 };
 
 describe("MapPlayerActor", () => {
+  const originalMatchMedia = window.matchMedia;
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
   it("walks into a changed location before playing the authoritative activity", () => {
     jest.useFakeTimers();
     render(<MapPlayerActor color="#fff" player={player} x={0} y={0} />);
@@ -26,6 +32,23 @@ describe("MapPlayerActor", () => {
     act(() => jest.advanceTimersByTime(600));
     expect(screen.getByRole("img").getAttribute("aria-label")).toContain("work mine");
     jest.useRealTimers();
+  });
+
+  it("skips transient walking when reduced motion is requested", () => {
+    window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+      addEventListener: jest.fn(),
+      addListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+      matches: query === "(prefers-reduced-motion: reduce)",
+      media: query,
+      onchange: null,
+      removeEventListener: jest.fn(),
+      removeListener: jest.fn(),
+    }));
+
+    render(<MapPlayerActor color="#fff" player={player} x={0} y={0} />);
+
+    expect(screen.getByRole("img").getAttribute("aria-label")).toContain("work mine");
   });
 
   it("faces trade partners toward each other while carrying", () => {

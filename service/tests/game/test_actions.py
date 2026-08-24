@@ -255,6 +255,22 @@ def test_start_fire_records_authoritative_domain_events(make_game):
     ]
 
 
+def test_guest_starting_fire_leaves_previous_host(make_game):
+    game = make_game()
+    game.phase = "NIGHT"
+    host = game.players["player-1"]
+    guest = game.players["player-2"]
+    host.fire_status = "HOST"
+    host.fire_guests = [guest.session_id]
+    guest.fire_status = "GUEST"
+
+    accepted = StartFireCommand(guest.session_id, {}).execute(game, guest)
+
+    assert accepted is True
+    assert host.fire_guests == []
+    assert guest.fire_status == "HOST"
+
+
 def test_finish_phase_marks_player_finished(make_game):
     game = make_game()
     player = game.players["player-1"]

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useEffect, useRef } from "react";
-import { MapTileDTO, DevelopmentCostsDict, Phase, PublicPlayerDTO } from "../../dtos/index";
+import { MapDataDTO, MapTileDTO, DevelopmentCostsDict, Phase, PublicPlayerDTO } from "../../dtos/index";
 import { usePlayerName } from "../hooks/usePlayerName";
 import PlayerInfo from "./playerInfo/PlayerInfo";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -16,7 +16,7 @@ import { axialToIsometric, getPlayerMapPosition, getTradeGroupOffset } from "./m
 import MapPlayerActor from "./player/MapPlayerActor";
 import { getPhaseScene } from "./phaseScene";
 interface Props {
-  mapData: MapTileDTO[];
+  mapData: MapDataDTO;
   onBuild: (tileId: string) => void;
   playerId: string;
   development_costs: DevelopmentCostsDict;
@@ -42,6 +42,11 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
   const fireHosts = players.filter((player) => (
     player.visual_state.location.kind === "FIRE"
     && player.visual_state.location.slot === 0
+  ));
+  const fireIds = fireHosts.flatMap((host) => (
+    host.visual_state.location.kind === "FIRE"
+      ? [host.visual_state.location.id]
+      : []
   ));
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -215,6 +220,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
             mapData,
             0,
             HEX_SIZE,
+            fireIds,
           );
           return (
             <div
@@ -235,6 +241,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
             mapData,
             index,
             HEX_SIZE,
+            fireIds,
           );
           const tradeOffset = player.visual_state.location.kind === "TRADE"
             ? getTradeGroupOffset(player.visual_state.location.id, tradeIds)

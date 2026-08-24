@@ -21,15 +21,26 @@ const REACTION_OPTIONS = [
   { emoji: "😠" as const, label: "angry" },
 ];
 
+const prefersReducedMotion = () => (
+  typeof window !== "undefined"
+  && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+);
+
 const TransientPlayerSprite = ({ player }: Pick<Props, "player">) => {
+  const shouldReduceMotion = prefersReducedMotion();
   const [isWalking, setIsWalking] = useState(
-    !["HURT", "DEAD"].includes(player.visual_state.animation),
+    !shouldReduceMotion && !["HURT", "DEAD"].includes(player.visual_state.animation),
   );
 
   useEffect(() => {
+    if (shouldReduceMotion) {
+      setIsWalking(false);
+      return;
+    }
+
     const timer = window.setTimeout(() => setIsWalking(false), WALK_DURATION_MS);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [shouldReduceMotion]);
 
   const animation = isWalking ? "WALK" : player.visual_state.animation;
   const sprite = getGoblinSpriteForAnimation(animation);

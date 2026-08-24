@@ -58,8 +58,18 @@ const CampfireRing: React.FC<Props> = ({
     ? [myFireSession.hostId, ...myFireSession.guestIds].filter((id, index, arr) => id && arr.indexOf(id) === index)
     : [];
 
+  const currentHostId = me.fire_status === "HOST"
+    ? me.id
+    : myFireSession?.hostId;
+  const currentHostName = currentHostId ? getPlayerName(currentHostId) : "";
+
   const isAtCapacity =
     me.fire_guests.length >= state.max_fire_seats;
+  const canStartOwnFire = me.fire_status !== "HOST";
+  const startFireCost = state.campfire_cost.wood ?? 1;
+  const startFireLabel = me.fire_status === "GUEST" && currentHostName
+    ? `Leave ${currentHostName}'s fire and start your own fire for ${startFireCost} wood`
+    : `Start your own fire for ${startFireCost} wood`;
 
   return (
     <div className={`card ${styles.column2}`} >
@@ -91,10 +101,15 @@ const CampfireRing: React.FC<Props> = ({
 
               return (
                 <div className={styles.panel7}>
-                  Warming by <strong>{getPlayerName(hostId)}</strong>'s fire
+                  Guest at <strong>{getPlayerName(hostId)}</strong>'s fire. Guests may move to another fire or start their own.
                 </div>
               );
             })()}
+            {me.fire_status === "HOST" && (
+              <div className={styles.panel7}>
+                Hosting your own fire. Starting a fire is instant, so you will stay here for the night unless you end the day cold later.
+              </div>
+            )}
           </div>
 
           {/* VILLAGE */}
@@ -136,13 +151,14 @@ const CampfireRing: React.FC<Props> = ({
                       </button>
                     )}
 
-                  {/* COLD → REQUEST SEAT FROM HOST */}
-                  {me.fire_status === "COLD" && p.fire_status === "HOST" && (
+                  {/* NON-HOST → REQUEST OR SWITCH SEAT FROM HOST */}
+                  {me.fire_status !== "HOST" && p.fire_status === "HOST" && p.id !== currentHostId && (
                     <button
+                      aria-label={`Request seat at ${p.name}'s fire`}
                       className="btn-tooltip success"
                       onClick={() => onRequestSeat(p.id)}
                     >
-                      Request Seat
+                      {me.fire_status === "GUEST" ? "Switch Fire" : "Request Seat"}
                     </button>
                   )}
 
@@ -157,14 +173,15 @@ const CampfireRing: React.FC<Props> = ({
           <div>
 
             <div className={styles.panel6}>
-              {me.fire_status === "COLD" && (
+              {canStartOwnFire && (
                 <button
+                  aria-label={startFireLabel}
                   className={`btn-tooltip danger ${styles.button}`}
                   
-                  disabled={me.resources.wood < 1}
+                  disabled={me.resources.wood < startFireCost}
                   onClick={onStartFire}
                 >
-                  Start Fire (1 Wood)
+                  {me.fire_status === "GUEST" ? "Leave & Start Fire" : "Start Fire"} ({startFireCost} Wood)
                 </button>
               )}
             </div>

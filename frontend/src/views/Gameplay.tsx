@@ -27,6 +27,7 @@ import PlayerStatusBar from "../components/gameplay/layout/PlayerStatusBar";
 import ConnectionBanner from "../components/gameplay/layout/ConnectionBanner";
 import ToastStack from "../components/gameplay/layout/ToastStack";
 import NightTransitionAcknowledger from "../components/gameplay/NightTransitionAcknowledger";
+import { buildPhaseAttentionKey } from "../components/gameplay/layout/phaseAttention";
 
 
 const Gameplay: React.FC = () => {
@@ -184,6 +185,7 @@ const Gameplay: React.FC = () => {
         <PlayerColorProvider gameState={gameState}>
           <PlayerProvider players={gameState.player_list}>
             <GameplayShell
+              actionAttentionKey={buildPhaseAttentionKey(gameState)}
               statusBar={(
                 <PlayerStatusBar
                   day={gameState.day}

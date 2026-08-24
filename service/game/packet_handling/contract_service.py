@@ -62,6 +62,7 @@ class ContractFactory:
         initiator_id = user_id
         target_id = data.get('target_id') or data.get('to_id')
         initiator = self.players.get(initiator_id)
+        target = self.players.get(target_id)
 
         if not contract_type:
             cf_logger.error(
@@ -81,8 +82,12 @@ class ContractFactory:
             return TradeContract(initiator_id, target_id, data.get('offer_items', {}), data.get('request_items', {}))
         elif contract_type == 'CAMPFIRE':
             is_request = data.get('is_request', False)
+            if is_request and initiator and getattr(initiator, 'fire_status', 'COLD') == 'HOST':
+                raise ValueError("Hosts cannot request seats at other fires")
             if not is_request and initiator and getattr(initiator, 'fire_status', 'COLD') != 'HOST':
                 raise ValueError("Only hosts can offer seats")
+            if not is_request and target and getattr(target, 'fire_status', 'COLD') == 'HOST':
+                raise ValueError("Hosts cannot be offered seats at other fires")
             return CampfireContract(initiator_id, target_id, is_request)
         else:
             raise ValueError(f"Unknown contract type: {contract_type}")

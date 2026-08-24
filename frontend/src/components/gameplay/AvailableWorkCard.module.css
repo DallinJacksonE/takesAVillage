@@ -117,6 +117,13 @@
   font-size: 0.85rem;
 
 }
+.workDetails {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+
+}
 .panel9 {
   font-size: 0.85rem;
   color: var(--medium_grey);
