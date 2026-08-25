@@ -159,6 +159,7 @@ const Gameplay: React.FC = () => {
               playerId={userId}
               players={gameState.player_list}
               development_costs={gameState.development_costs}
+              maxFireSeats={gameState.max_fire_seats}
               onBuild={(tileId) => presenter.buildDevelopment(tileId)}
             />
 
@@ -209,6 +210,7 @@ const Gameplay: React.FC = () => {
                   playerId={userId}
                   players={gameState.player_list}
                   development_costs={gameState.development_costs}
+                  maxFireSeats={gameState.max_fire_seats}
                   onBuild={(tileId) => presenter.buildDevelopment(tileId)}
                   onReact={presenter.setEmoji}
                 />

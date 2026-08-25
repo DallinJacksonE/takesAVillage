@@ -33,6 +33,7 @@ describe("NIGHT village scene", () => {
           development_costs={{}}
           players={players}
           phase="NIGHT"
+          maxFireSeats={4}
         />
       </PlayerProvider>,
     );
@@ -57,6 +58,7 @@ describe("NIGHT village scene", () => {
           development_costs={{}}
           players={players}
           phase="NIGHT"
+          maxFireSeats={4}
         />
       </PlayerProvider>,
     );
@@ -67,5 +69,29 @@ describe("NIGHT village scene", () => {
     expect(mossFire).toBeTruthy();
     expect(ashFire).toBeTruthy();
     expect(mossFire.getAttribute("style")).not.toEqual(ashFire.getAttribute("style"));
+
+    expect(screen.getAllByLabelText(/Fire seat/)).toHaveLength(8);
+  });
+
+  it("renders a seat marker for every vertex of each host fire", () => {
+    const players = [
+      makePlayer("player-1", { kind: "FIRE", id: "player-1", slot: 0 }),
+      makePlayer("player-3", { kind: "FIRE", id: "player-3", slot: 0 }),
+    ];
+    render(
+      <PlayerProvider players={players}>
+        <VillageMap
+          mapData={[]}
+          onBuild={jest.fn()}
+          playerId="player-1"
+          development_costs={{}}
+          players={players}
+          phase="NIGHT"
+          maxFireSeats={3}
+        />
+      </PlayerProvider>,
+    );
+
+    expect(screen.getAllByLabelText(/Fire seat/)).toHaveLength(6);
   });
 });

@@ -8,7 +8,9 @@
   width: 120px;
   height: 106px;
   pointer-events: none;
-  transform: translate(-50%, -72%);
+
+  transform: translate(-50%, -50%);
+
   filter: drop-shadow(2px 0 0 var(--player-color))
     drop-shadow(-2px 0 0 var(--player-color))
     drop-shadow(0 2px 0 var(--player-color));

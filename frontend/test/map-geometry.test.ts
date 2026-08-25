@@ -49,19 +49,28 @@ describe("axialToIsometric", () => {
     expect(getTradeGroupOffset("trade-c", tradeIds)).toEqual({ x: 140, y: 0 });
   });
 
-  it("places one fire group around a shared campfire and cold players apart", () => {
+  it("places fire guests on vertices of a regular polygon while keeping cold placement unchanged", () => {
     expect(getPlayerMapPosition(
-      { kind: "FIRE", id: "player-1", slot: 0 }, [], 0,
+      { kind: "FIRE", id: "player-1", slot: 0 }, [], 0, 38, [], 4,
     )).toEqual({ x: 0, y: 26 });
-    expect(getPlayerMapPosition(
-      { kind: "FIRE", id: "player-1", slot: 1 }, [], 1,
-    )).toEqual({ x: 58, y: 26 });
+
+    const seats = [1, 2, 3, 4].map((slot) => getPlayerMapPosition(
+      { kind: "FIRE", id: "player-1", slot }, [], slot, 38, [], 4,
+    ));
+
+    expect(seats).toEqual([
+      { x: 0, y: -52 },
+      { x: 78, y: 26 },
+      { x: 0, y: 104 },
+      { x: -78, y: 26 },
+    ]);
+
     expect(getPlayerMapPosition(
       { kind: "NIGHT_COLD", slot: 0 }, [], 2,
     )).toEqual({ x: -190, y: 96 });
   });
 
-  it("places multiple fire hosts at deterministic polygon points with guests grouped around their host fire", () => {
+  it("gives every host an independent fire and keeps each guest with that host", () => {
     const fireIds = ["fire-c", "fire-a", "fire-b"];
 
     const firstHost = getPlayerMapPosition(
@@ -71,11 +80,13 @@ describe("axialToIsometric", () => {
       { kind: "FIRE", id: "fire-b", slot: 0 }, [], 1, 38, fireIds,
     );
     const guest = getPlayerMapPosition(
-      { kind: "FIRE", id: "fire-a", slot: 1 }, [], 2, 38, fireIds,
+      { kind: "FIRE", id: "fire-a", slot: 1 }, [], 2, 38, fireIds, 3,
     );
 
     expect(firstHost).not.toEqual(secondHost);
-    expect(guest.x).toBeGreaterThan(firstHost.x);
-    expect(Math.abs(guest.y - firstHost.y)).toBeLessThanOrEqual(45);
+    expect(guest).toEqual({
+      x: firstHost.x,
+      y: firstHost.y - 78,
+    });
   });
 });

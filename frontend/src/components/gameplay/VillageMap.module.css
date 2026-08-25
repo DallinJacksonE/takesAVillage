@@ -7,7 +7,7 @@
   min-height: 400px;
   position: relative;
   overflow: hidden;
-  cursor: var(--card-cursor);
+  cursor: default;
   user-select: none;
 
 }
@@ -91,6 +91,20 @@
   letter-spacing: 0.16em;
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+.fireSeatDot {
+  position: absolute;
+  z-index: 17;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 205, 112, 0.32);
+  border: 2px solid rgba(255, 224, 157, 0.48);
+  box-shadow: 0 0 7px rgba(255, 191, 91, 0.28);
+  image-rendering: pixelated;
+  pointer-events: none;
 }
 
 .campfire {

@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { MapDataDTO, MapTileDTO, DevelopmentCostsDict, Phase, PublicPlayerDTO } from "../../dtos/index";
 import { usePlayerName } from "../hooks/usePlayerName";
 import PlayerInfo from "./playerInfo/PlayerInfo";
@@ -12,9 +11,10 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { usePlayerColors } from "../hooks/usePlayerColor";
 import styles from "./VillageMap.module.css";
-import { axialToIsometric, getPlayerMapPosition, getTradeGroupOffset } from "./mapGeometry";
+import { axialToIsometric, getNightFireAnchor, getNightFireSeatPosition, getPlayerMapPosition, getTradeGroupOffset } from "./mapGeometry";
 import MapPlayerActor from "./player/MapPlayerActor";
 import { getPhaseScene } from "./phaseScene";
+
 interface Props {
   mapData: MapDataDTO;
   onBuild: (tileId: string) => void;
@@ -23,16 +23,15 @@ interface Props {
   players: PublicPlayerDTO[];
   phase: Phase;
   onReact?: (emoji: "👍" | "❤️" | "😂" | "😠") => void;
+  maxFireSeats?: number;
 }
 
-const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_costs, players, phase, onReact }) => {
+const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_costs, players, phase, onReact, maxFireSeats = 3 }) => {
   const [selectedTile, setSelectedTile] = useState<MapTileDTO | null>(null);
+  const [sceneScale, setSceneScale] = useState(1);
+  const mapCardRef = useRef<HTMLDivElement | null>(null);
   const getPlayerNameFromHook = usePlayerName();
   const { getPlayerColor } = usePlayerColors();
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [scale, setScale] = useState(1);
   const scene = getPhaseScene(phase);
   const tradeIds = players.flatMap((player) => (
     player.visual_state.location.kind === "TRADE"
@@ -48,23 +47,6 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
       ? [host.visual_state.location.id]
       : []
   ));
-
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const stopScroll = (e: WheelEvent) => {
-      e.preventDefault();
-    };
-
-    el.addEventListener("wheel", stopScroll, { passive: false });
-
-    return () => {
-      el.removeEventListener("wheel", stopScroll);
-    };
-  }, []);
 
   // Correct Pointy-Topped Hex Math
   const HEX_SIZE = 38;
@@ -83,6 +65,63 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
   const mineBackground = "#687783";
   const openBorder = "#F5E6B8";
   const myBorder = "#5BE58A";
+
+  // Keep the entire map/seat layout inside the visible card. The scene uses
+  // absolute positioning, so its logical size can be larger than the card
+  // when there are many fire seats or fires. Scale the scene uniformly rather
+  // than allowing the top/bottom seats to be clipped.
+  useEffect(() => {
+    const card = mapCardRef.current;
+    if (!card) return;
+
+    const updateScale = () => {
+      const width = card.clientWidth;
+      const height = card.clientHeight;
+      if (!width || !height) return;
+
+      const padding = 24;
+      const halfHexWidth = hexWidth / 2;
+      const halfHexHeight = hexHeight / 2;
+      let minX = -halfHexWidth;
+      let maxX = halfHexWidth;
+      let minY = -halfHexHeight;
+      let maxY = halfHexHeight;
+
+      for (const tile of Object.values(mapData)) {
+        const point = hexToPixel(tile.q, tile.r);
+        minX = Math.min(minX, point.x - halfHexWidth);
+        maxX = Math.max(maxX, point.x + halfHexWidth);
+        minY = Math.min(minY, point.y - halfHexHeight);
+        maxY = Math.max(maxY, point.y + halfHexHeight);
+      }
+
+      if (phase === "NIGHT" && fireIds.length) {
+        const seatCount = Math.max(2, Math.floor(maxFireSeats));
+        const polygonRadius = Math.max(78, Math.ceil(150 / (2 * Math.sin(Math.PI / seatCount))));
+        const firePadding = polygonRadius + 54;
+
+        for (const fireId of fireIds) {
+          const anchor = getNightFireAnchor(fireId, fireIds, seatCount);
+          minX = Math.min(minX, anchor.x - firePadding);
+          maxX = Math.max(maxX, anchor.x + firePadding);
+          minY = Math.min(minY, anchor.y - firePadding);
+          maxY = Math.max(maxY, anchor.y + firePadding);
+        }
+      }
+
+      const contentWidth = Math.max(1, maxX - minX);
+      const contentHeight = Math.max(1, maxY - minY);
+      const availableWidth = Math.max(1, width - padding * 2);
+      const availableHeight = Math.max(1, height - padding * 2);
+
+      setSceneScale(Math.min(1, availableWidth / contentWidth, availableHeight / contentHeight));
+    };
+
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, [mapData, phase, fireIds.join("|"), maxFireSeats, hexWidth, hexHeight]);
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -116,39 +155,12 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
     }
   };
 
-  // --- Dragging Handlers ---
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
-  };
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    setOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-  };
-  const handleMouseUp = () => setIsDragging(false);
-
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    setScale((prev) => {
-      const next = prev - e.deltaY * 0.001;
-      return Math.min(Math.max(next, 0.5), 2.5);
-    });
-  };
-
   return (
     <div
-      ref={containerRef}
+      ref={mapCardRef}
       className={`card ${styles.mapCard} ${styles.card}`}
       aria-label={scene.label}
       data-phase={scene.theme}
-      style={{"--card-cursor": isDragging ? "grabbing" : "grab"} as React.CSSProperties}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onWheel={handleWheel}
       onClick={() => setSelectedTile(null)}
     >
       <div
@@ -156,10 +168,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
           position: "absolute",
           top: "50%",
           left: "50%",
-          transform: `
-            translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))
-            scale(${scale})
-          `,
+          transform: `translate(-50%, -50%) scale(${sceneScale})`,
           transformOrigin: "center center",
         }}
       >
@@ -215,23 +224,58 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
         )}
 
         {phase === "NIGHT" && fireHosts.map((host) => {
-          const position = getPlayerMapPosition(
-            host.visual_state.location,
-            mapData,
-            0,
-            HEX_SIZE,
-            fireIds,
+          const fireId = host.visual_state.location.kind === "FIRE"
+            ? host.visual_state.location.id
+            : host.id;
+          const center = getNightFireAnchor(fireId, fireIds, maxFireSeats);
+          const seatCount = Math.max(1, Math.floor(maxFireSeats));
+          const occupiedSlots = new Set(
+            players.flatMap((player) => {
+              const location = player.visual_state.location;
+              return location.kind === "FIRE" && location.id === fireId
+                ? [location.slot]
+                : [];
+            }),
           );
+
           return (
-            <div
-              aria-label={`Campfire hosted by ${getPlayerNameFromHook(host.id)}`}
-              className={styles.campfire}
-              key={`fire-${host.id}`}
-              role="img"
-              style={{ left: position.x, top: position.y + 34 }}
-            >
-              🔥
-            </div>
+            <React.Fragment key={`fire-group-${host.id}`}>
+              {Array.from({ length: seatCount }, (_, seatIndex) => {
+                // Seat 0 is always the host. Every other dot is only a
+                // placeholder for a genuinely free seat.
+                if (occupiedSlots.has(seatIndex)) {
+                  return null;
+                }
+
+                const seat = getNightFireSeatPosition(
+                  fireId,
+                  seatIndex,
+                  seatCount,
+                  fireIds,
+                );
+
+                return (
+                  <div
+                    aria-label={`Free seat ${seatIndex + 1} at ${getPlayerNameFromHook(host.id)}'s fire`}
+                    className={styles.fireSeatDot}
+                    key={`fire-seat-${host.id}-${seatIndex}`}
+                    style={{
+                      left: seat.x,
+                      top: seat.y,
+                    }}
+                  />
+                );
+              })}
+              <div
+                aria-label={`Campfire hosted by ${getPlayerNameFromHook(host.id)}`}
+                className={styles.campfire}
+                key={`fire-${host.id}`}
+                role="img"
+                style={{ left: center.x, top: center.y }}
+              >
+                🔥
+              </div>
+            </React.Fragment>
           );
         })}
 
@@ -242,6 +286,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
             index,
             HEX_SIZE,
             fireIds,
+            maxFireSeats,
           );
           const tradeOffset = player.visual_state.location.kind === "TRADE"
             ? getTradeGroupOffset(player.visual_state.location.id, tradeIds)
@@ -250,6 +295,8 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
           const locationPeers = players.slice(0, index).filter(
             (candidate) => JSON.stringify(candidate.visual_state.location) === locationKey,
           ).length;
+          const isFireLocation = player.visual_state.location.kind === "FIRE";
+          const peerOffset = isFireLocation ? { x: 0, y: 0 } : { x: locationPeers * 24, y: locationPeers * 8 };
 
           return (
             <MapPlayerActor
@@ -258,8 +305,8 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
               isLocal={player.id === playerId}
               onReact={player.id === playerId ? onReact : undefined}
               player={player}
-              x={position.x + tradeOffset.x + locationPeers * 24}
-              y={position.y + tradeOffset.y + locationPeers * 8}
+              x={position.x + tradeOffset.x + peerOffset.x}
+              y={position.y + tradeOffset.y + peerOffset.y}
             />
           );
         })}

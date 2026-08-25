@@ -14,7 +14,7 @@ def build_night_locations(game):
                 "id": player.session_id,
                 "slot": 0,
             }
-            for slot, guest_id in enumerate(sorted(player.fire_guests), start=1):
+            for slot, guest_id in enumerate(player.fire_guests, start=1):
                 if guest_id in game.players:
                     locations[guest_id] = {
                         "kind": "FIRE",
