@@ -9,11 +9,9 @@
   height: 106px;
   pointer-events: none;
 
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -60%);
 
-  filter: drop-shadow(2px 0 0 var(--player-color))
-    drop-shadow(-2px 0 0 var(--player-color))
-    drop-shadow(0 2px 0 var(--player-color));
+  filter: drop-shadow(2px 0 0 var(--player-color)) drop-shadow(-2px 0 0 var(--player-color)) drop-shadow(0 2px 0 var(--player-color));
   transition: left 550ms ease, top 550ms ease;
 }
 

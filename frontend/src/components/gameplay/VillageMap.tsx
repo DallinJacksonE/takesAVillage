@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { MapDataDTO, MapTileDTO, DevelopmentCostsDict, Phase, PublicPlayerDTO } from "../../dtos/index";
 import { usePlayerName } from "../hooks/usePlayerName";
 import PlayerInfo from "./playerInfo/PlayerInfo";
@@ -27,6 +27,12 @@ interface Props {
 
 const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_costs, players, phase, onReact, maxFireSeats = 3 }) => {
   const [selectedTile, setSelectedTile] = useState<MapTileDTO | null>(null);
+  const mapCardRef = useRef<HTMLDivElement>(null);
+  const [fireFit, setFireFit] = useState({
+    scale: 1,
+    x: 0,
+    y: 0,
+  });
   const getPlayerNameFromHook = usePlayerName();
   const { getPlayerColor } = usePlayerColors();
   const scene = getPhaseScene(phase);
@@ -44,6 +50,129 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
       ? [host.visual_state.location.id]
       : []
   ));
+
+  useEffect(() => {
+    if (phase !== "NIGHT") {
+      setFireFit({ scale: 1, x: 0, y: 0 });
+      return;
+    }
+
+    const card = mapCardRef.current;
+    if (!card || fireIds.length === 0) {
+      return;
+    }
+
+    const fitFireLayout = () => {
+      const width = card.clientWidth;
+      const height = card.clientHeight;
+
+      if (width <= 0 || height <= 0) {
+        return;
+      }
+
+      /*
+       * Everything in the map is positioned relative to the center
+       * of the map. These are the actual fire-layout coordinates.
+       */
+      const points: { x: number; y: number }[] = [];
+
+      fireIds.forEach((fireId) => {
+        for (let seatIndex = 0; seatIndex < maxFireSeats; seatIndex++) {
+          const seat = getNightFireSeatPosition(
+            fireId,
+            seatIndex,
+            maxFireSeats,
+            fireIds,
+          );
+
+          points.push({
+            x: seat.x,
+            y: seat.y,
+          });
+        }
+
+        const fire = getNightFireSeatPosition(
+          fireId,
+          0,
+          maxFireSeats,
+          fireIds,
+        );
+
+        points.push({
+          x: fire.x,
+          y: fire.y,
+        });
+      });
+
+      if (points.length === 0) {
+        setFireFit({ scale: 1, x: 0, y: 0 });
+        return;
+      }
+
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+
+      for (const point of points) {
+        minX = Math.min(minX, point.x);
+        maxX = Math.max(maxX, point.x);
+        minY = Math.min(minY, point.y);
+        maxY = Math.max(maxY, point.y);
+      }
+
+      /*
+       * Extra room for:
+       * - player actors
+       * - campfire sprite
+       * - seat dots
+       * - shadows/glows
+       */
+      const FIT_PADDING = 55;
+
+      const layoutWidth = maxX - minX + FIT_PADDING * 2;
+      const layoutHeight = maxY - minY + FIT_PADDING * 2;
+
+      /*
+       * Uniform scale so the entire fire layout fits.
+       *
+       * Never enlarge it beyond 1.
+       */
+      const scale = Math.min(
+        1,
+        (width - FIT_PADDING * 2) / layoutWidth,
+        (height - FIT_PADDING * 2) / layoutHeight,
+      );
+
+      /*
+       * Center the fire layout in the available card.
+       *
+       * The map's origin is already at the center of the card,
+       * so this translation simply moves the fire bounding box
+       * back to the center after scaling.
+       */
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+
+      setFireFit({
+        scale,
+        x: -centerX * scale,
+        y: -centerY * scale,
+      });
+    };
+
+    fitFireLayout();
+
+    const resizeObserver = new ResizeObserver(fitFireLayout);
+    resizeObserver.observe(card);
+
+    window.addEventListener("resize", fitFireLayout);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", fitFireLayout);
+    };
+  }, [phase, fireIds.join(","), maxFireSeats]);
 
   // Correct Pointy-Topped Hex Math
   const HEX_SIZE = 38;
@@ -89,6 +218,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
 
   return (
     <div
+      ref={mapCardRef}
       className={`card ${styles.mapCard} ${styles.card}`}
       aria-label={scene.label}
       data-phase={scene.theme}
@@ -167,61 +297,86 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
           <div className={styles.sceneTitle}>{scene.label}</div>
         )}
 
-        {phase === "NIGHT" && fireHosts.map((host) => {
-          const fireId = host.visual_state.location.kind === "FIRE"
-            ? host.visual_state.location.id
-            : host.id;
-          const center = getNightFireSeatPosition(fireId, 0, maxFireSeats, fireIds);
-          const seatCount = Math.max(1, Math.floor(maxFireSeats));
+        {phase === "NIGHT" && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              pointerEvents: "none",
+              transform: `translate(${fireFit.x}px, ${fireFit.y}px) scale(${fireFit.scale})`,
+              transformOrigin: "center center",
+            }}
+          >
+            {fireHosts.map((host) => {
+              const fireId =
+                host.visual_state.location.kind === "FIRE"
+                  ? host.visual_state.location.id
+                  : host.id;
 
-          return (
-            <React.Fragment key={`fire-group-${host.id}`}>
-              {Array.from({ length: seatCount }, (_, seatIndex) => {
-                const occupied = players.some(
-                  (player) =>
-                    player.visual_state.location.kind === "FIRE" &&
-                    player.visual_state.location.id === fireId &&
-                    player.visual_state.location.slot === seatIndex,
-                );
+              const seatCount = Math.max(1, Math.floor(maxFireSeats));
 
-                if (occupied) {
-                  return null;
-                }
+              const center = getNightFireSeatPosition(
+                fireId,
+                0,
+                seatCount,
+                fireIds,
+              );
 
-                const seat = getNightFireSeatPosition(
-                  fireId,
-                  seatIndex,
-                  seatCount,
-                  fireIds,
-                );
-                const isHostSeat = seatIndex === 0;
-                return (
+              return (
+                <React.Fragment key={`fire-group-${host.id}`}>
+                  {Array.from({ length: seatCount }, (_, seatIndex) => {
+                    const occupied = players.some(
+                      (player) =>
+                        player.visual_state.location.kind === "FIRE" &&
+                        player.visual_state.location.id === fireId &&
+                        player.visual_state.location.slot === seatIndex,
+                    );
+
+                    if (occupied) {
+                      return null;
+                    }
+
+                    const seat = getNightFireSeatPosition(
+                      fireId,
+                      seatIndex,
+                      seatCount,
+                      fireIds,
+                    );
+
+                    const isHostSeat = seatIndex === 0;
+
+                    return (
+                      <div
+                        aria-label={
+                          isHostSeat
+                            ? `Available host seat at ${getPlayerNameFromHook(host.id)}'s fire`
+                            : `Available fire seat ${seatIndex} at ${getPlayerNameFromHook(host.id)}'s fire`
+                        }
+                        className={styles.fireSeatDot}
+                        key={`fire-seat-${host.id}-${seatIndex}`}
+                        style={{
+                          left: seat.x,
+                          top: seat.y,
+                        }}
+                      />
+                    );
+                  })}
+
                   <div
-                    aria-label={isHostSeat
-                      ? `Available host seat at ${getPlayerNameFromHook(host.id)}'s fire`
-                      : `Available fire seat ${seatIndex} at ${getPlayerNameFromHook(host.id)}'s fire`}
-                    className={styles.fireSeatDot}
-                    key={`fire-seat-${host.id}-${seatIndex}`}
+                    aria-label={`Campfire hosted by ${getPlayerNameFromHook(host.id)}`}
+                    className={styles.campfire}
+                    key={`fire-${host.id}`}
+                    role="img"
                     style={{
-                      left: seat.x,
-                      top: seat.y,
+                      left: center.x,
+                      top: center.y,
                     }}
                   />
-                );
-              })}
-              <div
-                aria-label={`Campfire hosted by ${getPlayerNameFromHook(host.id)}`}
-                className={styles.campfire}
-                key={`fire-${host.id}`}
-                role="img"
-                style={{ left: center.x, top: center.y }}
-              >
-                🔥
-              </div>
-            </React.Fragment>
-          );
-        })}
-
+                </React.Fragment>
+              );
+            })}
+          </div>
+        )}
         {players.map((player, index) => {
           const position = getPlayerMapPosition(
             player.visual_state.location,
@@ -240,6 +395,8 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
           ).length;
           const isFireLocation = player.visual_state.location.kind === "FIRE";
           const peerOffset = isFireLocation ? { x: 0, y: 0 } : { x: locationPeers * 24, y: locationPeers * 8 };
+          const isDevelopmentLocation = player.visual_state.location.kind === "DEVELOPMENT";
+          const isBuildLocation = player.visual_state.location.kind === "TILE";
 
           return (
             <MapPlayerActor
@@ -248,8 +405,22 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
               isLocal={player.id === playerId}
               onReact={player.id === playerId ? onReact : undefined}
               player={player}
-              x={position.x + tradeOffset.x + peerOffset.x}
-              y={position.y + tradeOffset.y + peerOffset.y}
+              x={
+                isFireLocation
+                  ? (position.x + tradeOffset.x + peerOffset.x) * fireFit.scale +
+                  fireFit.x
+                  : isDevelopmentLocation || isBuildLocation
+                    ? position.x - HEX_SIZE/2
+                    : position.x + tradeOffset.x + peerOffset.x
+              }
+              y={
+                isFireLocation
+                  ? (position.y + tradeOffset.y + peerOffset.y) * fireFit.scale +
+                  fireFit.y
+                  : isBuildLocation
+                    ? position.y + 20
+                    : position.y + tradeOffset.y + peerOffset.y
+              }
             />
           );
         })}
@@ -297,7 +468,7 @@ const VillageMap: React.FC<Props> = ({ mapData, onBuild, playerId, development_c
                 </div>
                 <button
                   className={`btn-tooltip success ${styles.field8}`}
-                  
+
                   onClick={() => {
                     onBuild(selectedTile.id);
                     setSelectedTile(null);

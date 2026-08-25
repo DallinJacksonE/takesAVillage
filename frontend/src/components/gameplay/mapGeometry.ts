@@ -7,7 +7,7 @@ export interface MapPoint {
 
 const FIRE_CENTER_Y = 26;
 const MIN_SEAT_CENTER_DISTANCE = 150;
-const MIN_FIRE_GROUP_RADIUS = 78;
+const MIN_FIRE_GROUP_RADIUS = 64;
 const MIN_FIRE_GROUP_PADDING = 120;
 
 /**
