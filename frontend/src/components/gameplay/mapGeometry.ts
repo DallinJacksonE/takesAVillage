@@ -7,7 +7,7 @@ export interface MapPoint {
 
 const FIRE_CENTER_Y = 26;
 const MIN_SEAT_CENTER_DISTANCE = 150;
-const MIN_FIRE_GROUP_RADIUS = 64;
+const MIN_FIRE_GROUP_RADIUS = 78;
 const MIN_FIRE_GROUP_PADDING = 120;
 
 /**
@@ -20,28 +20,19 @@ const MIN_FIRE_GROUP_PADDING = 120;
  * Therefore:
  *   R = d / (2 sin(pi / n))
  */
-const getFirePolygonRadius = (
-  vertexCount: number,
-  isHost = false,
-): number => {
+const getFirePolygonRadius = (vertexCount: number): number => {
   if (vertexCount <= 1) {
-    return isHost
-      ? MIN_FIRE_GROUP_RADIUS / 2
-      : MIN_FIRE_GROUP_RADIUS;
+    return MIN_FIRE_GROUP_RADIUS;
   }
 
   const radius =
     MIN_SEAT_CENTER_DISTANCE /
     (2 * Math.sin(Math.PI / vertexCount));
 
-  const normalRadius = Math.max(
+  return Math.max(
     MIN_FIRE_GROUP_RADIUS,
     Math.ceil(radius),
   );
-
-  return isHost
-    ? normalRadius / 2
-    : normalRadius;
 };
 
 export const axialToIsometric = (
@@ -167,11 +158,9 @@ export const getNightFireSeatPosition = (
   );
 
   const polygonRadius = getFirePolygonRadius(vertexCount);
-
-  const seatRadius =
-    slot === 0
-      ? polygonRadius / 2
-      : polygonRadius;
+  const seatRadius = slot === 0
+    ? polygonRadius / 2
+    : polygonRadius;
 
   /*
    * -PI / 2 means the first vertex is exactly at the top.

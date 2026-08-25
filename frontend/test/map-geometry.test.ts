@@ -1,5 +1,6 @@
 import {
   axialToIsometric,
+  getNightFireAnchor,
   getPlayerMapPosition,
   getTradeGroupOffset,
 } from "../src/components/gameplay/mapGeometry";
@@ -49,20 +50,19 @@ describe("axialToIsometric", () => {
     expect(getTradeGroupOffset("trade-c", tradeIds)).toEqual({ x: 140, y: 0 });
   });
 
-  it("places fire guests on vertices of a regular polygon while keeping cold placement unchanged", () => {
+  it("places the host at half radius and guests on the regular polygon while keeping cold placement unchanged", () => {
     expect(getPlayerMapPosition(
       { kind: "FIRE", id: "player-1", slot: 0 }, [], 0, 38, [], 4,
-    )).toEqual({ x: 0, y: 26 });
+    )).toEqual({ x: 0, y: -27 });
 
-    const seats = [1, 2, 3, 4].map((slot) => getPlayerMapPosition(
+    const seats = [1, 2, 3].map((slot) => getPlayerMapPosition(
       { kind: "FIRE", id: "player-1", slot }, [], slot, 38, [], 4,
     ));
 
     expect(seats).toEqual([
-      { x: 0, y: -52 },
-      { x: 78, y: 26 },
-      { x: 0, y: 104 },
-      { x: -78, y: 26 },
+      { x: 107, y: 26 },
+      { x: 0, y: 133 },
+      { x: -107, y: 26 },
     ]);
 
     expect(getPlayerMapPosition(
@@ -82,11 +82,13 @@ describe("axialToIsometric", () => {
     const guest = getPlayerMapPosition(
       { kind: "FIRE", id: "fire-a", slot: 1 }, [], 2, 38, fireIds, 3,
     );
+    const anchor = getNightFireAnchor("fire-a", fireIds, 3);
 
     expect(firstHost).not.toEqual(secondHost);
-    expect(guest).toEqual({
-      x: firstHost.x,
-      y: firstHost.y - 78,
-    });
+    expect(firstHost.x).toBe(anchor.x);
+    expect(anchor.y - firstHost.y).toBe(43);
+    expect(guest).toEqual(getPlayerMapPosition(
+      { kind: "FIRE", id: "fire-a", slot: 1 }, [], 2, 38, fireIds, 3,
+    ));
   });
 });
