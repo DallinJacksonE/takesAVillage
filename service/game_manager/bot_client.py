@@ -55,6 +55,23 @@ class BotServiceClient:
         except Exception as exc:
             return BotServiceResult(ok=False, error_message=str(exc))
 
+    async def cancel_bots(self, game_id: str, timeout: float = 5.0) -> BotServiceResult:
+        try:
+            async with self.client_factory() as client:
+                response = await client.post(
+                    f"{self.base_url}/api/cancel_bots/{game_id}",
+                    json={"botSecret": self.bot_secret},
+                    timeout=timeout,
+                )
+            if response.status_code != 200:
+                return BotServiceResult(
+                    ok=False,
+                    error_message=getattr(response, "text", "Bot service rejected cancellation"),
+                )
+            return BotServiceResult(ok=True)
+        except Exception as exc:
+            return BotServiceResult(ok=False, error_message=str(exc))
+
     async def fetch_game_genomes(self, game_id: str, max_attempts: int = 3,
                                  timeout: float = 10.0,
                                  expected_entry_count: int = 1) -> BotServiceResult:

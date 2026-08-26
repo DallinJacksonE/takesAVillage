@@ -131,6 +131,31 @@ export class ResearchPresenter extends Presenter<ResearchView> {
 		}
 	}
 
+
+	public async handleCancelTraining(batchId: string) {
+		this._view.setStatusMessage(null);
+		this._view.setErrorMessage(null);
+		try {
+			await ResearchService.cancelTrainingBatch(
+				batchId,
+				"Training cancelled by operator from the Research Dashboard",
+			);
+			this._view.setStatusMessage("Training loop cancelled.");
+			await this.loadTrainingBatches();
+
+			if (this._view) {
+				try {
+					const detail = await ResearchService.fetchTrainingBatchDetail(batchId);
+					this._view.setSelectedTrainingBatch(detail);
+				} catch (error) {
+					this._view.setErrorMessage(this.messageFromError(error));
+				}
+			}
+		} catch (error) {
+			this._view.setErrorMessage(this.messageFromError(error));
+		}
+	}
+
 	public dispose() {
 		this.disconnectTrainingSessions();
 	}

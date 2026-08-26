@@ -119,6 +119,7 @@ const Research: React.FC = () => {
             setActiveTab("games");
             void presenter.handleSelectGame({ game_id: gameId } as ResearchGameListItemDTO);
           }}
+          onCancelTraining={(batchId) => void presenter.handleCancelTraining(batchId)}
         />
       ) : (
         <GameResearchDetail game={selectedGame} />

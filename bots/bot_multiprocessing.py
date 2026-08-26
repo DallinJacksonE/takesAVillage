@@ -13,6 +13,7 @@ from queue import Empty
 from logger import Logger  # <-- Import the Logger
 
 active_bot_processes = []
+active_bot_processes_by_game: dict[str, list[multiprocessing.Process]] = {}
 training_data_queue = multiprocessing.Queue()
 # Training game reports are requested by the orchestrator immediately after a
 # game ends. Keep newly drained reports indexed by game so the API can serve
@@ -269,6 +270,12 @@ async def reap_zombies():
             else:
                 alive_processes.append(p)
         active_bot_processes = alive_processes
+        for game_id, processes in list(active_bot_processes_by_game.items()):
+            remaining = [p for p in processes if p.is_alive()]
+            if remaining:
+                active_bot_processes_by_game[game_id] = remaining
+            else:
+                active_bot_processes_by_game.pop(game_id, None)
         await asyncio.sleep(5)
 
 
@@ -291,4 +298,25 @@ def spawn_bot_processes(game_id: str, bot_count: int,
         )
         p.start()
         active_bot_processes.append(p)
+        active_bot_processes_by_game.setdefault(game_id, []).append(p)
         server_logger.info(f"Spawned bot {p.pid} for game {game_id}")
+
+
+def terminate_bot_processes(game_id: str) -> int:
+    """Stop all bot workers associated with a training game."""
+    processes = active_bot_processes_by_game.pop(game_id, [])
+    terminated = 0
+    for process in processes:
+        if process.is_alive():
+            process.terminate()
+            terminated += 1
+        process.join(timeout=1)
+        if process.is_alive():
+            process.kill()
+            process.join(timeout=1)
+        try:
+            active_bot_processes.remove(process)
+        except ValueError:
+            pass
+    server_logger.info(f"Terminated {terminated} bot process(es) for game {game_id}")
+    return terminated

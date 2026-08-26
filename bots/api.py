@@ -8,6 +8,7 @@ import json
 from bot_multiprocessing import (
     get_available_models,
     spawn_bot_processes,
+    terminate_bot_processes,
     training_results_by_game,
 )
 from logger import Logger
@@ -56,6 +57,23 @@ async def spawn_bots(payload: SpawnBotsRequest):
         api_logger.stdout_error("Failed to spawn bot processes", exception=e)
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
+
+
+class CancelBotsRequest(BaseModel):
+    botSecret: str
+
+
+
+@api_router.post("/api/cancel_bots/{game_id}")
+async def cancel_bots(game_id: str, payload: CancelBotsRequest):
+    expected_secret = os.environ.get("BOT_SECRET")
+    if (not expected_secret
+            or not hmac.compare_digest(payload.botSecret, expected_secret)):
+        raise HTTPException(status_code=403, detail="Invalid bot secret")
+
+    terminated = terminate_bot_processes(game_id)
+    return {"status": "success", "gameId": game_id, "terminated": terminated}
 
 @api_router.get("/api/genomes/{game_id}")
 async def get_best_genome(game_id: str):

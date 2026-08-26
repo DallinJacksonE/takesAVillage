@@ -7,9 +7,10 @@ import styles from "./TrainingBatchDetail.module.css";
 interface TrainingBatchDetailProps {
   batch: TrainingBatchDetailDTO | null;
   onSelectGame(gameId: string): void;
+  onCancelTraining?: (batchId: string) => void;
 }
 
-export const TrainingBatchDetail: React.FC<TrainingBatchDetailProps> = ({ batch, onSelectGame }) => {
+export const TrainingBatchDetail: React.FC<TrainingBatchDetailProps> = ({ batch, onSelectGame, onCancelTraining }) => {
   if (!batch) {
     return <p className={styles.copy3}>Select a training batch to inspect.</p>;
   }
@@ -32,7 +33,22 @@ export const TrainingBatchDetail: React.FC<TrainingBatchDetailProps> = ({ batch,
 
   return (
     <div>
-      <h2>Training Batch {batch.batch_id}</h2>
+      <div className={styles.header}>
+        <h2>Training Batch {batch.batch_id}</h2>
+        {batch.status === "running" && (
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              if (window.confirm("Cancel this running training loop?")) {
+                onCancelTraining?.(batch.batch_id);
+              }
+            }}
+          >
+            Cancel Training
+          </button>
+        )}
+      </div>
       <div className={styles.row}>
         <Meta label="Status" value={batch.status} />
         {batch.ruleset && <Meta label="Ruleset" value={batch.ruleset} />}

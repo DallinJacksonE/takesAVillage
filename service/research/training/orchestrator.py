@@ -207,15 +207,35 @@ async def cancel_training_session(runtime: TrainingRuntime, session_id: str,
     active_training_sessions = runtime.sessions
     db = runtime.database
     session = active_training_sessions.get(session_id)
-    if session and "generation_lock" in session:
+    if not session:
+        # The batch may already have been persisted as cancelled/completed.
+        return bool(db.get_training_batch(session_id) if hasattr(db, "get_training_batch") else False)
+
+    session["cancelled"] = True
+    game_ids = list(session.get("games", []))
+
+    # Stop bot workers for every game already spawned by this training loop.
+    # This is important because removing the orchestrator session alone would
+    # leave those worker processes connected to the game server.
+    bot_client = _bot_service_client(runtime)
+    cancel_bots = getattr(bot_client, "cancel_bots", None)
+    if cancel_bots is not None:
+        for game_id in game_ids:
+            result = await cancel_bots(game_id)
+            if not result.ok:
+                orch_logger.warning(
+                    f"Failed to cancel bots for training game {game_id}: {result.error_message}")
+
+    if "generation_lock" in session:
         async with session["generation_lock"]:
             active_training_sessions.pop(session_id, None)
     else:
         active_training_sessions.pop(session_id, None)
+
     if hasattr(db, "update_training_batch_status"):
         db.update_training_batch_status(session_id, "cancelled", reason)
     await runtime.update_hub.broadcast_sessions(active_training_sessions)
-    return bool(session)
+    return True
 
 
 async def _trigger_next_game(runtime: TrainingRuntime, session_id: str):
@@ -276,6 +296,12 @@ async def _start_generation_game_attempt(runtime: TrainingRuntime, session_id: s
     _record_heartbeat(runtime, session_id, "spawning")
     await runtime.update_hub.broadcast_sessions(active_training_sessions)
 
+    # Cancellation can happen while several game-start tasks are being created.
+    # Check again immediately before spawning workers so a cancelled session
+    # cannot create a new batch of bot processes.
+    if session.get("cancelled") or active_training_sessions.get(session_id) is not session:
+        return
+
     result = await _bot_service_client(runtime).spawn_bots(
         game_id=game_id,
         bot_count=session["bot_count"],
@@ -284,6 +310,11 @@ async def _start_generation_game_attempt(runtime: TrainingRuntime, session_id: s
         training_attempt_index=attempt,
     )
     if result.ok:
+        if session.get("cancelled") or active_training_sessions.get(session_id) is not session:
+            cancel_bots = getattr(_bot_service_client(runtime), "cancel_bots", None)
+            if cancel_bots is not None:
+                await cancel_bots(game_id)
+            return
         db.mark_training_batch_game_running(session_id, game_id)
         session["generation_attempts"][game_id]["status"] = "running"
         session["generation_attempts"][game_id]["updated_at"] = datetime.now()
