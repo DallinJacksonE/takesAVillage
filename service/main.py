@@ -28,6 +28,7 @@ def create_app(database=None, start_background_tasks: bool = True) -> FastAPI:
                     container.database, game),
                 broadcaster=container.connections,
                 training_completion_callback=container.training.handle_game_ended,
+                training_orphan_cleanup_callback=container.training.cleanup_game,
             )
             tasks = [
                 asyncio.create_task(loop.run()),

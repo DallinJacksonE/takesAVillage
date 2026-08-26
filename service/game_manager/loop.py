@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import time
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -16,12 +17,15 @@ class GameLoop:
         persist_completed: Callable[[Any], Any],
         broadcaster: Any,
         training_completion_callback: Callable[[str, str], Awaitable[Any]] | None = None,
+        training_orphan_cleanup_callback: Callable[[str], Awaitable[Any]] | None = None,
         logger: Any | None = None,
     ) -> None:
         self.registry = registry
         self.persist_completed = persist_completed
         self.broadcaster = broadcaster
         self.training_completion_callback = training_completion_callback
+        self.training_orphan_cleanup_callback = training_orphan_cleanup_callback
+        self._training_orphaned_since: dict[str, float] = {}
         self.logger = logger or BackendLogger("game_manager")
         self._completing: set[str] = set()
         self._training_tasks: set[asyncio.Task] = set()
@@ -49,8 +53,42 @@ class GameLoop:
             self.logger.error(
                 f"Training completion failed for {game_id}", exc=exc)
 
+    async def _cleanup_orphaned_training_game(self, game: Any) -> bool:
+        """Remove a training game when all of its websockets have disappeared."""
+        if not getattr(game, "training", False):
+            return False
+
+        has_connections = getattr(self.broadcaster, "has_connections", None)
+        if has_connections is None or has_connections(game.id):
+            self._training_orphaned_since.pop(game.id, None)
+            return False
+
+        # A game can briefly have no sockets while bots are starting. Give it a
+        # small grace period, then treat a connection-less training game as
+        # abandoned. This prevents orphaned Game objects from living forever.
+        first_missing = self._training_orphaned_since.setdefault(game.id, time.monotonic())
+        if time.monotonic() - first_missing < 5.0:
+            return False
+
+        self.logger.warning(
+            f"Cleaning orphaned training game {game.id}: no active websockets")
+        callback = self.training_orphan_cleanup_callback
+        if callback is not None:
+            try:
+                await callback(game.id)
+            except Exception as exc:
+                self.logger.error(
+                    f"Failed to cancel orphaned training game {game.id}", exc=exc)
+        else:
+            await self.broadcaster.disconnect_game(game.id)
+            self.registry.remove(game.id)
+        self._training_orphaned_since.pop(game.id, None)
+        return True
+
     async def tick_once(self) -> None:
         for game in self.registry.list():
+            if await self._cleanup_orphaned_training_game(game):
+                continue
             if game.status == "RUNNING":
                 if game.check_timer():
                     try:
@@ -74,6 +112,11 @@ class GameLoop:
                     # Removing it here would turn a transient DB outage into
                     # permanent game-history loss.
                     continue
+                if game.training:
+                    self._training_orphaned_since.pop(game.id, None)
+                    disconnect_game = getattr(self.broadcaster, "disconnect_game", None)
+                    if disconnect_game is not None:
+                        await disconnect_game(game.id)
                 if game.training and self.training_completion_callback:
                     task = asyncio.create_task(self._notify_training(
                         game.id, game.training_session_id))

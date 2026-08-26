@@ -26,7 +26,7 @@ class TrainingConfig:
 
 class TrainingService:
     def __init__(self, database, game_factory, store=None,
-                 bot_client_factory=None):
+                 bot_client_factory=None, game_registry=None, connection_manager=None):
         self.database = database
         self.store = store or TrainingSessionStore()
         self.runtime = orchestrator.TrainingRuntime(
@@ -34,6 +34,8 @@ class TrainingService:
             game_factory=game_factory,
             bot_client_factory=bot_client_factory,
             sessions=self.store._runtime_sessions(),
+            game_registry=game_registry,
+            connection_manager=connection_manager,
         )
 
     async def start(self, config: TrainingConfig):
@@ -78,6 +80,10 @@ class TrainingService:
     async def handle_game_ended(self, game_id: str, session_id: str):
         return await orchestrator.handle_training_game_ended(
             self.runtime, game_id, session_id)
+
+    async def cleanup_game(self, game_id: str):
+        return await orchestrator.cleanup_training_game(
+            self.runtime, game_id)
 
     async def watchdog_loop(self, interval_seconds: int = 30,
                             stale_after_seconds: int = 600):

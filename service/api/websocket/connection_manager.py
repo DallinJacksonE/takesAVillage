@@ -20,6 +20,24 @@ class ConnectionManager:
                 self.logger.warning(
                     f"Could not close replaced websocket for {user_id}")
 
+    def has_connections(self, game_id):
+        return bool(self.active_connections.get(game_id))
+
+    async def disconnect_game(self, game_id, code=1000):
+        """Close and remove every websocket owned by a game."""
+        connections = self.active_connections.pop(game_id, {})
+        if not connections:
+            return 0
+
+        closed = 0
+        for websocket in list(connections.values()):
+            try:
+                await websocket.close(code=code)
+                closed += 1
+            except Exception:
+                self.logger.warning(f"Could not close websocket for game {game_id}")
+        return closed
+
     def disconnect(self, websocket, game_id, user_id):
         connections = self.active_connections.get(game_id)
         if not connections:

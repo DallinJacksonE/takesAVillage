@@ -27,13 +27,15 @@ class AppContainer:
             os.environ.get("BOT_SECRET", ""),
             httpx.AsyncClient,
         )
+        self.visualizations = VisualizationService(self.database)
+        self.connections = ConnectionManager(self.registry)
         self.training = TrainingService(
             database=self.database,
             game_factory=self.lifecycle.create_game,
             bot_client_factory=lambda: self.bot_client,
+            game_registry=self.registry,
+            connection_manager=self.connections,
         )
-        self.visualizations = VisualizationService(self.database)
-        self.connections = ConnectionManager(self.registry)
 
     def api_services(self):
         return Services(

@@ -29,6 +29,8 @@ class TrainingRuntime:
     database: object
     game_factory: Callable
     bot_client_factory: Callable[[], BotServiceClient] | None = None
+    game_registry: object | None = None
+    connection_manager: object | None = None
     sessions: dict[str, dict] = field(default_factory=dict)
     update_hub: object = field(default_factory=TrainingUpdateHub)
 
@@ -44,6 +46,52 @@ class TrainingRuntime:
 
 def _bot_service_client(runtime: TrainingRuntime) -> BotServiceClient:
     return runtime.bot_service_client()
+
+
+
+async def cleanup_training_game(runtime: TrainingRuntime, game_id: str,
+                                cancel_bots: bool = True) -> None:
+    """Release every in-memory/server resource owned by a training game."""
+    if cancel_bots:
+        cancel = getattr(_bot_service_client(runtime), "cancel_bots", None)
+        if cancel is not None:
+            try:
+                result = await cancel(game_id)
+                if not result.ok:
+                    orch_logger.warning(
+                        f"Failed to cancel bots for cleaned-up game {game_id}: "
+                        f"{result.error_message}")
+            except Exception as exc:
+                orch_logger.warning(
+                    f"Bot cleanup failed for training game {game_id}: {exc}")
+
+    connections = runtime.connection_manager
+    if connections is not None and hasattr(connections, "disconnect_game"):
+        try:
+            await connections.disconnect_game(game_id, code=1000)
+        except Exception as exc:
+            orch_logger.warning(
+                f"WebSocket cleanup failed for training game {game_id}: {exc}")
+
+    registry = runtime.game_registry
+    if registry is not None and hasattr(registry, "remove"):
+        removed = registry.remove(game_id)
+        if removed is not None:
+            # Break the largest object graph explicitly. The registry removal is
+            # normally enough for GC, but this makes cancellation deterministic
+            # even when another transient reference exists in the event loop.
+            try:
+                removed.players.clear()
+                removed.phase_intents.clear()
+                removed.domain_events.clear()
+                removed.chat_messages.clear()
+                removed.chats.clear()
+                removed.player_history.clear()
+                removed.map_history.clear()
+                removed.map_data.clear()
+                removed._notifications.clear()
+            except Exception:
+                pass
 
 
 def _parse_datetime(value):
@@ -214,23 +262,21 @@ async def cancel_training_session(runtime: TrainingRuntime, session_id: str,
     session["cancelled"] = True
     game_ids = list(session.get("games", []))
 
-    # Stop bot workers for every game already spawned by this training loop.
-    # This is important because removing the orchestrator session alone would
-    # leave those worker processes connected to the game server.
-    bot_client = _bot_service_client(runtime)
-    cancel_bots = getattr(bot_client, "cancel_bots", None)
-    if cancel_bots is not None:
-        for game_id in game_ids:
-            result = await cancel_bots(game_id)
-            if not result.ok:
-                orch_logger.warning(
-                    f"Failed to cancel bots for training game {game_id}: {result.error_message}")
+    # Stop workers, close bot/user sockets, and remove every training Game
+    # object. Do this before removing the session so cancellation is complete
+    # even when games are still WAITING/RUNNING.
+    for game_id in game_ids:
+        await cleanup_training_game(runtime, game_id)
 
     if "generation_lock" in session:
         async with session["generation_lock"]:
             active_training_sessions.pop(session_id, None)
     else:
         active_training_sessions.pop(session_id, None)
+
+    # Drop the large population/game bookkeeping graph as soon as cancellation
+    # is visible to the UI.
+    session.clear()
 
     if hasattr(db, "update_training_batch_status"):
         db.update_training_batch_status(session_id, "cancelled", reason)
@@ -353,6 +399,11 @@ async def handle_training_game_ended(runtime: TrainingRuntime, game_id: str,
         entries,
         None if entries else "No genome entries returned",
     )
+    # The game has finished and its fitness has been collected. Release the
+    # game object and any remaining sockets immediately instead of waiting for
+    # the next registry tick. Bot workers should already have terminated after
+    # receiving ENDED; cancel_bots is idempotent and catches missed workers.
+    await cleanup_training_game(runtime, game_id)
 
 
 async def _fetch_training_game_entries(runtime: TrainingRuntime,
@@ -504,6 +555,9 @@ async def _complete_generation_locked(runtime: TrainingRuntime,
     if best_genome:
         session["base_genome"] = best_genome
 
+    # Game objects are cleaned as each attempt finishes; don't retain their IDs
+    # forever across generations. Keep only the current generation's IDs.
+    session["games"] = []
     session["games_completed"] = 0
     session["games_failed"] = 0
     session["current_generation_game_index"] = 0

@@ -19,6 +19,7 @@ training_data_queue = multiprocessing.Queue()
 # game ends. Keep newly drained reports indexed by game so the API can serve
 # them without scanning the historical JSONL file or waiting on disk latency.
 training_results_by_game: dict[str, list[dict]] = {}
+cancelled_training_games: set[str] = set()
 
 # Instantiate a logger for the parent server process
 server_logger = Logger("SERVER_MANAGER")
@@ -251,6 +252,10 @@ async def process_training_data(queue: multiprocessing.Queue):
             with open("bot_training_data.jsonl", "a") as f:
                 f.write(json.dumps(result) + "\n")
             game_id = result.get("game_id")
+            if game_id in cancelled_training_games:
+                server_logger.info(
+                    f"Discarded training result for cancelled game {game_id}")
+                continue
             if game_id:
                 training_results_by_game.setdefault(game_id, []).append(result)
             server_logger.info(f"📊 Saved training data! Bot Fitness:    "
@@ -303,7 +308,9 @@ def spawn_bot_processes(game_id: str, bot_count: int,
 
 
 def terminate_bot_processes(game_id: str) -> int:
-    """Stop all bot workers associated with a training game."""
+    """Stop all bot workers and buffered state associated with a training game."""
+    cancelled_training_games.add(game_id)
+    training_results_by_game.pop(game_id, None)
     processes = active_bot_processes_by_game.pop(game_id, [])
     terminated = 0
     for process in processes:
