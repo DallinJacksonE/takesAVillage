@@ -3,6 +3,7 @@ import uuid
 import importlib
 import copy
 import random
+from service.game.packet_handling.work import assign_default_work_intents
 from service.game.models.player import Player
 from service.game.models.map import MapFactory
 from service.game.models.chat_message import ChatMessage
@@ -158,18 +159,25 @@ class Game:
         return True
 
     def check_timer(self):
+        if self.status != "RUNNING":
+            return False
+
         if self._clock() >= self.phase_end_time:
             if self.phase == Phase.WORK.value:
                 from service.game.packet_handling.work import assign_default_work_intents
                 assign_default_work_intents(self)
+
             self.next_phase()
             return True
+
         return False
 
     def begin_night_transition(self, visuals, timeout_seconds=5):
         affected_player_ids = sorted(visuals)
+
         if not affected_player_ids or self.training:
             return None
+
         self.night_transition = {
             "id": str(uuid.uuid4()),
             "deadline": self._clock() + timeout_seconds,
@@ -177,7 +185,7 @@ class Game:
             "acknowledged_player_ids": set(),
             "visuals": visuals,
         }
-        self.phase_end_time = self.night_transition["deadline"]
+
         return self.night_transition
 
     def night_transition_ready(self):
@@ -192,29 +200,47 @@ class Game:
 
     def acknowledge_night_transition(self, player_id, transition_id):
         transition = self.night_transition
+
         if (
             not transition
             or transition["id"] != transition_id
             or player_id not in transition["affected_player_ids"]
         ):
             return False
+
         transition["acknowledged_player_ids"].add(player_id)
+
         if self.night_transition_ready():
-            self.next_phase()
+            self.check_all_players_locked()
+
         return True
 
     def check_all_players_locked(self):
-        if self.status == "WAITING":
+        if self.status != "RUNNING":
             return False
+
         active_players = [
-            p for p in self.players.values() if p.health != "dead"]
+            p for p in self.players.values()
+            if p.health != "dead"
+        ]
+
         if not active_players:
             return False
 
-        if all(p.finished_phase for p in active_players):
-            self.next_phase()
+        if not all(p.finished_phase for p in active_players):
+            return False
 
-    def next_phase(self):
+        # Everyone has finished the current phase.
+        self.next_phase()
+        return True
+
+    def next_phase(self, expected_phase=None):
+        if self.status != "RUNNING":
+            return self.phase
+
+        if expected_phase is not None and self.phase != expected_phase:
+            return self.phase
+
         return self._phase_machine.advance(self)
 
     def start_phase(self, phase_name, resolver=None):

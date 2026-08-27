@@ -13,6 +13,7 @@ class Command:
 
 class FinishPhaseCommand(Command):
     def execute(self, game_state, player):
-        game_state.apply_event(PlayerPhaseResolved(player.session_id))
-        game_state.check_all_players_locked()
+        game_state.apply_event(
+            PlayerPhaseResolved(player.session_id)
+        )
         return True
