@@ -151,7 +151,7 @@ export const getNightFireSeatPosition = (
    * configured guest seats.
    */
   const vertexCount = Math.max(
-    2,
+    1,
     Math.floor(maxFireSeats) + 1,
   );
 
