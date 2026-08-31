@@ -46,10 +46,15 @@ class Contract:
 
 
 class TradeContract(Contract):
-    def __init__(self, initiator_id, target_id, offer_items, request_items):
+    def __init__(self, initiator_id, target_id, offer_items, request_items,
+                 *, reason="NORMAL_TRADE", employment_contract_id=None,
+                 promised_wage=None):
         super().__init__(initiator_id, target_id, 'TRADE')
         self.offer_items = offer_items or {}
         self.request_items = request_items or {}
+        self.reason = reason
+        self.employment_contract_id = employment_contract_id
+        self.promised_wage = promised_wage
         self.actual_offer_items = self.offer_items.copy()
         self.actual_request_items = self.request_items.copy()
         self.initiator_finalized = False
@@ -112,7 +117,7 @@ class TradeContract(Contract):
     def to_dict(self) -> dict:
         base = super().to_dict()
         base.update({"offer_items": getattr(self, 'offer_items', {}), "request_items": getattr(self, 'request_items', {}), "actual_offer_items": getattr(self, 'actual_offer_items', {}), "actual_request_items": getattr(
-            self, 'actual_request_items', {}), "initiator_finalized": getattr(self, 'initiator_finalized', False), "target_finalized": getattr(self, 'target_finalized', False)}) # "just_completed": getattr(self, 'just_completed', False)}
+            self, 'actual_request_items', {}), "initiator_finalized": getattr(self, 'initiator_finalized', False), "target_finalized": getattr(self, 'target_finalized', False), "reason": getattr(self, 'reason', "NORMAL_TRADE"), "employment_contract_id": getattr(self, 'employment_contract_id', None), "promised_wage": getattr(self, 'promised_wage', None)}) # "just_completed": getattr(self, 'just_completed', False)}
         return base
 
 
@@ -246,8 +251,13 @@ def execute_trade(game_state, action):
         "id": action.id,
         "initiator_id": action.initiator_id,
         "target_id": action.target_id,
+        "reason": getattr(action, "reason", "NORMAL_TRADE"),
+        "employment_contract_id": getattr(
+            action, "employment_contract_id", None),
         "offered": action.offer_items,
         "requested": action.request_items,
+        "promised_sent": action.offer_items,
+        "promised_received": action.request_items,
         "actual_sent": initiator_box,
         "actual_received": target_box,
     })
@@ -255,8 +265,13 @@ def execute_trade(game_state, action):
         "id": action.id,
         "initiator_id": action.target_id,
         "target_id": action.initiator_id,
+        "reason": getattr(action, "reason", "NORMAL_TRADE"),
+        "employment_contract_id": getattr(
+            action, "employment_contract_id", None),
         "offered": action.request_items,
         "requested": action.offer_items,
+        "promised_sent": action.request_items,
+        "promised_received": action.offer_items,
         "actual_sent": target_box,
         "actual_received": initiator_box,
     })

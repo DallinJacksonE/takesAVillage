@@ -1,8 +1,12 @@
+import json
 from math import nan
+
+import pytest
 
 from service.game.packet_handling.contracts import (
     CampfireContract,
     EmploymentContract,
+    TradeContract,
     execute_trade,
 )
 from service.game.models.development import Development
@@ -210,6 +214,76 @@ def test_employment_acceptance_projects_available_job_without_worker_binding(mak
             "food",
         ),
     ]
+
+
+@pytest.mark.parametrize("is_application", [False, True])
+def test_completed_employment_becomes_accepted_wage_trade_in_trade_phase(
+        make_game, is_application):
+    game = make_game(training=False)
+    game.start_game()
+    employer = game.players["player-1"]
+    worker = game.players["player-2"]
+    development = owned_development(game, employer)
+    employment_initiator = worker if is_application else employer
+    employment_target = employer if is_application else worker
+    _created, employment = create_contract(game, employment_initiator.session_id, {
+        "type": "EMPLOYMENT",
+        "target_id": employment_target.session_id,
+        "dev_id": development.id,
+        "wage": 2,
+        "wage_type": "food",
+        "is_application": is_application,
+    })
+    update_contract(game, employment_target.session_id, employment, "ACCEPT")
+    job = worker.available_work[0]
+
+    assert game.handle_action(employer.session_id, {
+        "action_command": "FINISH_PHASE",
+        "payload": {},
+    }) is True
+    assert game.handle_action(worker.session_id, {
+        "action_command": "COMMIT_WORK",
+        "payload": {"job": job},
+    }) is True
+
+    assert game.phase == "TRADE"
+    assert employment.id not in employer.actions
+    wage_trades = [
+        action for action in employer.actions.values()
+        if isinstance(action, TradeContract)
+        and getattr(action, "employment_contract_id", None) == employment.id
+    ]
+    assert len(wage_trades) == 1
+    wage_trade = wage_trades[0]
+    assert wage_trade.status == "ACCEPTED"
+    assert wage_trade.initiator_id == employer.session_id
+    assert wage_trade.target_id == worker.session_id
+    assert wage_trade.offer_items == {"food": 2}
+    assert wage_trade.request_items == {}
+    assert wage_trade.reason == "WAGE_PAYMENT"
+    assert worker.actions[wage_trade.id] is wage_trade
+    employer_state = game.get_state_for_player(employer.session_id)
+    serialized_wage_trade = next(
+        action for action in employer_state["me"]["actions"]
+        if action["id"] == wage_trade.id
+    )
+    assert serialized_wage_trade["status"] == "ACCEPTED"
+    assert serialized_wage_trade["reason"] == "WAGE_PAYMENT"
+    json.dumps(employer_state)
+
+    assert game.handle_action(employer.session_id, {
+        "action_command": "FINALIZE",
+        "payload": {"action_id": wage_trade.id, "actual_items": {}},
+    }) is True
+    assert game.handle_action(worker.session_id, {
+        "action_command": "FINALIZE",
+        "payload": {"action_id": wage_trade.id, "actual_items": {}},
+    }) is True
+
+    assert worker.trade_history[-1]["reason"] == "WAGE_PAYMENT"
+    assert worker.trade_history[-1]["promised_received"] == {"food": 2}
+    assert worker.trade_history[-1]["actual_received"] == {}
+    assert game.lie_count[employer.session_id] == 1
 
 
 def test_employment_creation_rejects_development_owned_by_another_player(make_game):

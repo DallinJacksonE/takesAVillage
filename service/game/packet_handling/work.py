@@ -1,7 +1,9 @@
 import time
 
 from service.game.packet_handling.base import Command
+from service.game.packet_handling.contracts import TradeContract
 from service.game.state.events import (
+    ContractCreated,
     DevelopmentMaintained,
     DevelopmentUpgraded,
     PlayerResourcesGained,
@@ -178,6 +180,12 @@ def _resolve_work_intents(game_state):
             {resource: development_level},
         ))
         if owner_id != player.session_id:
+            _create_wage_trade(
+                game_state,
+                employer=owner,
+                worker=player,
+                committed_action=committed_action,
+            )
             owner.add_timeline_event(
                 "LABOR_EXPLOITED",
                 {
@@ -186,6 +194,61 @@ def _resolve_work_intents(game_state):
                     "type": resource,
                 },
             )
+
+
+def _create_wage_trade(game_state, employer, worker, committed_action):
+    employment_id = committed_action.get("action_id")
+    if not employment_id:
+        return None
+
+    employment = game_state.contract_factory.find_contract(employment_id)
+    if (
+        not employment
+        or getattr(employment, "type", None) != "EMPLOYMENT"
+        or getattr(employment, "status", None) != "ACCEPTED"
+        or getattr(employment, "dev_id", None)
+        != committed_action.get("development", {}).get("id")
+    ):
+        return None
+
+    employment_employer_id = (
+        employment.target_id
+        if employment.is_application
+        else employment.initiator_id
+    )
+    employment_worker_id = (
+        employment.initiator_id
+        if employment.is_application
+        else employment.target_id
+    )
+    if (
+        employment_employer_id != employer.session_id
+        or employment_worker_id != worker.session_id
+    ):
+        return None
+
+    existing = next((
+        action
+        for action in employer.actions.values()
+        if getattr(action, "type", None) == "TRADE"
+        and getattr(action, "employment_contract_id", None) == employment.id
+    ), None)
+    if existing:
+        return existing
+
+    wage_trade = TradeContract(
+        employer.session_id,
+        worker.session_id,
+        {employment.wage_type: employment.wage},
+        {},
+        reason="WAGE_PAYMENT",
+        employment_contract_id=employment.id,
+        promised_wage={employment.wage_type: employment.wage},
+    )
+    wage_trade.status = "ACCEPTED"
+    wage_trade.waiting_on_id = None
+    game_state.apply_event(ContractCreated(wage_trade))
+    return wage_trade
 
 
 def start_work_phase(game_state):
