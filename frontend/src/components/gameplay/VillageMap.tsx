@@ -293,16 +293,15 @@ const VillageMap: React.FC<Props> = ({
                   height: hexHeight,
                   background: tile.development
                     ? getOwnerColor(
-                        tile.development.owner_id
-                      )
+                      tile.development.owner_id
+                    )
                     : openBorder,
                   clipPath: pointyClipPath,
                   cursor: "pointer",
-                  transform: `translate(-50%, -50%) ${
-                    isSelected
+                  transform: `translate(-50%, -50%) ${isSelected
                       ? "scale(1.15)"
                       : "scale(1)"
-                  }`,
+                    }`,
                   transition:
                     "transform 0.15s ease-in-out",
                   zIndex: isSelected ? 10 : 1,
@@ -380,7 +379,7 @@ const VillageMap: React.FC<Props> = ({
             {fireHosts.map((host) => {
               const fireId =
                 host.visual_state.location.kind ===
-                "FIRE"
+                  "FIRE"
                   ? host.visual_state.location.id
                   : host.id;
 
@@ -412,11 +411,11 @@ const VillageMap: React.FC<Props> = ({
                         players.some(
                           (player) =>
                             player.visual_state.location.kind ===
-                              "FIRE" &&
+                            "FIRE" &&
                             player.visual_state.location.id ===
-                              fireId &&
+                            fireId &&
                             player.visual_state.location.slot ===
-                              seatIndex
+                            seatIndex
                         );
 
                       if (occupied) {
@@ -439,11 +438,11 @@ const VillageMap: React.FC<Props> = ({
                           aria-label={
                             isHostSeat
                               ? `Available host seat at ${getPlayerNameFromHook(
-                                  host.id
-                                )}'s fire`
+                                host.id
+                              )}'s fire`
                               : `Available fire seat ${seatIndex} at ${getPlayerNameFromHook(
-                                  host.id
-                                )}'s fire`
+                                host.id
+                              )}'s fire`
                           }
                           className={
                             styles.fireSeatDot
@@ -467,7 +466,7 @@ const VillageMap: React.FC<Props> = ({
                     role="img"
                     style={{
                       left: center.x,
-                      top: center.y,
+                      top: center.y + 35,
                     }}
                   />
                 </React.Fragment>
@@ -488,11 +487,11 @@ const VillageMap: React.FC<Props> = ({
 
           const tradeOffset =
             player.visual_state.location.kind ===
-            "TRADE"
+              "TRADE"
               ? getTradeGroupOffset(
-                  player.visual_state.location.id,
-                  tradeIds
-                )
+                player.visual_state.location.id,
+                tradeIds
+              )
               : { x: 0, y: 0 };
 
           const locationKey = JSON.stringify(
@@ -515,9 +514,9 @@ const VillageMap: React.FC<Props> = ({
           const peerOffset = isFireLocation
             ? { x: 0, y: 0 }
             : {
-                x: locationPeers * 24,
-                y: locationPeers * 8,
-              };
+              x: locationPeers * 24,
+              y: locationPeers * 8,
+            };
 
           const isDevelopmentLocation =
             player.visual_state.location.kind ===
@@ -540,27 +539,27 @@ const VillageMap: React.FC<Props> = ({
               x={
                 isFireLocation
                   ? (position.x +
-                      tradeOffset.x +
-                      peerOffset.x) *
-                      fireFit.scale +
-                    fireFit.x
+                    tradeOffset.x +
+                    peerOffset.x) *
+                  fireFit.scale +
+                  fireFit.x
                   : isDevelopmentLocation ||
                     isBuildLocation
-                  ? position.x - HEX_SIZE / 2
-                  : position.x +
+                    ? position.x - HEX_SIZE / 2
+                    : position.x +
                     tradeOffset.x +
                     peerOffset.x
               }
               y={
                 isFireLocation
                   ? (position.y +
-                      tradeOffset.y +
-                      peerOffset.y) *
-                      fireFit.scale +
-                    fireFit.y
+                    tradeOffset.y +
+                    peerOffset.y) *
+                  fireFit.scale +
+                  fireFit.y
                   : isBuildLocation
-                  ? position.y + 20
-                  : position.y +
+                    ? position.y + 20
+                    : position.y +
                     tradeOffset.y +
                     peerOffset.y
               }
@@ -617,10 +616,10 @@ const VillageMap: React.FC<Props> = ({
 
                 {selectedTile.development.owner_id ===
                   playerId && (
-                  <div className={styles.field5}>
-                    This is your property.
-                  </div>
-                )}
+                    <div className={styles.field5}>
+                      This is your property.
+                    </div>
+                  )}
               </div>
             ) : (
               <div className={styles.field6}>
@@ -640,15 +639,15 @@ const VillageMap: React.FC<Props> = ({
                     selectedTile.type
                   ]?.build
                     ? Object.entries(
-                        development_costs[
-                          selectedTile.type
-                        ].build
+                      development_costs[
+                        selectedTile.type
+                      ].build
+                    )
+                      .map(
+                        ([resource, amount]) =>
+                          `${amount} ${resource}`
                       )
-                        .map(
-                          ([resource, amount]) =>
-                            `${amount} ${resource}`
-                        )
-                        .join(", ")
+                      .join(", ")
                     : "Unknown Cost"}
                 </button>
               </div>
