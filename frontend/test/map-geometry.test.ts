@@ -1,9 +1,13 @@
 import {
   axialToIsometric,
+  getHexSlotForOccupantIndex,
+  getHexSlotPosition,
   getNightFireAnchor,
   getNightFireSeatPosition,
   getPlayerMapPosition,
   getTradeGroupOffset,
+  HEX_SLOT_SPREAD_ORDER,
+  TOTAL_HEX_SLOTS,
 } from "../src/components/gameplay/mapGeometry";
 import type { MapDataDTO } from "../src/dtos";
 

@@ -250,8 +250,8 @@ export type PlayerVisualAnimation =
 
 export type PlayerVisualLocation =
   | { kind: "HOME" }
-  | { kind: "TILE"; id: string }
-  | { kind: "DEVELOPMENT"; id: string }
+  | { kind: "TILE"; id: string; slot?: number }
+  | { kind: "DEVELOPMENT"; id: string; slot?: number }
   | { kind: "TRADE"; id: string; side: "INITIATOR" | "TARGET" }
   | { kind: "FIRE"; id: string; slot: number }
   | { kind: "NIGHT_COLD"; slot: number };
@@ -303,7 +303,7 @@ export interface PlayerDTO {
   fire_history?: FireHistoryDTO[];
 }
 
-export interface FireHistoryDTO{
+export interface FireHistoryDTO {
   fire_id: string;
   host_id: string;
   role: "host" | "guest";
