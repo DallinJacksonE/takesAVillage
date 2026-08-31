@@ -5,6 +5,7 @@ import {
   DevelopmentCostsDict,
   Phase,
   PublicPlayerDTO,
+  DevelopmentDTO,
 } from "../../dtos/index";
 import { usePlayerName } from "../hooks/usePlayerName";
 import PlayerInfo from "./playerInfo/PlayerInfo";
@@ -246,15 +247,20 @@ const VillageMap: React.FC<Props> = ({
     return getPlayerColor(ownerId);
   };
 
-  const developmentSprites: Record<string, string> = {
-    Farm: "/images/sprites/developments/farm.png",
-    Woods: "/images/sprites/developments/lumber-mill.png",
-    Mine: "/images/sprites/developments/mine.png",
-  };
-
   const getDevelopmentSprite = (
-    type: string
-  ): string | undefined => developmentSprites[type];
+    development: DevelopmentDTO
+  ): string | undefined => {
+    const base = ({
+      Farm: "farm",
+      Woods: "lumber_mill",
+      Mine: "mine",
+    } as const)[development.type as "Farm" | "Woods" | "Mine"];
+
+    if (!base) return undefined;
+
+    const level = Math.max(1, Math.min(3, development.level || 1));
+    return `/images/sprites/developments/${base}/level-${level}.png`;
+  };
 
   return (
     <div
@@ -328,7 +334,7 @@ const VillageMap: React.FC<Props> = ({
                 >
                   {tile.development ? (
                     <img
-                      src={getDevelopmentSprite(tile.development.type)}
+                      src={getDevelopmentSprite(tile.development)}
                       alt=""
                       aria-hidden="true"
                       className={styles.developmentSprite}
