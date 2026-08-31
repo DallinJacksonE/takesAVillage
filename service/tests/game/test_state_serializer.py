@@ -176,6 +176,31 @@ def test_accepted_trade_projects_both_players_carrying_at_shared_trade(make_game
     }
 
 
+def test_third_party_trade_projection_exposes_status_but_not_terms(make_game):
+    game = make_game(
+        player_ids=("player-1", "player-2", "player-3"),
+    )
+    game.start_game()
+    game.phase = "TRADE"
+    trade = TradeContract(
+        "player-1", "player-2", {"food": 2}, {"wood": 3})
+    game.players["player-1"].actions[trade.id] = trade
+    game.players["player-2"].actions[trade.id] = trade
+
+    state = build_player_state(game, "player-3")
+
+    assert state is not None
+    assert state["public_interactions"] == [{
+        "id": trade.id,
+        "kind": "TRADE",
+        "participant_ids": ["player-1", "player-2"],
+        "status": "PENDING",
+    }]
+    assert "offer_items" not in state["public_interactions"][0]
+    assert "request_items" not in state["public_interactions"][0]
+    assert "waiting_on_id" not in state["public_interactions"][0]
+
+
 def test_finalized_trade_returns_players_home_to_idle(make_game):
     game = make_game(player_ids=("player-1", "player-2"))
     game.start_game()

@@ -261,6 +261,13 @@ export interface PlayerVisualStateDTO {
   location: PlayerVisualLocation;
 }
 
+export interface PublicInteractionDTO {
+  id: string;
+  kind: "TRADE";
+  participant_ids: string[];
+  status: "PENDING" | "ACCEPTED" | "FINALIZED" | "DENIED" | "EXPIRED";
+}
+
 export interface PublicPlayerDTO {
   id: string;
   name: string;
@@ -305,6 +312,7 @@ export interface FireHistoryDTO{
 
 export interface GameStateDTO {
   status: "WAITING" | "ACTIVE" | "ENDED";
+  state_revision: number;
   is_host: boolean;
   host_connected: boolean;
   me: PlayerDTO;
@@ -312,6 +320,7 @@ export interface GameStateDTO {
   phase: Phase;
   time_remaining: number;
   player_list: PublicPlayerDTO[];
+  public_interactions: PublicInteractionDTO[];
   map: MapDataDTO;
   developments: DevelopmentDTO[];
   chat_messages: ChatMessageDTO[];

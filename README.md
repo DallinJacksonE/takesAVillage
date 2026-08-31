@@ -9,6 +9,10 @@ The codebase is intentionally split into small services so students can learn
 how a browser game, an API, autonomous bots, WebSockets, Docker, and MySQL fit
 together in a real project.
 
+## New Lab Members
+
+New team or lab members please see [ONBOARDING](./ONBOARDING.md) to get introduced to the concepts this repo covers.
+
 ## Game loop
 
 Each in-game day moves through an explicit finite state machine (FSM):

@@ -16,9 +16,7 @@ async def process_game_event(event, payload, game_id, user_id, game, manager):
                 {"event": "game_started", "data": {"day": 1}}, game_id)
             await manager.broadcast_game_state(game_id, game)
     elif event == "request_update":
-        await manager.send_personal_message(
-            {"event": "game_state", "data": game.get_state_for_player(user_id)},
-            game_id, user_id)
+        await manager.send_game_state(game_id, game, user_id)
     elif event == "night_animation_complete":
         transition_id = payload.get("transition_id")
         if transition_id and game.acknowledge_night_transition(

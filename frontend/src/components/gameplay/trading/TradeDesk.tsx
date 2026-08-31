@@ -29,6 +29,19 @@ const TradeDesk: React.FC<Props> = ({ state, onDraftTrade, onCounterTrade, onAcc
   const outgoingTrades = tradeActions.filter(t => t.status === "PENDING" && t.waiting_on_id !== me.id);
   const acceptedTrades = tradeActions.filter(t => t.status === "ACCEPTED");
   const otherPlayers = player_list.filter(p => p.id !== me.id);
+  const thirdPartyTrades = (state.public_interactions || []).filter(
+    interaction => (
+      interaction.kind === "TRADE"
+      && !interaction.participant_ids.includes(me.id)
+    ),
+  );
+  const publicStatusLabels = {
+    PENDING: "Negotiating",
+    ACCEPTED: "Accepted",
+    FINALIZED: "Completed",
+    DENIED: "Declined",
+    EXPIRED: "Expired",
+  } as const;
 
   const handleDraftTrade = () => {
     if (!targetId) return;
@@ -41,6 +54,22 @@ const TradeDesk: React.FC<Props> = ({ state, onDraftTrade, onCounterTrade, onAcc
   return (
     <div className={`card ${styles.column}`} >
       <h3 className={styles.header}>Trade Desk</h3>
+
+      {thirdPartyTrades.length > 0 && (
+        <div className={styles.panel13}>
+          <strong className={styles.label4}>Village Activity</strong>
+          {thirdPartyTrades.map(interaction => (
+            <div key={interaction.id} className={styles.panel12}>
+              <div>
+                {getPlayerName(interaction.participant_ids[0])}
+                {" ↔ "}
+                {getPlayerName(interaction.participant_ids[1])}
+              </div>
+              <strong>{publicStatusLabels[interaction.status]}</strong>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* --- TOP ROW: DRAFTING & HISTORY --- */}
       <div className={styles.row5}>

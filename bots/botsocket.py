@@ -2,6 +2,7 @@ import asyncio
 import json
 import httpx
 import websockets
+from websockets.exceptions import ConnectionClosed
 from typing import Callable, Awaitable, Optional
 from logger import Logger  # <-- Import type hint
 
@@ -13,7 +14,8 @@ class BotSocket:
         bot_secret: str,
         logger: Logger,  # <-- Require logger dependency
         http_url: str = "http://localhost:5000",
-        ws_url: str = "ws://localhost:5000/ws"
+        ws_url: str = "ws://localhost:5000/ws",
+        decision_interval: float = 0.1,
     ):
         self.game_id = game_id
         self.bot_secret = bot_secret
@@ -24,6 +26,11 @@ class BotSocket:
         self.user_id = None
         self.websocket = None
         self._listen_task = None
+        self._decision_task = None
+        self._latest_game_state = None
+        self._latest_state_revision = -1
+        self._state_available = asyncio.Event()
+        self.decision_interval = decision_interval
 
         self.on_game_state: Optional[Callable[[dict], Awaitable[None]]] = None
         self.on_chat_history: Optional[Callable[[
@@ -102,9 +109,49 @@ class BotSocket:
                     "Error closing websocket", exception=e)
             finally:
                 self.websocket = None
-        if self._listen_task:
-            self._listen_task.cancel()
-            self._listen_task = None
+        current_task = asyncio.current_task()
+        tasks = []
+        for task_name in ("_listen_task", "_decision_task"):
+            task = getattr(self, task_name)
+            if task:
+                task.cancel()
+                if task is not current_task:
+                    tasks.append(task)
+            setattr(self, task_name, None)
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    def _queue_game_state(self, state):
+        revision = state.get("state_revision", -1)
+        if revision < self._latest_state_revision:
+            return
+        self._latest_state_revision = max(
+            self._latest_state_revision, revision)
+        self._latest_game_state = state
+        self._state_available.set()
+        if not self._decision_task or self._decision_task.done():
+            self._decision_task = asyncio.create_task(
+                self._process_game_states())
+
+    async def _process_game_states(self):
+        try:
+            while True:
+                try:
+                    await asyncio.wait_for(
+                        self._state_available.wait(),
+                        timeout=self.decision_interval,
+                    )
+                except asyncio.TimeoutError:
+                    pass
+                self._state_available.clear()
+                state = self._latest_game_state
+                if state is not None and self.on_game_state:
+                    await self.on_game_state(state)
+        except asyncio.CancelledError:
+            pass
+        finally:
+            if asyncio.current_task() is self._decision_task:
+                self._decision_task = None
 
     async def _listen_loop(self):
         try:
@@ -116,7 +163,7 @@ class BotSocket:
                 if event == "game_state" and self.on_game_state:
                     if data.get("status") == "WAITING":
                         continue
-                    await self.on_game_state(data)
+                    self._queue_game_state(data)
                 elif event == "chat_history" and self.on_chat_history:
                     await self.on_chat_history(data)
                 elif event == "new_chat_message" and self.on_new_chat_message:
@@ -128,7 +175,7 @@ class BotSocket:
                         f"Server sent error event: {data}")
                     await self.on_error(data)
 
-        except websockets.exceptions.ConnectionClosed:
+        except ConnectionClosed:
             self.logger.info(f"Bot {self.user_id} disconnected from server.")
         except Exception as e:
             self.logger.stdout_error(
@@ -136,6 +183,11 @@ class BotSocket:
         finally:
             self.websocket = None
             self._listen_task = None
+            decision_task = self._decision_task
+            if decision_task and decision_task is not asyncio.current_task():
+                decision_task.cancel()
+                await asyncio.gather(decision_task, return_exceptions=True)
+                self._decision_task = None
             if self.on_disconnect:
                 await self.on_disconnect()
 

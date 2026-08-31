@@ -3,12 +3,14 @@ import type { GameStateDTO } from "../src/dtos";
 
 const makeState = (overrides: Partial<GameStateDTO> = {}): GameStateDTO => ({
   status: "ACTIVE",
+  state_revision: 1,
   is_host: false,
   host_connected: true,
   day: 1,
   phase: "WORK",
   time_remaining: 59,
   player_list: [],
+  public_interactions: [],
   map: [],
   developments: [],
   chat_messages: [],

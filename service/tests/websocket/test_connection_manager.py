@@ -104,3 +104,139 @@ def test_failed_broadcast_does_not_remove_player_from_running_game():
 
     assert "game-1" not in manager.active_connections
     assert game.removed == []
+
+
+def test_changed_state_broadcasts_are_revisioned_and_ordered():
+    class Game:
+        id = "game-1"
+        status = "RUNNING"
+
+        def __init__(self):
+            self.state_revision = 0
+
+        def get_state_for_player(self, user_id):
+            return {
+                "me": {"id": user_id},
+                "state_revision": self.state_revision,
+            }
+
+    class Registry:
+        def __init__(self, game):
+            self.game = game
+
+        def get(self, _game_id):
+            return self.game
+
+    class BlockingSocket(Socket):
+        def __init__(self):
+            super().__init__()
+            self.first_send_started = asyncio.Event()
+            self.release_first_send = asyncio.Event()
+
+        async def send_json(self, message):
+            if not self.sent:
+                self.first_send_started.set()
+                await self.release_first_send.wait()
+            self.sent.append(message)
+
+    async def scenario():
+        game = Game()
+        socket = BlockingSocket()
+        manager = ConnectionManager(Registry(game))
+        manager.active_connections[game.id] = {"player-1": socket}
+
+        first = asyncio.create_task(
+            manager.broadcast_game_state(game.id, game, changed=True)
+        )
+        await socket.first_send_started.wait()
+        second = asyncio.create_task(
+            manager.broadcast_game_state(game.id, game, changed=True)
+        )
+        await asyncio.sleep(0)
+
+        assert socket.sent == []
+        socket.release_first_send.set()
+        await asyncio.gather(first, second)
+
+        assert [
+            packet["data"]["state_revision"] for packet in socket.sent
+        ] == [1, 2]
+
+    asyncio.run(scenario())
+
+
+def test_recovery_broadcast_reuses_current_revision():
+    class Game:
+        id = "game-1"
+        status = "RUNNING"
+        state_revision = 7
+
+        def get_state_for_player(self, user_id):
+            return {
+                "me": {"id": user_id},
+                "state_revision": self.state_revision,
+            }
+
+    game = Game()
+    socket = Socket()
+    manager = ConnectionManager(type("Registry", (), {
+        "get": lambda _self, _game_id: game,
+    })())
+    manager.active_connections[game.id] = {"player-1": socket}
+
+    asyncio.run(manager.broadcast_game_state(game.id, game, changed=False))
+
+    assert game.state_revision == 7
+    assert socket.sent[0]["data"]["state_revision"] == 7
+
+
+def test_personal_state_recovery_waits_for_in_flight_broadcast():
+    class Game:
+        id = "game-1"
+        status = "RUNNING"
+        state_revision = 0
+
+        def get_state_for_player(self, user_id):
+            return {
+                "me": {"id": user_id},
+                "state_revision": self.state_revision,
+            }
+
+    class BlockingSocket(Socket):
+        def __init__(self):
+            super().__init__()
+            self.started = asyncio.Event()
+            self.release = asyncio.Event()
+
+        async def send_json(self, message):
+            if not self.sent:
+                self.started.set()
+                await self.release.wait()
+            self.sent.append(message)
+
+    async def scenario():
+        game = Game()
+        socket = BlockingSocket()
+        manager = ConnectionManager(type("Registry", (), {
+            "get": lambda _self, _game_id: game,
+        })())
+        manager.active_connections[game.id] = {"player-1": socket}
+
+        broadcast = asyncio.create_task(
+            manager.broadcast_game_state(game.id, game, changed=True)
+        )
+        await socket.started.wait()
+        recovery = asyncio.create_task(
+            manager.send_game_state(game.id, game, "player-1")
+        )
+        await asyncio.sleep(0)
+        assert socket.sent == []
+
+        socket.release.set()
+        await asyncio.gather(broadcast, recovery)
+        assert len(socket.sent) == 2
+        assert [
+            packet["data"]["state_revision"] for packet in socket.sent
+        ] == [1, 1]
+
+    asyncio.run(scenario())

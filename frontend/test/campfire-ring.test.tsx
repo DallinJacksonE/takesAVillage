@@ -41,6 +41,7 @@ const makeState = (
   player_list: PublicPlayerDTO[],
 ): GameStateDTO => ({
   status: "ACTIVE",
+  state_revision: 1,
   is_host: true,
   host_connected: true,
   me,
@@ -48,6 +49,7 @@ const makeState = (
   phase: "NIGHT",
   time_remaining: 60,
   player_list,
+  public_interactions: [],
   map: [],
   developments: [],
   chat_messages: [],

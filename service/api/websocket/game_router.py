@@ -89,9 +89,7 @@ def create_router(registry, manager, database, bot_client=None):
                     await manager.send_personal_message(
                         {"event": "chat_history",
                          "data": game.get_private_chat_history(user_id)}, game_id, user_id)
-                    await manager.send_personal_message(
-                        {"event": "game_state",
-                         "data": game.get_state_for_player(user_id)}, game_id, user_id)
+                    await manager.send_game_state(game_id, game, user_id)
                     await manager.broadcast_to_game(
                         {"event": "room_update", "data": {"player_count": len(game.players)}},
                         game_id)

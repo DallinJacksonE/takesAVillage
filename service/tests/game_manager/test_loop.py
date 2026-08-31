@@ -99,7 +99,7 @@ def test_timer_phase_transition_delivers_queued_player_notifications():
         personal.append((message, game_id, player_id))
 
     broadcaster = SimpleNamespace(
-        broadcast_game_state=lambda *_args: None,
+        broadcast_game_state=lambda *_args, **_kwargs: None,
         send_personal_message=send_personal,
     )
     loop = GameLoop(registry, lambda _game: None, broadcaster)
@@ -114,3 +114,35 @@ def test_timer_phase_transition_delivers_queued_player_notifications():
             "message": "You became sick during the night.",
         },
     }, "game-1", "player-1")]
+
+
+def test_running_game_periodically_republishes_current_state_for_recovery():
+    registry = GameRegistry()
+    game = SimpleNamespace(
+        id="game-1",
+        status="RUNNING",
+        check_timer=lambda: False,
+    )
+    registry.add(game.id, game)
+    now = [100.0]
+    broadcasts = []
+
+    class Broadcaster:
+        async def broadcast_game_state(self, game_id, current_game, *, changed=True):
+            broadcasts.append((game_id, current_game, changed))
+
+    loop = GameLoop(
+        registry,
+        lambda _game: None,
+        Broadcaster(),
+        state_sync_interval=1.0,
+        clock=lambda: now[0],
+    )
+
+    asyncio.run(loop.tick_once())
+    assert broadcasts == []
+
+    now[0] += 1.0
+    asyncio.run(loop.tick_once())
+
+    assert broadcasts == [("game-1", game, False)]

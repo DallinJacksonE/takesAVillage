@@ -38,6 +38,7 @@ const player: PublicPlayerDTO = {
 
 const gameState: GameStateDTO = {
   status: "ACTIVE",
+  state_revision: 1,
   is_host: true,
   host_connected: true,
   me: {
@@ -53,6 +54,7 @@ const gameState: GameStateDTO = {
   phase: "WORK",
   time_remaining: 60,
   player_list: [player],
+  public_interactions: [],
   map: [],
   developments: [development],
   chat_messages: [],

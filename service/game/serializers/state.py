@@ -122,6 +122,28 @@ def build_public_player_state(game, player):
     }
 
 
+def build_public_interactions(game):
+    """Project shared activity without exposing private contract terms."""
+    if game.phase != "TRADE":
+        return []
+
+    interactions = {}
+    for player in game.players.values():
+        for action in getattr(player, "actions", {}).values():
+            if getattr(action, "type", None) != "TRADE":
+                continue
+            interactions[action.id] = {
+                "id": action.id,
+                "kind": "TRADE",
+                "participant_ids": [
+                    action.initiator_id,
+                    action.target_id,
+                ],
+                "status": action.status,
+            }
+    return [interactions[key] for key in sorted(interactions)]
+
+
 def build_player_state(game, session_id):
     player = game.players.get(session_id)
     if not player:
@@ -149,6 +171,7 @@ def build_player_state(game, session_id):
 
     state_dto = {
         "status": game.status,
+        "state_revision": getattr(game, "state_revision", 0),
         "is_host": (session_id == getattr(game, 'host_id', None)),
         "me": me_dict,
         "day": game.day,
@@ -156,6 +179,7 @@ def build_player_state(game, session_id):
         "phase": game.phase,
         "time_remaining": game.get_time_remaining(),
         "player_list": player_list,
+        "public_interactions": build_public_interactions(game),
         "map": map_dto,
         "host_connected": game.host_connected,
         "developments": development_list,

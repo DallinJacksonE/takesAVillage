@@ -19,6 +19,8 @@ class GameLoop:
         training_completion_callback: Callable[[str, str], Awaitable[Any]] | None = None,
         training_orphan_cleanup_callback: Callable[[str], Awaitable[Any]] | None = None,
         logger: Any | None = None,
+        state_sync_interval: float = 1.0,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self.registry = registry
         self.persist_completed = persist_completed
@@ -27,6 +29,9 @@ class GameLoop:
         self.training_orphan_cleanup_callback = training_orphan_cleanup_callback
         self._training_orphaned_since: dict[str, float] = {}
         self.logger = logger or BackendLogger("game_manager")
+        self.state_sync_interval = state_sync_interval
+        self._clock = clock
+        self._last_state_sync: dict[str, float] = {}
         self._completing: set[str] = set()
         self._training_tasks: set[asyncio.Task] = set()
 
@@ -90,15 +95,34 @@ class GameLoop:
             if await self._cleanup_orphaned_training_game(game):
                 continue
             if game.status == "RUNNING":
+                now = self._clock()
+                last_sync = self._last_state_sync.setdefault(game.id, now)
                 if game.check_timer():
                     try:
-                        result = self.broadcaster.broadcast_game_state(game.id, game)
+                        result = self.broadcaster.broadcast_game_state(
+                            game.id, game, changed=True)
                         if inspect.isawaitable(result):
                             await result
+                        self._last_state_sync[game.id] = now
                         await self._send_queued_notifications(game)
                     except Exception as exc:
                         self.logger.error(
                             f"Failed to broadcast game state for {game.id}", exc=exc)
+                elif (
+                    now - last_sync >= self.state_sync_interval
+                    and self._has_connections(game.id)
+                ):
+                    try:
+                        result = self.broadcaster.broadcast_game_state(
+                            game.id, game, changed=False)
+                        if inspect.isawaitable(result):
+                            await result
+                        self._last_state_sync[game.id] = now
+                    except Exception as exc:
+                        self.logger.error(
+                            f"Failed to synchronize game state for {game.id}",
+                            exc=exc,
+                        )
                 continue
             if game.status != "ENDED" or game.id in self._completing:
                 continue
@@ -126,6 +150,11 @@ class GameLoop:
                 self._completing.discard(game.id)
 
             self.registry.remove(game.id)
+            self._last_state_sync.pop(game.id, None)
+
+    def _has_connections(self, game_id: str) -> bool:
+        checker = getattr(self.broadcaster, "has_connections", None)
+        return checker(game_id) if checker else True
 
     async def run(self, interval_seconds: float = 0.1) -> None:
         while True:

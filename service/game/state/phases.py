@@ -21,14 +21,25 @@ class PhaseMachine:
             return Phase.NIGHT.value
 
         if game.phase == Phase.NIGHT.value:
-            game._on_phase_completed(game, game.phase)
-            self.resolver.resolve_night(game)
+            if game.night_transition:
+                if not game.night_transition_ready():
+                    return Phase.NIGHT.value
+                return self._complete_night(game)
 
+            self.resolver.resolve_night(game)
             if game.status == "ENDED":
+                game._on_phase_completed(game, game.phase)
                 return Phase.NIGHT.value
 
-            game.day += 1
-            game.start_phase(Phase.WORK, resolver=self.resolver)
-            return Phase.WORK.value
+            if game.night_transition and not game.night_transition_ready():
+                return Phase.NIGHT.value
+
+            return self._complete_night(game)
 
         raise ValueError(f"Unknown phase: {game.phase}")
+
+    def _complete_night(self, game):
+        game._on_phase_completed(game, game.phase)
+        game.day += 1
+        game.start_phase(Phase.WORK, resolver=self.resolver)
+        return Phase.WORK.value

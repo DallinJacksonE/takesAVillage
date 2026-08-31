@@ -22,6 +22,7 @@ export class GameplayService {
   private reconnectAttempts = 0;
   private lastConnectAttempt = 0;
   private readonly maxReconnectDelay = 30000;
+  private lastGameStateRevision = -1;
 
   // Callbacks
   private _onConnectionStateChange?: (state: ConnectionState) => void;
@@ -112,6 +113,16 @@ export class GameplayService {
           this._onPlayerCount?.(payload.data.player_count);
           break;
         case "game_state":
+          if (
+            typeof payload.data.state_revision === "number"
+            && payload.data.state_revision < this.lastGameStateRevision
+          ) {
+            break;
+          }
+          this.lastGameStateRevision = Math.max(
+            this.lastGameStateRevision,
+            payload.data.state_revision ?? this.lastGameStateRevision,
+          );
           this._onGameState?.(payload.data);
           break;
         case "game_started":

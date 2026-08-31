@@ -114,3 +114,51 @@ def test_night_health_animation_has_a_server_timeout_fallback(make_game, monkeyp
     assert game.check_timer() is True
     assert game.phase == "WORK"
     assert game.day == 2
+
+
+def test_night_health_animation_does_not_wait_for_bot_acknowledgement(
+        make_game, monkeypatch):
+    game = make_game(
+        training=False,
+        player_ids=("player-1", "bot_1"),
+    )
+    game.start_game()
+    game.phase = "NIGHT"
+    for player in game.players.values():
+        player.resources["food"] = 0
+        player.fire_status = "COLD"
+    monkeypatch.setattr(
+        "service.game.models.player.random.random", lambda: 0.0)
+
+    result = game.next_phase()
+
+    assert result == "NIGHT"
+    assert game.night_transition["affected_player_ids"] == ["player-1"]
+    assert set(game.night_transition["visuals"]) == {"player-1", "bot_1"}
+
+    assert game.acknowledge_night_transition(
+        "player-1", game.night_transition["id"]
+    ) is True
+    assert game.phase == "WORK"
+    assert game.day == 2
+
+
+def test_night_health_animation_advances_immediately_when_only_bots_are_affected(
+        make_game, monkeypatch):
+    game = make_game(
+        training=False,
+        player_ids=("bot_1", "bot_2"),
+    )
+    game.start_game()
+    game.phase = "NIGHT"
+    for player in game.players.values():
+        player.resources["food"] = 0
+        player.fire_status = "COLD"
+    monkeypatch.setattr(
+        "service.game.models.player.random.random", lambda: 0.0)
+
+    result = game.next_phase()
+
+    assert result == "WORK"
+    assert game.night_transition is None
+    assert game.day == 2

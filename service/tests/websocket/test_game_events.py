@@ -21,6 +21,13 @@ class RecordingManager:
     async def send_personal_message(self, message, game_id, user_id):
         self.personal.append((message, game_id, user_id))
 
+    async def send_game_state(self, game_id, game, user_id):
+        self.personal.append((
+            {"event": "game_state", "data": game.get_state_for_player(user_id)},
+            game_id,
+            user_id,
+        ))
+
 
 class EventGame:
     def __init__(self):

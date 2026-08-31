@@ -100,6 +100,7 @@ class Game:
         self._notifications = {}
         self.domain_events = []
         self.night_transition = None
+        self.state_revision = 0
 
         self.add_player_hist = add_player_hist
         self.add_map_hist = add_map_hist
@@ -162,6 +163,12 @@ class Game:
         if self.status != "RUNNING":
             return False
 
+        if self.night_transition:
+            if self.night_transition_ready():
+                self.next_phase(expected_phase=Phase.NIGHT.value)
+                return True
+            return False
+
         if self._clock() >= self.phase_end_time:
             if self.phase == Phase.WORK.value:
                 from service.game.packet_handling.work import assign_default_work_intents
@@ -173,7 +180,10 @@ class Game:
         return False
 
     def begin_night_transition(self, visuals, timeout_seconds=5):
-        affected_player_ids = sorted(visuals)
+        affected_player_ids = sorted(
+            player_id for player_id in visuals
+            if not player_id.startswith("bot_")
+        )
 
         if not affected_player_ids or self.training:
             return None
@@ -211,7 +221,7 @@ class Game:
         transition["acknowledged_player_ids"].add(player_id)
 
         if self.night_transition_ready():
-            self.check_all_players_locked()
+            self.next_phase(expected_phase=Phase.NIGHT.value)
 
         return True
 
