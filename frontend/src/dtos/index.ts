@@ -226,7 +226,7 @@ export interface WorkActionDTO {
   wage: number;
   wage_type: Resource;
   employer_id: string;
-  action_id: string;
+  action_id: string | null;
 }
 
 export interface DevelopmentCostConfig {

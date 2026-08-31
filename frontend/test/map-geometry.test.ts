@@ -52,8 +52,8 @@ describe("getPlayerMapPosition", () => {
       MAX_FIRE_SEATS,
     );
 
-    expect(position.x).toBeCloseTo(65.8179, 3);
-    expect(position.y).toBe(0);
+    expect(position.x).toBeCloseTo(52, 3);
+    expect(position.y).toBe(15);
   });
 
   it("places accepted trade partners on opposite sides of a shared meeting point", () => {

@@ -78,7 +78,7 @@ export const buildPhaseAttentionKey = (state: GameStateDTO): string => {
       wage: job.wage,
       wage_type: job.wage_type,
     }))
-    .sort((left, right) => left.action_id.localeCompare(right.action_id));
+    .sort((left, right) => (left.action_id || "").localeCompare(right.action_id || ""));
   const mapDevelopments = mapTiles(state.map)
     .map((tile) => ({
       development_id: tile.development?.id ?? null,

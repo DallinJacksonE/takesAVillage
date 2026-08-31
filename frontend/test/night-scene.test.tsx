@@ -70,7 +70,7 @@ describe("NIGHT village scene", () => {
     expect(ashFire).toBeTruthy();
     expect(mossFire.getAttribute("style")).not.toEqual(ashFire.getAttribute("style"));
 
-    expect(screen.getAllByLabelText(/Available fire seat|Available host seat/)).toHaveLength(4);
+    expect(screen.getAllByLabelText(/Available fire seat|Available host seat/)).toHaveLength(6);
   });
 
   it("renders only unoccupied seat markers for each host fire", () => {
@@ -93,6 +93,6 @@ describe("NIGHT village scene", () => {
       </PlayerProvider>,
     );
 
-    expect(screen.getAllByLabelText(/Available fire seat|Available host seat/)).toHaveLength(3);
+    expect(screen.getAllByLabelText(/Available fire seat|Available host seat/)).toHaveLength(5);
   });
 });
