@@ -69,7 +69,7 @@ const VillageMap: React.FC<Props> = ({
    *
    * Therefore there are maxFireSeats + 1 total vertices/pips.
    */
-  const totalFireSeats = Math.max(1, Math.floor(maxFireSeats));
+  const totalFireSeats = Math.max(1, Math.floor(maxFireSeats) + 1);
 
   const tradeIds = players.flatMap((player) =>
     player.visual_state.location.kind === "TRADE"
