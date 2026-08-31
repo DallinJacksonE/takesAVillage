@@ -208,9 +208,10 @@ const VillageMap: React.FC<Props> = ({
     };
   }, [phase, fireIds.join(","), maxFireSeats, totalFireSeats]);
 
-  const HEX_SIZE = 38;
+  const HEX_SIZE = window.innerWidth * 0.045;
   const hexWidth = HEX_SIZE * Math.sqrt(3);
   const hexHeight = HEX_SIZE * 2;
+  const DEVELOPMENT_SPRITE_SIZE = HEX_SIZE * 1;
 
   const pointyClipPath =
     "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
@@ -326,15 +327,15 @@ const VillageMap: React.FC<Props> = ({
                 >
                   {tile.development ? (
                     <img
-                      src={getDevelopmentSprite(
-                        tile.development.type
-                      )}
+                      src={getDevelopmentSprite(tile.development.type)}
                       alt=""
                       aria-hidden="true"
-                      className={
-                        styles.developmentSprite
-                      }
+                      className={styles.developmentSprite}
                       draggable={false}
+                      style={{
+                        width: `${DEVELOPMENT_SPRITE_SIZE}px`,
+                        height: `${DEVELOPMENT_SPRITE_SIZE}px`,
+                      }}
                     />
                   ) : (
                     <span className={styles.field}>
