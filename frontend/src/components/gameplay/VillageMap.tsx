@@ -18,6 +18,7 @@ import {
 import styles from "./VillageMap.module.css";
 import {
   axialToIsometric,
+  getHexSlotForOccupantIndex,
   getNightFireSeatPosition,
   getPlayerMapPosition,
   getTradeGroupOffset,
@@ -68,7 +69,7 @@ const VillageMap: React.FC<Props> = ({
    *
    * Therefore there are maxFireSeats + 1 total vertices/pips.
    */
-  const totalFireSeats = Math.max(1, Math.floor(maxFireSeats)) + 1;
+  const totalFireSeats = Math.max(1, Math.floor(maxFireSeats));
 
   const tradeIds = players.flatMap((player) =>
     player.visual_state.location.kind === "TRADE"
@@ -300,8 +301,8 @@ const VillageMap: React.FC<Props> = ({
                   clipPath: pointyClipPath,
                   cursor: "pointer",
                   transform: `translate(-50%, -50%) ${isSelected
-                      ? "scale(1.15)"
-                      : "scale(1)"
+                    ? "scale(1.15)"
+                    : "scale(1)"
                     }`,
                   transition:
                     "transform 0.15s ease-in-out",
@@ -477,13 +478,69 @@ const VillageMap: React.FC<Props> = ({
         )}
 
         {players.map((player, index) => {
+          const getPlayerTileId = (
+            loc: typeof player.visual_state.location
+          ): string | null => {
+            if (loc.kind === "TILE") {
+              return loc.id;
+            }
+            if (loc.kind === "DEVELOPMENT") {
+              const tiles = Array.isArray(mapData)
+                ? mapData
+                : Object.values(mapData);
+              const tile = tiles.find(
+                (candidate) =>
+                  candidate.development?.id === loc.id
+              );
+              return tile ? tile.id : null;
+            }
+            return null;
+          };
+
+          const tileId = getPlayerTileId(
+            player.visual_state.location
+          );
+          const isHexLocation = tileId !== null;
+
+          let hexSlot: number | undefined;
+          if (isHexLocation) {
+            if (
+              player.visual_state.location.kind ===
+              "TILE" ||
+              player.visual_state.location.kind ===
+              "DEVELOPMENT"
+            ) {
+              if (
+                player.visual_state.location.slot !==
+                undefined
+              ) {
+                hexSlot =
+                  player.visual_state.location.slot;
+              } else {
+                const precedingPeers = players
+                  .slice(0, index)
+                  .filter(
+                    (peer) =>
+                      getPlayerTileId(
+                        peer.visual_state.location
+                      ) === tileId
+                  ).length;
+                hexSlot =
+                  getHexSlotForOccupantIndex(
+                    precedingPeers
+                  );
+              }
+            }
+          }
+
           const position = getPlayerMapPosition(
             player.visual_state.location,
             mapData,
             index,
             HEX_SIZE,
             fireIds,
-            maxFireSeats
+            maxFireSeats,
+            hexSlot
           );
 
           const tradeOffset =
@@ -512,19 +569,12 @@ const VillageMap: React.FC<Props> = ({
             player.visual_state.location.kind ===
             "FIRE";
 
-          const peerOffset = isFireLocation
+          const peerOffset = isFireLocation || isHexLocation
             ? { x: 0, y: 0 }
             : {
               x: locationPeers * 24,
               y: locationPeers * 8,
             };
-
-          const isDevelopmentLocation =
-            player.visual_state.location.kind ===
-            "DEVELOPMENT";
-
-          const isBuildLocation =
-            player.visual_state.location.kind === "TILE";
 
           return (
             <MapPlayerActor
@@ -544,9 +594,8 @@ const VillageMap: React.FC<Props> = ({
                     peerOffset.x) *
                   fireFit.scale +
                   fireFit.x
-                  : isDevelopmentLocation ||
-                    isBuildLocation
-                    ? position.x - HEX_SIZE / 2
+                  : isHexLocation
+                    ? position.x
                     : position.x +
                     tradeOffset.x +
                     peerOffset.x
@@ -558,8 +607,8 @@ const VillageMap: React.FC<Props> = ({
                     peerOffset.y) *
                   fireFit.scale +
                   fireFit.y
-                  : isBuildLocation
-                    ? position.y + 20
+                  : isHexLocation
+                    ? position.y
                     : position.y +
                     tradeOffset.y +
                     peerOffset.y

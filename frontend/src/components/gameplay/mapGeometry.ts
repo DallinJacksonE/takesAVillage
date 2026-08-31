@@ -201,13 +201,76 @@ export const getNightFireSeatPosition = (
   };
 };
 
+export const TOTAL_HEX_SLOTS = 10;
+
+/**
+ * Order in which occupants fill the 10 positions around a hex.
+ * Fills every other slot first (0, 2, 4, 6, 8) to maximize spacing,
+ * then fills the remaining odd slots (1, 3, 5, 7, 9) as more players arrive.
+ */
+export const HEX_SLOT_SPREAD_ORDER = [
+  0, 2, 4, 6, 8, 1, 3, 5, 7, 9,
+] as const;
+
+export const getHexSlotForOccupantIndex = (
+  occupantIndex: number
+): number => {
+  const normalizedIndex =
+    ((Math.floor(occupantIndex) % TOTAL_HEX_SLOTS) +
+      TOTAL_HEX_SLOTS) %
+    TOTAL_HEX_SLOTS;
+  return HEX_SLOT_SPREAD_ORDER[normalizedIndex];
+};
+
+export const HEX_SLOT_RADIUS_SCALE = 0.75;
+
+/**
+ * Returns the position of a slot around a hex tile.
+ *
+ * Total slots = 10 (0..9).
+ * Slot 0 is placed in the direction of the initial building slot:
+ *   dx = (-hexSize / 2) * radiusScale
+ *   dy = 20 * (hexSize / 38) * radiusScale
+ *
+ * Subsequent slots 1..9 are evenly distributed around the hex.
+ */
+export const getHexSlotPosition = (
+  center: MapPoint,
+  slot = 0,
+  hexSize = 38,
+  radiusScale = HEX_SLOT_RADIUS_SCALE,
+): MapPoint => {
+  const baseDx = (-hexSize / 2) * radiusScale;
+  const baseDy = 20 * (hexSize / 38) * radiusScale;
+  const radius = Math.sqrt(baseDx * baseDx + baseDy * baseDy);
+  const baseAngle = Math.atan2(baseDy, baseDx);
+
+  const slotIndex =
+    ((Math.floor(slot) % TOTAL_HEX_SLOTS) + TOTAL_HEX_SLOTS) % TOTAL_HEX_SLOTS;
+
+  if (slotIndex === 0) {
+    return {
+      x: Math.round(center.x + baseDx),
+      y: Math.round(center.y + baseDy),
+    };
+  }
+
+  const angle = baseAngle + (slotIndex * 2 * Math.PI) / TOTAL_HEX_SLOTS;
+
+  return {
+    x: center.x + Math.round(Math.cos(angle) * radius),
+    y: center.y + Math.round(Math.sin(angle) * radius),
+  };
+};
+
 export const getPlayerMapPosition = (
   location: PlayerVisualLocation,
   mapData: MapDataDTO,
   playerIndex: number,
   hexSize = 38,
   fireIds: string[] = [],
-  maxFireSeats: number,
+  maxFireSeats = 3,
+  slot?: number,
 ): MapPoint => {
   if (location.kind === "FIRE") {
     return getNightFireSeatPosition(
@@ -242,11 +305,13 @@ export const getPlayerMapPosition = (
     );
 
     if (tile) {
-      return axialToIsometric(
+      const center = axialToIsometric(
         tile.q,
         tile.r,
         hexSize,
       );
+      const effectiveSlot = location.slot ?? slot ?? 0;
+      return getHexSlotPosition(center, effectiveSlot, hexSize);
     }
   }
 
@@ -256,11 +321,13 @@ export const getPlayerMapPosition = (
     );
 
     if (tile) {
-      return axialToIsometric(
+      const center = axialToIsometric(
         tile.q,
         tile.r,
         hexSize,
       );
+      const effectiveSlot = location.slot ?? slot ?? 0;
+      return getHexSlotPosition(center, effectiveSlot, hexSize);
     }
   }
 
