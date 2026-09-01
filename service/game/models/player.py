@@ -114,6 +114,7 @@ class Player:
             "sickness_chance": self.sickness_chance
         })
 
+    def cleanup_daily(self):
         # Daily flags
         self.fire_status = "COLD"
         self.fire_guests = []  # Reset to nobody for the next day
@@ -124,7 +125,6 @@ class Player:
             self.phase_state = PlayerPhaseState.ACTIVE.value
         else:
             self.phase_state = PlayerPhaseState.DEAD.value
-        self.fire_guests = []
 
     def to_dict(self) -> dict:
         """

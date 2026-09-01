@@ -162,3 +162,64 @@ def test_night_health_animation_advances_immediately_when_only_bots_are_affected
     assert result == "WORK"
     assert game.night_transition is None
     assert game.day == 2
+
+
+def test_night_transition_preserves_campfires_and_defers_cleanup(make_game, monkeypatch):
+    from service.game.models.development import Development
+    from service.game.packet_handling.contracts import CampfireContract
+
+    game = make_game(training=False, player_ids=("player-1", "player-2"))
+    game.start_game()
+    game.phase = "NIGHT"
+
+    host = game.players["player-1"]
+    guest = game.players["player-2"]
+    host.fire_status = "HOST"
+    guest.fire_status = "GUEST"
+    host.fire_guests = [guest.session_id]
+
+    contract = CampfireContract(guest.session_id, host.session_id, is_request=True)
+    contract.status = "ACCEPTED"
+    game.contract_factory._add_contract_to_players(contract)
+
+    dev = Development(
+        "dev-1", "Farm", host.session_id,
+        game.rules.MAX_DEVELOPMENT_LEVEL,
+        game.rules.MAINTENANCE_DAYS,
+        game.rules.RESOURCE_COSTS,
+    )
+    game.developments = {dev.id: dev}
+    initial_maintenance = dev.maintenance_days
+
+    # Make player-2 (guest) sick during night so transition is triggered
+    host.resources["food"] = 5
+    guest.resources["food"] = 0
+    guest.fire_status = "COLD"
+    health_checks = iter((1.0, 0.0))
+    monkeypatch.setattr(
+        "service.game.models.player.random.random", lambda: next(health_checks))
+
+    result = game.next_phase()
+
+    # During transition: phase is still NIGHT, fires are preserved, contracts remain
+    assert result == "NIGHT"
+    assert game.phase == "NIGHT"
+    assert game.night_transition is not None
+    assert game.night_transition["affected_player_ids"] == ["player-2"]
+    assert host.fire_status == "HOST"
+    assert host.fire_guests == [guest.session_id]
+    assert contract.id in host.actions
+    assert dev.maintenance_days == initial_maintenance
+
+    # Acknowledge transition
+    assert game.acknowledge_night_transition(guest.session_id, game.night_transition["id"]) is True
+
+    # After transition: phase is WORK, fires are reset to COLD, contracts removed, developments degraded
+    assert game.phase == "WORK"
+    assert game.day == 2
+    assert host.fire_status == "COLD"
+    assert guest.fire_status == "COLD"
+    assert host.fire_guests == []
+    assert contract.id not in host.actions
+    assert dev.maintenance_days == initial_maintenance - 1
+

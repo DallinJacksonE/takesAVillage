@@ -37,7 +37,6 @@ class PhaseResolver:
             for player in game_state.players.values()
         }
 
-        game_state.contract_factory.cleanup_campfire_contracts()
         for player in game_state.players.values():
             game_state.apply_event(PlayerDailyNeedsConsumed(player.session_id))
 
@@ -60,15 +59,25 @@ class PhaseResolver:
                 ),
             })
 
-        for development in list(game_state.developments.values()):
-            game_state.apply_event(DevelopmentDegraded(development.id))
-
-        game_state.actions = []
         if game_state.is_game_over():
             game_state.apply_event(GameEnded())
             return
 
         game_state.begin_night_transition(transition_visuals)
+
+        if not game_state.night_transition:
+            PhaseResolver.complete_night_cleanup(game_state)
+
+    @staticmethod
+    def complete_night_cleanup(game_state):
+        game_state.contract_factory.cleanup_campfire_contracts()
+        for player in game_state.players.values():
+            player.cleanup_daily()
+        for development in list(game_state.developments.values()):
+            game_state.apply_event(DevelopmentDegraded(development.id))
+        game_state.actions = []
+        if game_state.is_game_over():
+            game_state.apply_event(GameEnded())
 
     @staticmethod
     def start_day(game_state):
