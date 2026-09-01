@@ -3,21 +3,25 @@
   font-size: 0.8rem;
 
 }
+
 .button2 {
   padding: 4px 10px;
   font-size: 0.8rem;
 
 }
+
 .button3 {
   padding: 4px 10px;
   font-size: 0.8rem;
 
 }
+
 .row {
   display: flex;
   gap: 8px;
 
 }
+
 .button4 {
   background: var(--info-light);
   color: var(--surface);
@@ -28,6 +32,7 @@
   font-weight: bold;
 
 }
+
 .label {
   display: block;
   margin-bottom: 8px;
@@ -35,11 +40,13 @@
   color: var(--warning);
 
 }
+
 .panel {
   flex: 1;
   min-width: 140px;
 
 }
+
 .label2 {
   display: block;
   margin-bottom: 8px;
@@ -47,17 +54,20 @@
   color: var(--info);
 
 }
+
 .panel2 {
   flex: 1;
   min-width: 140px;
 
 }
+
 .row2 {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 
 }
+
 .panel3 {
   font-size: 0.85rem;
   color: var(--info-light);
@@ -65,6 +75,7 @@
   font-weight: bold;
 
 }
+
 .panel4 {
   background: var(--surface);
   padding: 12px;
@@ -73,17 +84,20 @@
   margin-top: 10px;
 
 }
+
 .panel5 {
   font-size: 0.85rem;
   margin-bottom: 10px;
 
 }
+
 .row3 {
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
 
 }
+
 .panel6 {
   background: var(--surface-soft);
   padding: 12px;

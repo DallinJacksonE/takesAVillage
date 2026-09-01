@@ -72,6 +72,7 @@ const AvailableWorkCard: React.FC<Props> = ({
             return (
               <div
                 key={itemKey}
+                id={work.action_id ? `action-item-${work.action_id}` : undefined}
                 className={styles.row5}
               >
                 <span className={styles.workDetails}>
@@ -101,7 +102,7 @@ const AvailableWorkCard: React.FC<Props> = ({
             // Find the worker's ID based on whether it was an application or an offer
             const workerId = contract.is_application ? contract.initiator_id : contract.target_id;
             return (
-              <div key={contract.id} className={styles.panel7}>
+              <div key={contract.id} id={`action-item-${contract.id}`} className={styles.panel7}>
                 <span>{getPlayerName(workerId || "")} hired for {contract.wage} {contract.wage_type}.</span>
               </div>
             );

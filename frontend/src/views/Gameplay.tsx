@@ -174,6 +174,11 @@ const Gameplay: React.FC = () => {
   )?.visual_state ?? { animation: "IDLE" as const, location: { kind: "HOME" as const } };
   const statusSprite = getGoblinSpriteForAnimation(myVisualState.animation);
 
+  const acceptedActionIds = gameState.me.actions
+    .filter(a => a.status === "ACCEPTED" && (a.type === "EMPLOYMENT" || a.type === "TRADE" || a.type === "BARTER"))
+    .map(a => a.id)
+    .join(",");
+
   return (
     <div className={styles.gameplayPage}>
       <ConnectionBanner state={connectionState} />
@@ -187,6 +192,7 @@ const Gameplay: React.FC = () => {
           <PlayerProvider players={gameState.player_list}>
             <GameplayShell
               actionAttentionKey={buildPhaseAttentionKey(gameState)}
+              autoOpenActionsKey={acceptedActionIds}
               statusBar={(
                 <PlayerStatusBar
                   day={gameState.day}

@@ -4,13 +4,14 @@ import { updatePanelAttention, type PanelAttentionState } from "./phaseAttention
 
 interface Props {
   actionAttentionKey?: string;
+  autoOpenActionsKey?: string;
   actionPanel: ReactNode;
   chatPanel: ReactNode;
   map: ReactNode;
   statusBar: ReactNode;
 }
 
-const GameplayShell = ({ actionAttentionKey = "", actionPanel, chatPanel, map, statusBar }: Props) => {
+const GameplayShell = ({ actionAttentionKey = "", autoOpenActionsKey = "", actionPanel, chatPanel, map, statusBar }: Props) => {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const actionToggleRef = useRef<HTMLButtonElement | null>(null);
@@ -24,6 +25,22 @@ const GameplayShell = ({ actionAttentionKey = "", actionPanel, chatPanel, map, s
       updatePanelAttention(previous, { contentKey: actionAttentionKey, isOpen: actionsOpen }),
     );
   }, [actionAttentionKey, actionsOpen]);
+
+  useEffect(() => {
+    if (autoOpenActionsKey) {
+      setActionsOpen(true);
+      setTimeout(() => {
+        const ids = autoOpenActionsKey.split(",");
+        for (const id of ids) {
+          const el = document.getElementById(`action-item-${id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+            break;
+          }
+        }
+      }, 100);
+    }
+  }, [autoOpenActionsKey]);
 
   const closePanelFromKeyboard = (
     event: KeyboardEvent<HTMLElement>,

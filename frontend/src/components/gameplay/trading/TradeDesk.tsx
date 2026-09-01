@@ -122,7 +122,7 @@ const TradeDesk: React.FC<Props> = ({ state, onDraftTrade, onCounterTrade, onAcc
               </div>
 
               <div className={styles.panel14}>
-                <button className={`btn ${styles.button2}`}  onClick={handleDraftTrade}>
+                <button className={`btn ${styles.button2}`} onClick={handleDraftTrade}>
                   Send Trade Offer
                 </button>
               </div>
@@ -179,7 +179,7 @@ const TradeDesk: React.FC<Props> = ({ state, onDraftTrade, onCounterTrade, onAcc
               <div key={trade.id} className={styles.panel3}>
                 <div className={styles.row}>
                   <strong>To: {getPlayerName(otherPersonId || "")}</strong>
-                  <button className={`btn-tooltip danger ${styles.button}`}  onClick={() => onCancelTrade(trade.id)}>Revoke</button>
+                  <button className={`btn-tooltip danger ${styles.button}`} onClick={() => onCancelTrade(trade.id)}>Revoke</button>
                 </div>
                 <div className={styles.panel2}>
                   <div>I Give: {renderItems(iGive)}</div>
@@ -198,7 +198,9 @@ const TradeDesk: React.FC<Props> = ({ state, onDraftTrade, onCounterTrade, onAcc
             Shipping Bay (Lock-in your payload)
           </strong>
           {acceptedTrades.map(trade => (
-            <ShippingWindow key={trade.id} trade={trade} meId={me.id} onFinalizeTrade={onFinalizeTrade} getPlayerName={getPlayerName} />
+            <div key={trade.id} id={`action-item-${trade.id}`}>
+              <ShippingWindow trade={trade} meId={me.id} onFinalizeTrade={onFinalizeTrade} getPlayerName={getPlayerName} />
+            </div>
           ))}
         </div>
       )}
