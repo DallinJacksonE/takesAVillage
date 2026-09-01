@@ -6,6 +6,7 @@ import {
   Phase,
   PublicPlayerDTO,
   DevelopmentDTO,
+  Resource,
 } from "../../dtos/index";
 import { usePlayerName } from "../hooks/usePlayerName";
 import PlayerInfo from "./playerInfo/PlayerInfo";
@@ -36,6 +37,16 @@ interface Props {
   phase: Phase;
   onReact?: (emoji: "👍" | "❤️" | "😂" | "😠") => void;
   maxFireSeats?: number;
+  onMaintain?: (devId: string) => void;
+  onUpgrade?: (devId: string) => void;
+  onContest?: (devId: string, side: "INITIATOR" | "CONTESTER" | "OWNER") => void;
+  onApplyForJob?: (targetId: string, devId: string, wage: number, wageType: Resource) => void;
+  onDraftTrade?: (targetId: string, offer: Record<string, number>, request: Record<string, number>) => void;
+  onRequestSeat?: (targetId: string) => void;
+  onOfferSeat?: (targetId: string) => void;
+  myActions?: any[]; // using any[] to avoid importing ActionDTO here if not necessary, or we can use the proper type
+  onAcceptApplicant?: (actionId: string) => void;
+  onDenyApplicant?: (actionId: string) => void;
 }
 
 const VillageMap: React.FC<Props> = ({
@@ -47,9 +58,28 @@ const VillageMap: React.FC<Props> = ({
   phase,
   onReact,
   maxFireSeats = 3,
+  onMaintain,
+  onUpgrade,
+  onContest,
+  onApplyForJob,
+  onDraftTrade,
+  onRequestSeat,
+  onOfferSeat,
+  myActions = [],
+  onAcceptApplicant,
+  onDenyApplicant,
 }) => {
   const [selectedTile, setSelectedTile] = useState<MapTileDTO | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<PublicPlayerDTO | null>(null);
   const mapCardRef = useRef<HTMLDivElement>(null);
+
+  // Draft Job Application State for Map Popup
+  const [appWage, setAppWage] = useState<number>(1);
+  const [appWageType, setAppWageType] = useState<"food" | "wood" | "iron">("food");
+
+  // Draft Trade State for Map Popup
+  const [tradeOffer, setTradeOffer] = useState({ food: 0, wood: 0, iron: 0 });
+  const [tradeRequest, setTradeRequest] = useState({ food: 0, wood: 0, iron: 0 });
 
   const [fireFit, setFireFit] = useState({
     scale: 1,
@@ -59,6 +89,7 @@ const VillageMap: React.FC<Props> = ({
 
   const getPlayerNameFromHook = usePlayerName();
   const { getPlayerColor } = usePlayerColors();
+  const myPlayer = players.find(p => p.id === playerId);
   const scene = getPhaseScene(phase);
 
   /*
@@ -268,7 +299,10 @@ const VillageMap: React.FC<Props> = ({
       className={`card ${styles.mapCard} ${styles.card}`}
       aria-label={scene.label}
       data-phase={scene.theme}
-      onClick={() => setSelectedTile(null)}
+      onClick={() => {
+        setSelectedTile(null);
+        setSelectedPlayer(null);
+      }}
     >
       <div
         style={{
@@ -582,135 +616,253 @@ const VillageMap: React.FC<Props> = ({
               y: locationPeers * 8,
             };
 
+          const finalX = isFireLocation
+            ? (position.x + tradeOffset.x + peerOffset.x) * fireFit.scale + fireFit.x
+            : isHexLocation
+              ? position.x
+              : position.x + tradeOffset.x + peerOffset.x;
+
+          const finalY = isFireLocation
+            ? (position.y + tradeOffset.y + peerOffset.y) * fireFit.scale + fireFit.y
+            : isHexLocation
+              ? position.y
+              : position.y + tradeOffset.y + peerOffset.y;
+
+          const isSelectedPlayer = selectedPlayer?.id === player.id;
+          const isMe = player.id === playerId;
+
           return (
-            <MapPlayerActor
-              color={getPlayerColor(player.id)}
-              key={player.id}
-              isLocal={player.id === playerId}
-              onReact={
-                player.id === playerId
-                  ? onReact
-                  : undefined
-              }
-              player={player}
-              x={
-                isFireLocation
-                  ? (position.x +
-                    tradeOffset.x +
-                    peerOffset.x) *
-                  fireFit.scale +
-                  fireFit.x
-                  : isHexLocation
-                    ? position.x
-                    : position.x +
-                    tradeOffset.x +
-                    peerOffset.x
-              }
-              y={
-                isFireLocation
-                  ? (position.y +
-                    tradeOffset.y +
-                    peerOffset.y) *
-                  fireFit.scale +
-                  fireFit.y
-                  : isHexLocation
-                    ? position.y
-                    : position.y +
-                    tradeOffset.y +
-                    peerOffset.y
-              }
-            />
+            <React.Fragment key={player.id}>
+              <MapPlayerActor
+                color={getPlayerColor(player.id)}
+                isLocal={isMe}
+                isSelected={isSelectedPlayer}
+                onClick={phase !== "WORK" && player.visual_state.animation !== "DEAD" ? () => {
+                  setSelectedPlayer(player);
+                  setSelectedTile(null);
+                  setTradeOffer({ food: 0, wood: 0, iron: 0 });
+                  setTradeRequest({ food: 0, wood: 0, iron: 0 });
+                } : undefined}
+                onReact={isMe && phase !== "WORK" && player.visual_state.animation !== "DEAD" ? onReact : undefined}
+                player={player}
+                x={finalX}
+                y={finalY}
+              />
+
+            </React.Fragment>
           );
         })}
 
-        {selectedTile && (
-          <div
-            className="card"
-            style={{
-              fontSize: 15,
-              position: "absolute",
-              zIndex: 100,
-              height: "65px",
-              width: "115px",
-              padding: "8px",
-              boxShadow:
-                "0 4px 15px rgba(0,0,0,0.2)",
-              transform: "translate(-50%, -110%)",
-              left: hexToPixel(
-                selectedTile.q,
-                selectedTile.r
-              ).x,
-              top: hexToPixel(
-                selectedTile.q,
-                selectedTile.r
-              ).y,
-              background: "white",
-              cursor: "default",
-            }}
-            onMouseDown={(e) =>
-              e.stopPropagation()
-            }
-          >
-            <h4 className={styles.field2}>
-              {selectedTile.type}
-            </h4>
 
-            {selectedTile.development ? (
-              <div className={styles.field3}>
-                <div>
-                  <strong className={styles.field4}>
-                    OWNER:
-                  </strong>
-                  <br />
-                  <PlayerInfo
-                    playerId={
-                      selectedTile.development
-                        .owner_id
-                    }
-                  />
+      </div>
+      {selectedPlayer && selectedPlayer.id !== playerId && (
+        <div
+          className="card"
+          style={{
+            position: "absolute",
+            zIndex: 9999,
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+            background: "white",
+            padding: "10px",
+            borderRadius: "8px",
+            boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+            cursor: "default",
+            minWidth: "220px"
+          }}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <h4 style={{ margin: 0 }}>{selectedPlayer.name}</h4>
+
+          {phase === "TRADE" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", borderTop: "1px solid #eee", paddingTop: "8px" }}>
+              <label style={{ fontSize: "0.8rem", fontWeight: "bold" }}>Draft Trade</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "0.85rem" }}>
+                <strong>Offer:</strong>
+                <div style={{ display: "flex", gap: "4px" }}>
+                  <label>Food: <input type="number" min={0} value={tradeOffer.food} onChange={e => setTradeOffer(o => ({ ...o, food: Number(e.target.value) }))} style={{ width: "50px" }} /></label>
+                  <label>Wood: <input type="number" min={0} value={tradeOffer.wood} onChange={e => setTradeOffer(o => ({ ...o, wood: Number(e.target.value) }))} style={{ width: "50px" }} /></label>
+                  <label>Iron: <input type="number" min={0} value={tradeOffer.iron} onChange={e => setTradeOffer(o => ({ ...o, iron: Number(e.target.value) }))} style={{ width: "50px" }} /></label>
                 </div>
+                <strong>Request:</strong>
+                <div style={{ display: "flex", gap: "4px" }}>
+                  <label>Food: <input type="number" min={0} value={tradeRequest.food} onChange={e => setTradeRequest(r => ({ ...r, food: Number(e.target.value) }))} style={{ width: "50px" }} /></label>
+                  <label>Wood: <input type="number" min={0} value={tradeRequest.wood} onChange={e => setTradeRequest(r => ({ ...r, wood: Number(e.target.value) }))} style={{ width: "50px" }} /></label>
+                  <label>Iron: <input type="number" min={0} value={tradeRequest.iron} onChange={e => setTradeRequest(r => ({ ...r, iron: Number(e.target.value) }))} style={{ width: "50px" }} /></label>
+                </div>
+              </div>
+              <button className="btn success" onClick={() => {
+                onDraftTrade?.(selectedPlayer.id, tradeOffer, tradeRequest);
+                setSelectedPlayer(null);
+              }}>
+                Send Trade
+              </button>
+            </div>
+          )}
 
-                {selectedTile.development.owner_id ===
-                  playerId && (
-                    <div className={styles.field5}>
-                      This is your property.
+          {phase === "NIGHT" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", borderTop: "1px solid #eee", paddingTop: "8px" }}>
+              <label style={{ fontSize: "0.8rem", fontWeight: "bold" }}>Campfire Action</label>
+              
+              {myPlayer?.fire_status === "HOST" && (
+                <button className="btn success" onClick={() => {
+                  onOfferSeat?.(selectedPlayer.id);
+                  setSelectedPlayer(null);
+                }}>
+                  Invite to Fire
+                </button>
+              )}
+
+              {selectedPlayer.fire_status === "HOST" && (myPlayer?.fire_status === "COLD" || myPlayer?.fire_status === "GUEST") && (
+                <button className="btn" onClick={() => {
+                  onRequestSeat?.(selectedPlayer.id);
+                  setSelectedPlayer(null);
+                }}>
+                  Request Seat
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {selectedTile && (
+        <div
+          className="card"
+          style={{
+            fontSize: 15,
+            position: "absolute",
+            zIndex: 9999,
+            height: "auto",
+            minWidth: "150px",
+            width: "max-content",
+            padding: "8px",
+            boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
+            transform: "translate(-50%, -50%)",
+            left: "50%",
+            top: "50%",
+            background: "white",
+            cursor: "default",
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+          }}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <h4 className={styles.field2}>
+            {selectedTile.type}
+          </h4>
+
+          {selectedTile.development ? (
+            <div className={styles.field3} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div>
+                <strong className={styles.field4}>
+                  OWNER:
+                </strong>
+                <br />
+                <PlayerInfo
+                  playerId={
+                    selectedTile.development
+                      .owner_id
+                  }
+                />
+              </div>
+              <div>Level: {selectedTile.development.level}</div>
+
+              {selectedTile.development.owner_id ===
+                playerId ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <button className="btn" onClick={() => onMaintain?.(selectedTile.development!.id)}>
+                    Maintain
+                  </button>
+                  <button className="btn" onClick={() => onUpgrade?.(selectedTile.development!.id)}>
+                    Upgrade
+                  </button>
+
+                  {(myActions || []).filter(a => a.type === "EMPLOYMENT" && a.dev_id === selectedTile.development!.id && a.is_application && a.status === "PENDING").length > 0 && (
+                    <div style={{ borderTop: "1px solid #eee", marginTop: "4px", paddingTop: "4px" }}>
+                      <label style={{ fontSize: "0.8rem", fontWeight: "bold" }}>Job Applicants:</label>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        {(myActions || []).filter(a => a.type === "EMPLOYMENT" && a.dev_id === selectedTile.development!.id && a.is_application && a.status === "PENDING").map(app => (
+                          <div key={app.id} style={{ display: "flex", flexDirection: "column", gap: "2px", background: "#f5f5f5", padding: "4px", borderRadius: "4px" }}>
+                            <span style={{ fontSize: "0.8rem" }}>{getPlayerNameFromHook(app.initiator_id)} asks {app.wage} {app.wage_type}</span>
+                            <div style={{ display: "flex", gap: "4px" }}>
+                              <button className="btn success" style={{ flex: 1, padding: "2px" }} onClick={() => onAcceptApplicant?.(app.id)}>Hire</button>
+                              <button className="btn danger" style={{ flex: 1, padding: "2px" }} onClick={() => onDenyApplicant?.(app.id)}>Reject</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
-              </div>
-            ) : (
-              <div className={styles.field6}>
-                <div className={styles.field7}>
-                  Available for Development
                 </div>
-
-                <button
-                  className={`btn-tooltip success ${styles.field8}`}
-                  onClick={() => {
-                    onBuild(selectedTile.id);
+              ) : phase === "WORK" ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", borderTop: "1px solid #eee", paddingTop: "8px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <label style={{ fontSize: "0.8rem", fontWeight: "bold" }}>Apply for Job</label>
+                    <div style={{ display: "flex", gap: "4px" }}>
+                      <input type="number" value={appWage} onChange={e => setAppWage(Number(e.target.value))} style={{ width: "50px" }} />
+                      <select value={appWageType} onChange={e => setAppWageType(e.target.value as Resource)}>
+                        <option value="food">Food</option>
+                        <option value="wood">Wood</option>
+                        <option value="iron">Iron</option>
+                      </select>
+                    </div>
+                    <button className="btn success" onClick={() => {
+                      onApplyForJob?.(selectedTile.development!.owner_id, selectedTile.development!.id, appWage, appWageType);
+                      setSelectedTile(null);
+                    }}>
+                      Apply
+                    </button>
+                  </div>
+                  <button className="btn danger" onClick={() => {
+                    onContest?.(selectedTile.development!.id, "OWNER");
                     setSelectedTile(null);
-                  }}
-                >
-                  Build:{" "}
-                  {development_costs[
-                    selectedTile.type
-                  ]?.build
-                    ? Object.entries(
-                      development_costs[
-                        selectedTile.type
-                      ].build
-                    )
-                      .map(
-                        ([resource, amount]) =>
-                          `${amount} ${resource}`
-                      )
-                      .join(", ")
-                    : "Unknown Cost"}
-                </button>
+                  }}>
+                    Contest Property
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className={styles.field6}>
+              <div className={styles.field7}>
+                Available for Development
               </div>
-            )}
-          </div>
-        )}
-      </div>
+
+              <button
+                className={`btn-tooltip success ${styles.field8}`}
+                onClick={() => {
+                  onBuild(selectedTile.id);
+                  setSelectedTile(null);
+                }}
+              >
+                Build:{" "}
+                {development_costs[
+                  selectedTile.type
+                ]?.build
+                  ? Object.entries(
+                    development_costs[
+                      selectedTile.type
+                    ].build
+                  )
+                    .map(
+                      ([resource, amount]) =>
+                        `${amount} ${resource}`
+                    )
+                    .join(", ")
+                  : "Unknown Cost"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

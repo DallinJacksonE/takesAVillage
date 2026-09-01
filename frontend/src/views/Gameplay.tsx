@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import VillageMap from "../components/gameplay/VillageMap";
-import { GameStateDTO, ChatMessageDTO } from "../dtos";
+import { GameStateDTO, ChatMessageDTO, Resource } from "../dtos";
 import { PlayerProvider } from "../components/hooks/usePlayerName";
 import {
   GameplayPresenter,
@@ -213,6 +213,16 @@ const Gameplay: React.FC = () => {
                   maxFireSeats={gameState.max_fire_seats}
                   onBuild={(tileId) => presenter.buildDevelopment(tileId)}
                   onReact={presenter.setEmoji}
+                  onMaintain={(devId) => presenter.maintainDevelopment(devId)}
+                  onUpgrade={(devId) => presenter.upgradeDevelopment(devId)}
+                  onContest={(devId, side) => presenter.contestDevelopment(devId, side as "INITIATOR" | "CONTESTER" | "OWNER")}
+                  onApplyForJob={(targetId, devId, wage, wageType) => presenter.draftEmployment(targetId, devId, wage, wageType as Resource, true)}
+                  onDraftTrade={(targetId, offer, req) => presenter.draftTrade(targetId, offer, req)}
+                  onRequestSeat={(targetId) => presenter.draftCampfire(targetId, true)}
+                  onOfferSeat={(targetId) => presenter.draftCampfire(targetId, false)}
+                  myActions={gameState.me.actions}
+                  onAcceptApplicant={(actionId) => presenter.acceptContract(actionId, "EMPLOYMENT")}
+                  onDenyApplicant={(actionId) => presenter.denyContract(actionId, "EMPLOYMENT")}
                 />
               )}
               actionPanel={(

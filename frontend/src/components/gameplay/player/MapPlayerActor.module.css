@@ -15,10 +15,6 @@
   transition: left 550ms ease, top 550ms ease;
 }
 
-.localActor {
-  pointer-events: auto;
-}
-
 .reaction {
   position: absolute;
   z-index: 4;

@@ -11,6 +11,8 @@ interface Props {
   y: number;
   isLocal?: boolean;
   onReact?: (emoji: "👍" | "❤️" | "😂" | "😠") => void;
+  onClick?: () => void;
+  isSelected?: boolean;
 }
 
 const WALK_DURATION_MS = 550;
@@ -60,7 +62,7 @@ const TransientPlayerSprite = ({ player }: Pick<Props, "player">) => {
   );
 };
 
-const MapPlayerActor = ({ color, player, x, y, isLocal = false, onReact }: Props) => {
+const MapPlayerActor = ({ color, player, x, y, isLocal = false, onReact, onClick, isSelected }: Props) => {
   const [showReactionMenu, setShowReactionMenu] = useState(false);
   const [reactionVisible, setReactionVisible] = useState(false);
 
@@ -80,12 +82,22 @@ const MapPlayerActor = ({ color, player, x, y, isLocal = false, onReact }: Props
     "--player-color": color,
     left: x,
     top: y,
+    cursor: onClick ? "pointer" : "default",
+    transform: isSelected ? "translate(-50%, -75%) scale(1.1)" : undefined,
+    zIndex: isSelected ? 10 : undefined,
+    transition: "transform 0.15s ease-in-out",
   } as CSSProperties;
   const locationKey = JSON.stringify(player.visual_state.location);
 
   return (
     <div
       className={`${styles.actor} ${isLocal ? styles.localActor : ""}`}
+      onClick={(e) => {
+        if (onClick) {
+          e.stopPropagation();
+          onClick();
+        }
+      }}
       onContextMenu={(event) => {
         if (!isLocal || !onReact) return;
         event.preventDefault();
@@ -104,7 +116,8 @@ const MapPlayerActor = ({ color, player, x, y, isLocal = false, onReact }: Props
             <button
               aria-label={`React with ${label}`}
               key={emoji}
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 onReact?.(emoji);
                 setShowReactionMenu(false);
               }}
@@ -117,7 +130,25 @@ const MapPlayerActor = ({ color, player, x, y, isLocal = false, onReact }: Props
         </div>
       )}
       <span className={styles.name}>{player.name}</span>
-      <TransientPlayerSprite key={locationKey} player={player} />
+      <div style={{ position: "relative", display: "inline-block" }}>
+        <div style={{ pointerEvents: "none" }}>
+          <TransientPlayerSprite key={locationKey} player={player} />
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            transform: "scale(1.35)",
+            transformOrigin: "center bottom",
+            pointerEvents: onClick || onReact ? "auto" : "none",
+            clipPath: "polygon(35% 30%, 65% 30%, 70% 50%, 70% 75%, 30% 75%, 30% 50%)",
+            cursor: onClick ? "pointer" : "default"
+          }}
+        />
+      </div>
     </div>
   );
 };
