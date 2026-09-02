@@ -16,4 +16,12 @@ describe("sprite sheet metadata", () => {
   it("maps accepted trades to the curated carry strip", () => {
     expect(getGoblinSpriteForAnimation("CARRY").src).toContain("carry");
   });
+
+  it("maps contests to the goblin attack strip", () => {
+    const contestSprite = getGoblinSpriteForAnimation("CONTEST");
+
+    expect(contestSprite.src).toContain("attack");
+    expect(contestSprite.src).not.toContain("axe");
+    expect(contestSprite.frameCount).toBe(9);
+  });
 });

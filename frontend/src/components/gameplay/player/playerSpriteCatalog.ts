@@ -48,6 +48,13 @@ export const goblinPlayerSprites = {
     frameCount: 10,
     fps: 8,
   },
+  attack: {
+    src: `${PLAYER_SPRITE_ROOT}/goblin/spr_attack_strip10.png`,
+    frameWidth: 96,
+    frameHeight: 64,
+    frameCount: 9,
+    fps: 8,
+  },
   walk: {
     src: `${PLAYER_SPRITE_ROOT}/goblin/spr_walk_strip8.png`,
     frameWidth: 96,
@@ -86,7 +93,7 @@ export const getGoblinSpriteForAnimation = (
     case "WORK_WOODS": return goblinPlayerSprites.axe;
     case "WORK_MINE": return goblinPlayerSprites.mining;
     case "BUILD": return goblinPlayerSprites.hammer;
-    case "CONTEST": return goblinPlayerSprites.axe;
+    case "CONTEST": return goblinPlayerSprites.attack;
     case "WALK": return goblinPlayerSprites.walk;
     case "CARRY": return goblinPlayerSprites.carry;
     case "HURT": return goblinPlayerSprites.hurt;

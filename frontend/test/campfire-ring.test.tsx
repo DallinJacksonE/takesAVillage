@@ -125,4 +125,61 @@ describe("CampfireRing", () => {
     expect(startFire).toHaveBeenCalledTimes(1);
     expect(requestSeat).toHaveBeenCalledWith(ash.id);
   });
+
+  it("shows the new fire after a guest switches hosts", () => {
+    const fernBefore = publicPlayer("player-1", "Fern", "HOST", ["player-2"]);
+    const moss = publicPlayer("player-2", "Moss", "GUEST", []);
+    const ashBefore = publicPlayer("player-3", "Ash", "HOST", []);
+    const oldSeat: CampfireActionDTO = {
+      id: "fire-1",
+      initiator_id: moss.id,
+      target_id: fernBefore.id,
+      status: "ACCEPTED",
+      type: "CAMPFIRE",
+      is_request: true,
+    };
+    const callbacks = {
+      onAccept: jest.fn(),
+      onDeny: jest.fn(),
+      onOfferSeat: jest.fn(),
+      onRequestSeat: jest.fn(),
+      onStartFire: jest.fn(),
+    };
+    const initialPlayers = [fernBefore, moss, ashBefore];
+    const { rerender } = render(
+      <PlayerProvider players={initialPlayers}>
+        <CampfireRing
+          state={makeState(playerDto(moss, [oldSeat]), initialPlayers)}
+          {...callbacks}
+        />
+      </PlayerProvider>,
+    );
+
+    const fernAfter = publicPlayer("player-1", "Fern", "HOST", []);
+    const ashAfter = publicPlayer("player-3", "Ash", "HOST", [moss.id]);
+    const newSeat: CampfireActionDTO = {
+      id: "fire-2",
+      initiator_id: moss.id,
+      target_id: ashAfter.id,
+      status: "ACCEPTED",
+      type: "CAMPFIRE",
+      is_request: true,
+    };
+    const switchedPlayers = [fernAfter, moss, ashAfter];
+
+    rerender(
+      <PlayerProvider players={switchedPlayers}>
+        <CampfireRing
+          state={makeState(playerDto(moss, [oldSeat, newSeat]), switchedPlayers)}
+          {...callbacks}
+        />
+      </PlayerProvider>,
+    );
+
+    expect(screen.getByText((_, element) => (
+      element?.textContent === "Guest at Ash's fire. Guests may move to another fire or start their own."
+    ))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Request seat at Ash's fire" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Request seat at Fern's fire" })).toBeTruthy();
+  });
 });

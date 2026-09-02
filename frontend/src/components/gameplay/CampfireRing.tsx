@@ -33,26 +33,16 @@ const CampfireRing: React.FC<Props> = ({
   const outgoingOffers = fireActions.filter(a => a.initiator_id === me.id && !a.is_request && a.status === "PENDING");
   const outgoingRequests = fireActions.filter(a => a.initiator_id === me.id && a.is_request && a.status === "PENDING");
 
-  const acceptedFireActions = fireActions.filter(a => a.status === "ACCEPTED");
-  const fireSessions = acceptedFireActions.reduce<Record<string, { hostId: string; guestIds: string[] }>>((sessions, action) => {
-    const hostId = action.is_request ? action.target_id : action.initiator_id;
-    const guestId = action.is_request ? action.initiator_id : action.target_id;
-
-    if (!hostId || !guestId) {
-      return sessions;
-    }
-
-    const session = sessions[hostId] || { hostId, guestIds: [] };
-    if (!session.guestIds.includes(guestId)) {
-      session.guestIds = [...session.guestIds, guestId];
-    }
-    sessions[hostId] = session;
-    return sessions;
-  }, {});
+  const fireSessions = [me, ...player_list.filter(player => player.id !== me.id)]
+    .filter(player => player.fire_status === "HOST")
+    .map(player => ({
+      hostId: player.id,
+      guestIds: player.fire_guests,
+    }));
 
   const myFireSession = me.fire_status === "HOST"
-    ? fireSessions[me.id]
-    : Object.values(fireSessions).find(session => session.guestIds.includes(me.id));
+    ? fireSessions.find(session => session.hostId === me.id)
+    : fireSessions.find(session => session.guestIds.includes(me.id));
 
   const fireParticipantIds = myFireSession
     ? [myFireSession.hostId, ...myFireSession.guestIds].filter((id, index, arr) => id && arr.indexOf(id) === index)
@@ -87,24 +77,11 @@ const CampfireRing: React.FC<Props> = ({
               {me.fire_status} {me.fire_status === "HOST" && "🔥"}
             </span>
 
-            {me.fire_status === "GUEST" && (() => {
-              const hostAction = fireActions.find(a =>
-                a.status === "ACCEPTED" && (
-                  (a.is_request && a.initiator_id === me.id) ||
-                  (!a.is_request && a.target_id === me.id)
-                )
-              );
-
-              const hostId = hostAction
-                ? (hostAction.is_request ? hostAction.target_id : hostAction.initiator_id)
-                : "";
-
-              return (
-                <div className={styles.panel7}>
-                  Guest at <strong>{getPlayerName(hostId)}</strong>'s fire. Guests may move to another fire or start their own.
-                </div>
-              );
-            })()}
+            {me.fire_status === "GUEST" && (
+              <div className={styles.panel7}>
+                Guest at <strong>{currentHostName}</strong>'s fire. Guests may move to another fire or start their own.
+              </div>
+            )}
             {me.fire_status === "HOST" && (
               <div className={styles.panel7}>
                 Hosting your own fire. Starting a fire is instant, so you will stay here for the night unless you end the day cold later.
