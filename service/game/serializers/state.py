@@ -20,6 +20,31 @@ WORK_ANIMATIONS: dict[str, str] = {
 }
 
 
+def build_development_state(game, development):
+    """Serialize a development with live contest participation."""
+    state = development.to_dict()
+    if game.phase != "WORK" or not state.get("is_contested", False):
+        return state
+
+    contest_intents = [
+        intent
+        for intent in getattr(game, "phase_intents", {}).values()
+        if isinstance(intent, ContestIntent)
+        and intent.development_id == development.id
+    ]
+    state["contester_supporters"] = sorted(
+        intent.player_id
+        for intent in contest_intents
+        if intent.side == "CONTESTER"
+    )
+    state["owner_supporters"] = sorted(
+        intent.player_id
+        for intent in contest_intents
+        if intent.side == "OWNER"
+    )
+    return state
+
+
 def build_player_visual_state(game, player):
     """Project only the public state required to place and animate a player."""
     night_transition = getattr(game, "night_transition", None)
@@ -155,13 +180,18 @@ def build_player_state(game, session_id):
         for visible_player in game.players.values()
     ]
 
-    map_dto = {
-        tile_id: tile.to_dict()
-        for tile_id, tile in game.map_data.items()
-    }
+    map_dto = {}
+    for tile_id, tile in game.map_data.items():
+        tile_state = tile.to_dict()
+        if tile.development:
+            tile_state["development"] = build_development_state(
+                game, tile.development)
+        map_dto[tile_id] = tile_state
 
-    development_list = [value.to_dict()
-                        for _, value in game.developments.items()]
+    development_list = [
+        build_development_state(game, value)
+        for _, value in game.developments.items()
+    ]
     
     chat_list = [
         chat.to_dict()

@@ -2,6 +2,7 @@ import types
 
 from service.game.serializers.state import build_player_state
 from service.game.packet_handling.contracts import TradeContract
+from service.game.models.development import Development
 from service.game.state.intents import WorkIntent
 
 
@@ -99,6 +100,53 @@ def test_work_intent_projects_public_animation_and_location(make_game):
         "animation": "WORK_MINE",
         "location": {"kind": "DEVELOPMENT", "id": "mine-1"},
     }
+
+
+def test_active_contest_projects_current_supporter_counts(make_game):
+    game = make_game(player_ids=(
+        "player-1", "player-2", "player-3", "player-4",
+    ))
+    game.start_game()
+    development = Development(
+        "farm-1",
+        "Farm",
+        "player-1",
+        game.rules.MAX_DEVELOPMENT_LEVEL,
+        game.rules.MAINTENANCE_DAYS,
+        game.rules.RESOURCE_COSTS,
+    )
+    game.developments[development.id] = development
+    game.players["player-1"].developments.append(development.id)
+    game.start_phase("WORK")
+
+    assert game.handle_action("player-2", {
+        "action_command": "CONTEST_DEV",
+        "payload": {"dev_id": development.id, "side": "INITIATOR"},
+    }) is True
+    assert game.handle_action("player-1", {
+        "action_command": "CONTEST_DEV",
+        "payload": {"dev_id": development.id, "side": "OWNER"},
+    }) is True
+    assert game.handle_action("player-3", {
+        "action_command": "CONTEST_DEV",
+        "payload": {"dev_id": development.id, "side": "CONTESTER"},
+    }) is True
+
+    state = build_player_state(game, "player-1")
+    assert state is not None
+    serialized = next(
+        dev for dev in state["developments"] if dev["id"] == development.id
+    )
+    map_serialized = next(
+        tile["development"] for tile in state["map"].values()
+        if tile["development"] and tile["development"]["id"] == development.id
+    )
+
+    for contest_state in (serialized, map_serialized):
+        assert contest_state["contester_supporters"] == [
+            "player-2", "player-3",
+        ]
+        assert contest_state["owner_supporters"] == ["player-1"]
 
 
 def test_health_overrides_work_animation(make_game):
