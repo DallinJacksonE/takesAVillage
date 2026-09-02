@@ -25,6 +25,8 @@ from models.goap_genetic.memory import DecisionContext, Memory
 from models.goap_genetic.perception import Perception
 from models.goap_genetic.social_memory import ExchangeClassifier, SocialMemory
 from models.goap_genetic.thinking import Thinker
+from models.utility_genetic.GeneticBot import GeneticBot
+from models.utility_genetic.Genome import Genome
 from bot_multiprocessing import ActionSubmissionGate, create_genome_for_model, seed_genomes_for_model
 
 
@@ -616,6 +618,126 @@ class GOAPPlannerTests(unittest.TestCase):
             {"action_command": Command.CONTEST_DEV, "payload": {"dev_id": "dev-2", "side": "INITIATOR"}},
             actions,
         )
+
+    def test_goap_does_not_offer_another_initiation_during_an_active_contest(self):
+        bot = GOAPGenetic(GOAPGenome())
+        state = {
+            "status": "RUNNING",
+            "phase": "WORK",
+            "me": {
+                "id": "bot-1",
+                "health": "healthy",
+                "resources": {"food": 0, "wood": 0, "iron": 0},
+                "actions": [],
+                "available_work": [],
+            },
+            "player_list": [
+                {"id": "bot-1", "health": "healthy"},
+                {"id": "bot-2", "health": "healthy"},
+            ],
+            "developments": [
+                {
+                    "id": "active-dev",
+                    "owner_id": "bot-2",
+                    "is_contested": True,
+                    "contest_initiator_id": "bot-1",
+                },
+                {
+                    "id": "stable-dev",
+                    "owner_id": "bot-2",
+                    "is_contested": False,
+                },
+            ],
+            "map": [],
+        }
+
+        contest_actions = [
+            action for action in bot.get_available_actions(state)
+            if action["action_command"] == Command.CONTEST_DEV
+        ]
+
+        self.assertEqual(contest_actions, [{
+            "action_command": Command.CONTEST_DEV,
+            "payload": {"dev_id": "active-dev", "side": "CONTESTER"},
+        }])
+
+    def test_utility_bot_does_not_offer_another_initiation_during_an_active_contest(self):
+        bot = GeneticBot(Genome.random())
+        me = {"id": "bot-1", "health": "healthy"}
+        state = {
+            "map": [],
+            "development_costs": {},
+            "developments": [
+                {
+                    "id": "active-dev",
+                    "owner_id": "bot-2",
+                    "is_contested": True,
+                    "contest_initiator_id": "bot-1",
+                },
+                {
+                    "id": "stable-dev",
+                    "owner_id": "bot-2",
+                    "is_contested": False,
+                },
+            ],
+        }
+        actions = []
+
+        bot.get_build_upgrade_maintain_contest_actions(
+            state, me, {}, actions)
+
+        self.assertNotIn({
+            "action_command": "CONTEST_DEV",
+            "payload": {"dev_id": "stable-dev", "side": "INITIATOR"},
+        }, actions)
+
+    def test_goap_finished_player_only_receives_work_phase_responses(self):
+        bot = GOAPGenetic(GOAPGenome())
+        state = {
+            "status": "RUNNING",
+            "phase": "WORK",
+            "development_costs": {"Farm": {"build": {"food": 1}}},
+            "me": {
+                "id": "bot-1",
+                "health": "healthy",
+                "finished_phase": True,
+                "resources": {"food": 10, "wood": 10, "iron": 10},
+                "actions": [],
+                "available_work": [],
+            },
+            "player_list": [],
+            "map": [{"id": "tile-1", "type": "Farm", "development": None}],
+            "developments": [{
+                "id": "stable-dev",
+                "owner_id": "bot-2",
+                "is_contested": False,
+            }],
+        }
+
+        self.assertEqual(bot.get_available_actions(state), [])
+
+    def test_utility_finished_player_is_not_offered_primary_work_actions(self):
+        bot = GeneticBot(Genome.random())
+        me = {
+            "id": "bot-1",
+            "health": "healthy",
+            "finished_phase": True,
+        }
+        state = {
+            "map": [],
+            "development_costs": {},
+            "developments": [{
+                "id": "stable-dev",
+                "owner_id": "bot-2",
+                "is_contested": False,
+            }],
+        }
+        actions = []
+
+        bot.get_build_upgrade_maintain_contest_actions(
+            state, me, {}, actions)
+
+        self.assertEqual(actions, [])
 
     def test_time_pressure_policy_filters_waiting_actions_near_deadline(self):
         policy = TimePressurePolicy(deadline_fraction=0.2, minimum_deadline_seconds=1.0)

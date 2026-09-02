@@ -822,7 +822,7 @@ const VillageMap: React.FC<Props> = ({
                     </button>
                   </div>
                   <button className="btn danger" onClick={() => {
-                    onContest?.(selectedTile.development!.id, "OWNER");
+                    onContest?.(selectedTile.development!.id, "INITIATOR");
                     setSelectedTile(null);
                   }}>
                     Contest Property

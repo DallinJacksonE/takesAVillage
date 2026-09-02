@@ -613,8 +613,16 @@ class GeneticBot(BaseBot):
         return False
         
     def get_build_upgrade_maintain_contest_actions(self, game_state: dict, me, resources, actions):
+        if me.get("finished_phase"):
+            return
         dev_costs = game_state.get("development_costs", {})
         map_data = game_state.get("map", {})
+        developments = game_state.get("developments", [])
+        has_active_initiation = any(
+            dev.get("contest_initiator_id") == me["id"]
+            and (dev.get("is_contested") or dev.get("pending_contest"))
+            for dev in developments
+        )
 
         # Handle map_data whether it arrives as a dict or a list
         tiles = map_data.values() if isinstance(
@@ -640,7 +648,7 @@ class GeneticBot(BaseBot):
                                 "_tile_type": tile_type
                             }
                             })
-            for dev in game_state.get("developments", []):
+            for dev in developments:
                 if dev["owner_id"] == me["id"] and dev["can_upgrade"]:
                     upgrade_cost = self.get_upgrade_cost(dev, game_state)
 
@@ -675,6 +683,7 @@ class GeneticBot(BaseBot):
                     dev["owner_id"] != me["id"]
                     and not dev.get("is_contested", False)
                     and not dev.get("pending_contest", False)
+                    and not has_active_initiation
                 ):
                     actions.append({
                         "action_command": "CONTEST_DEV",
@@ -1147,6 +1156,15 @@ class GeneticBot(BaseBot):
             self.accept_deny_fire_invites(game_state, me, actions)
             self.send_fire_invites_requests(game_state, me, actions)
 
+        if phase == "WORK" and me.get("finished_phase"):
+            return [
+                action for action in actions
+                if action["action_command"] in {"ACCEPT", "DENY"}
+                or (
+                    action["action_command"] == "CONTEST_DEV"
+                    and action["payload"].get("side") in {"OWNER", "CONTESTER"}
+                )
+            ]
         return actions
         
     def schedule_next_action(self):

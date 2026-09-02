@@ -49,4 +49,26 @@ describe("GameplayService", () => {
     expect(received).toEqual([2]);
     service.destroy();
   });
+
+  it("routes game-rule action rejections to an error toast instead of an alert", () => {
+    const service = new GameplayService();
+    const onError = jest.fn();
+    const onNotification = jest.fn();
+    service.setOnError(onError);
+    service.setOnNotification(onNotification);
+    service.connect(() => undefined);
+    const socket = MockWebSocket.instances[0];
+
+    socket.receive({
+      event: "error",
+      data: { message: "Action rejected by game rules.", action_command: "BUILD_DEV" },
+    });
+
+    expect(onNotification).toHaveBeenCalledWith({
+      level: "error",
+      message: "Action rejected by game rules.",
+    });
+    expect(onError).not.toHaveBeenCalled();
+    service.destroy();
+  });
 });

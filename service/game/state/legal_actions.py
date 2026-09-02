@@ -5,6 +5,7 @@ phase/player state can consider, while command handlers remain the final guard.
 """
 
 from service.game.packet_handling.dispatcher import PacketDispatcher
+from service.game.state.developments import has_active_contest_initiation
 
 
 MAIN_PHASE_COMMANDS = {
@@ -73,6 +74,10 @@ def _add_work_actions(game, player, actions):
 
 def _add_contest_responses(
         game, player_id, actions, include_initiation=True):
+    can_initiate = (
+        include_initiation
+        and not has_active_contest_initiation(game.developments, player_id)
+    )
     for development in game.developments.values():
         if getattr(development, "is_contested", False):
             side = (
@@ -82,7 +87,7 @@ def _add_contest_responses(
                 "dev_id": development.id,
                 "side": side,
             })
-        elif include_initiation and development.owner != player_id:
+        elif can_initiate and development.owner != player_id:
             _add(actions, "CONTEST_DEV", {
                 "dev_id": development.id,
                 "side": "INITIATOR",

@@ -5,6 +5,7 @@ from service.game.state.events import (
     DevelopmentOwnershipTransferred,
 )
 from service.game.state.intents import ContestIntent
+from service.game.state.developments import has_active_contest_initiation
 
 
 class ContestDevelopmentCommand(Command):
@@ -21,7 +22,13 @@ class ContestDevelopmentCommand(Command):
             return False
 
         if side == "INITIATOR":
-            if development.is_contested or development.owner == player.session_id:
+            if (
+                player.finished_phase
+                or development.is_contested
+                or development.owner == player.session_id
+                or has_active_contest_initiation(
+                    game_state.developments, player.session_id)
+            ):
                 return False
             game_state.apply_event(DevelopmentContestActivated(
                 development.id,
@@ -39,6 +46,9 @@ class ContestDevelopmentCommand(Command):
             player.add_timeline_event(
                 "ACTION_COMPLETED",
                 {"action": "CONTEST_STARTED", "dev_id": dev_id},
+            )
+            game_state.set_intent(
+                ContestIntent(player.session_id, dev_id, "CONTESTER")
             )
             return True
 

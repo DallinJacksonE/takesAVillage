@@ -11,6 +11,8 @@ from service.game.state.events import (
     PlayerResourcesGained,
 )
 from service.game.state.phase_resolution import WORK_RESOLUTION_ORDER
+from service.game.state.intents import ContestIntent, WorkIntent
+from service.game.state.player_phase import PlayerPhaseState
 
 
 def place_development(
@@ -99,6 +101,154 @@ def test_same_phase_contest_invalidates_upgrade_and_work_intents_and_extends_tim
     ) in game.domain_events
 
 
+def test_worker_can_replace_invalidated_work_with_contest_support(make_game):
+    game = make_game(player_ids=("player-1", "player-2", "player-3", "player-4"))
+    game.start_game()
+    development = place_development(game)
+    game.start_phase("WORK")
+
+    assert game.handle_action("player-2", {
+        "action_command": "COMMIT_WORK",
+        "payload": work_payload(development),
+    }) is True
+    assert contest(game, "player-4", development, "INITIATOR") is True
+    assert game.get_intent("player-2") is None
+    assert (
+        game.players["player-2"].phase_state
+        == PlayerPhaseState.NEEDS_REPLACEMENT.value
+    )
+
+    assert contest(game, "player-2", development, "OWNER") is True
+
+    replacement = game.get_intent("player-2")
+    assert isinstance(replacement, ContestIntent)
+    assert replacement.development_id == development.id
+    assert replacement.side == "OWNER"
+    assert (
+        game.players["player-2"].phase_state
+        == PlayerPhaseState.INTENT_SUBMITTED.value
+    )
+
+
+def test_worker_can_replace_invalidated_work_with_a_different_job(make_game):
+    game = make_game(player_ids=("player-1", "player-2", "player-3", "player-4"))
+    game.start_game()
+    contested = place_development(
+        game, owner_id="player-1", dev_id="farm-1", tile_id="tile-1")
+    replacement_development = place_development(
+        game, owner_id="player-3", dev_id="woods-1", dev_type="Woods",
+        tile_id="tile-2")
+    game.start_phase("WORK")
+
+    assert game.handle_action("player-2", {
+        "action_command": "COMMIT_WORK",
+        "payload": work_payload(contested),
+    }) is True
+    assert contest(game, "player-4", contested, "INITIATOR") is True
+    assert game.get_intent("player-2") is None
+    assert (
+        game.players["player-2"].phase_state
+        == PlayerPhaseState.NEEDS_REPLACEMENT.value
+    )
+
+    assert game.handle_action("player-2", {
+        "action_command": "COMMIT_WORK",
+        "payload": work_payload(replacement_development),
+    }) is True
+
+    replacement = game.get_intent("player-2")
+    assert isinstance(replacement, WorkIntent)
+    assert replacement.development_id == replacement_development.id
+    assert replacement.job["development"]["id"] == replacement_development.id
+    assert (
+        game.players["player-2"].phase_state
+        == PlayerPhaseState.RESOLVED.value
+    )
+
+
+def test_player_cannot_initiate_a_second_active_contest(make_game):
+    game = make_game(player_ids=("player-1", "player-2", "player-3"))
+    game.start_game()
+    first = place_development(
+        game, owner_id="player-1", dev_id="farm-1", tile_id="tile-1")
+    second = place_development(
+        game, owner_id="player-2", dev_id="farm-2", tile_id="tile-2")
+    game.start_phase("WORK")
+
+    assert contest(game, "player-3", first, "INITIATOR") is True
+    assert contest(game, "player-3", second, "INITIATOR") is False
+    assert first.is_contested is True
+    assert second.is_contested is False
+
+
+def test_initiating_a_contest_commits_the_players_work_action(make_game):
+    game = make_game(player_ids=("player-1", "player-2"))
+    game.start_game()
+    development = place_development(game, owner_id="player-1")
+    attacker = game.players["player-2"]
+    attacker.resources = {"food": 20, "wood": 20, "iron": 20}
+    game.start_phase("WORK")
+
+    assert contest(game, attacker.session_id, development, "INITIATOR") is True
+
+    intent = game.get_intent(attacker.session_id)
+    assert isinstance(intent, ContestIntent)
+    assert intent.development_id == development.id
+    assert intent.side == "CONTESTER"
+    assert attacker.finished_phase is True
+
+    buildable_tile = next(
+        tile for tile in game.map_data.values()
+        if tile.development is None and tile.type in game.development_costs
+    )
+    assert game.handle_action(attacker.session_id, {
+        "action_command": "BUILD_DEV",
+        "payload": {"tile_id": buildable_tile.id},
+    }) is False
+
+
+def test_player_cannot_initiate_a_contest_after_committing_work(make_game):
+    game = make_game(player_ids=("player-1", "player-2"))
+    game.start_game()
+    development = place_development(game, owner_id="player-1")
+    attacker = game.players["player-2"]
+    attacker.resources = {"food": 20, "wood": 20, "iron": 20}
+    game.start_phase("WORK")
+    buildable_tile = next(
+        tile for tile in game.map_data.values()
+        if tile.development is None and tile.type in game.development_costs
+    )
+
+    assert game.handle_action(attacker.session_id, {
+        "action_command": "BUILD_DEV",
+        "payload": {"tile_id": buildable_tile.id},
+    }) is True
+    assert attacker.finished_phase is True
+    assert contest(game, attacker.session_id, development, "INITIATOR") is False
+    assert development.is_contested is False
+
+
+def test_legal_actions_offer_no_new_initiations_during_an_active_contest(make_game):
+    game = make_game(player_ids=("player-1", "player-2", "player-3"))
+    game.start_game()
+    first = place_development(
+        game, owner_id="player-1", dev_id="farm-1", tile_id="tile-1")
+    place_development(
+        game, owner_id="player-2", dev_id="farm-2", tile_id="tile-2")
+    game.start_phase("WORK")
+    contest(game, "player-3", first, "INITIATOR")
+
+    contest_actions = [
+        action for action in game.get_legal_actions("player-3")
+        if action["action_command"] == "CONTEST_DEV"
+    ]
+
+    assert contest_actions == [{
+        "action_command": "CONTEST_DEV",
+        "payload": {"dev_id": "farm-1", "side": "CONTESTER"},
+    }]
+
+
 def test_tied_same_phase_contest_remains_active_until_following_work_phase(make_game, monkeypatch):
     game = make_game(player_ids=("player-1", "player-2", "player-3", "player-4"))
     game.start_game()
@@ -109,7 +259,6 @@ def test_tied_same_phase_contest_remains_active_until_following_work_phase(make_
     assert contest(game, "player-1", development, "OWNER") is True
     assert contest(game, "player-2", development, "OWNER") is True
     assert contest(game, "player-3", development, "CONTESTER") is True
-    assert contest(game, "player-4", development, "CONTESTER") is True
 
     assert game.phase == "TRADE"
     assert development.is_contested is True

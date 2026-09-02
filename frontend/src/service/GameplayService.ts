@@ -135,7 +135,14 @@ export class GameplayService {
           this._onNewChatMessage?.(payload.data);
           break;
         case "error":
-          this._onError?.(payload.data.message);
+          if (payload.data.message === "Action rejected by game rules.") {
+            this._onNotification?.({
+              level: "error",
+              message: payload.data.message,
+            });
+          } else {
+            this._onError?.(payload.data.message);
+          }
           break;
         case "game_notification":
           this._onNotification?.(payload.data);

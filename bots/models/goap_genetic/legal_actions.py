@@ -60,6 +60,15 @@ class GOAPLegalActionSource:
             actions.extend(self._commit_work_actions(game_state, me))
 
         actions.extend(self._pending_employment_response_actions(me))
+        if me.get("finished_phase"):
+            return [
+                action for action in actions
+                if action["action_command"] in {Command.ACCEPT, Command.DENY}
+                or (
+                    action["action_command"] == Command.CONTEST_DEV
+                    and action["payload"].get("side") in {"OWNER", "CONTESTER"}
+                )
+            ]
         return actions
 
     def _build_actions(self, game_state: dict, resources: dict) -> list[dict]:
@@ -83,7 +92,13 @@ class GOAPLegalActionSource:
                              resources: dict) -> list[dict]:
         actions = []
         my_id = me.get("id")
-        for dev in game_state.get("developments", []) or []:
+        developments = game_state.get("developments", []) or []
+        has_active_initiation = any(
+            dev.get("contest_initiator_id") == my_id
+            and (dev.get("is_contested") or dev.get("pending_contest"))
+            for dev in developments
+        )
+        for dev in developments:
             dev_id = dev.get("id")
             if not dev_id:
                 continue
@@ -115,7 +130,7 @@ class GOAPLegalActionSource:
                     "action_command": Command.CONTEST_DEV,
                     "payload": {"dev_id": dev_id, "side": "CONTESTER"},
                 })
-            elif dev.get("owner_id") != my_id:
+            elif dev.get("owner_id") != my_id and not has_active_initiation:
                 actions.append({
                     "action_command": Command.CONTEST_DEV,
                     "payload": {"dev_id": dev_id, "side": "INITIATOR"},

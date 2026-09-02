@@ -16,6 +16,14 @@ class DevelopmentState(Enum):
     CONTESTED = "CONTESTED"
 
 
+def has_active_contest_initiation(developments, player_id):
+    return any(
+        development.contest_initiator_id == player_id
+        and (development.is_contested or development.pending_contest)
+        for development in developments.values()
+    )
+
+
 class MapDevelopmentStore(MutableMapping):
     def __init__(self, game):
         self.game = game
