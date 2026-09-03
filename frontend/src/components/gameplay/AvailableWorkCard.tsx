@@ -66,7 +66,7 @@ const AvailableWorkCard: React.FC<Props> = ({
         ) : (
           me.available_work.map((work: WorkActionDTO, index: number) => {
             const itemKey = work.action_id || `inherent-work-${index}`;
-            const developmentLabel = `${work.development?.type || "Property"} ${work.development?.id || ""}`.trim();
+            const developmentLabel = `${work.development?.type} ${getPlayerName(work.development?.owner_id) || ""}`.trim();
             const wageLabel = `${work.wage} ${work.wage_type}`;
 
             return (
