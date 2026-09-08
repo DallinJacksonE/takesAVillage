@@ -1,7 +1,6 @@
 services:
   db:
     image: mysql:8.0
-    container_name: village_db
     restart: always
     environment:
       - MYSQL_ROOT_PASSWORD=root_password
@@ -9,7 +8,7 @@ services:
       - MYSQL_USER=village
       - MYSQL_PASSWORD=village_db
     ports:
-      - "${PROD_DB_PORT:-3308}:3306"
+      - "${DB_PORT}:3306"
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
@@ -23,10 +22,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    container_name: village_backend
     restart: always
     ports:
-      - "${PROD_BACKEND_PORT:-5000}:5000"
+      - "${BACKEND_PORT}:5000"
     environment:
       PYTHONUNBUFFERED: 1
       DB_TYPE: mysql
@@ -34,7 +32,7 @@ services:
       DB_USER: village
       DB_PASSWORD: village_db
       DB_NAME: village_db
-      BOT_SECRET: ${BOT_SECRET:?Set BOT_SECRET in the environment or .env file}
+      BOT_SECRET: ${BOT_SECRET:?Set BOT_SECRET in the environment}
       BOT_SERVICE_URL: http://bots:8001
     volumes:
       - ./service:/app/service
@@ -49,15 +47,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.bots
-    container_name: village_bots
     restart: always
     ports:
-      - "${PROD_BOTS_PORT:-8001}:8001"
+      - "${BOTS_PORT}:8001"
     environment:
       # Use the docker-compose service name 'backend' to route traffic
       - GAME_SERVER_HTTP_URL=http://backend:5000
       - GAME_SERVER_WS_URL=ws://backend:5000/ws
-      - BOT_SECRET=${BOT_SECRET:?Set BOT_SECRET in the environment or .env file}
+      - BOT_SECRET=${BOT_SECRET:?Set BOT_SECRET in the environment}
     volumes:
       - ./bots:/app/bots
     depends_on:
@@ -67,10 +64,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
-    container_name: village_frontend
     restart: always
     ports:
-      - "${PROD_FRONTEND_PORT:-4999}:4999"
+      - "${FRONTEND_PORT}:4999"
     depends_on:
       - backend
 
