@@ -251,6 +251,7 @@ def execute_trade(game_state, action):
         "id": action.id,
         "initiator_id": action.initiator_id,
         "target_id": action.target_id,
+        "day_num": getattr(game_state, "day", getattr(action, "day", 1)),
         "reason": getattr(action, "reason", "NORMAL_TRADE"),
         "employment_contract_id": getattr(
             action, "employment_contract_id", None),
@@ -265,6 +266,7 @@ def execute_trade(game_state, action):
         "id": action.id,
         "initiator_id": action.target_id,
         "target_id": action.initiator_id,
+        "day_num": getattr(game_state, "day", getattr(action, "day", 1)),
         "reason": getattr(action, "reason", "NORMAL_TRADE"),
         "employment_contract_id": getattr(
             action, "employment_contract_id", None),

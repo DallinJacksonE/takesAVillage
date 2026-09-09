@@ -29,12 +29,14 @@ class CampfireReducer:
             "host_id": host.session_id,
             "fire_id": event.contract_id,
             "role": "guest",
+            "day_num": getattr(game, "day", 1),
             "guests": guests.copy(),
         })
         host.fire_history.append({
             "host_id": host.session_id,
             "fire_id": event.contract_id,
             "role": "host",
+            "day_num": getattr(game, "day", 1),
             "guests": guests.copy(),
         })
         host.add_timeline_event("SEATED_GUEST", {"guest": guest.session_id})

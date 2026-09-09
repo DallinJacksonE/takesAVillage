@@ -50,3 +50,6 @@ def persist_completed_game(database, game):
         contest_count=game.contest_count,
         lie_count=sum(game.lie_count.values()),
     )
+
+    # Extract and store events for CAB bot training vectors
+    database.extract_and_store_vector_events(game)

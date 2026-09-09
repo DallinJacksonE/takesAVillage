@@ -122,3 +122,59 @@ CREATE TABLE IF NOT EXISTS `users` (
                 `genome_data` JSON NOT NULL,
                 `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
+
+CREATE TABLE IF NOT EXISTS `game_players` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `game_id` VARCHAR(64) NOT NULL,
+    `player_id` VARCHAR(64) NOT NULL,
+    `is_bot` BOOLEAN NOT NULL DEFAULT FALSE,
+    `bot_model` VARCHAR(64),
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX(`game_id`),
+    INDEX(`player_id`)
+);
+
+CREATE TABLE IF NOT EXISTS `event_trades` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `game_id` VARCHAR(64) NOT NULL,
+    `day_num` INT NOT NULL,
+    `initiator_id` VARCHAR(64) NOT NULL,
+    `target_id` VARCHAR(64) NOT NULL,
+    `offer_wood` INT NOT NULL DEFAULT 0,
+    `offer_food` INT NOT NULL DEFAULT 0,
+    `offer_iron` INT NOT NULL DEFAULT 0,
+    `request_wood` INT NOT NULL DEFAULT 0,
+    `request_food` INT NOT NULL DEFAULT 0,
+    `request_iron` INT NOT NULL DEFAULT 0,
+    `status` VARCHAR(32) NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX(`game_id`),
+    INDEX(`initiator_id`),
+    INDEX(`target_id`)
+);
+
+CREATE TABLE IF NOT EXISTS `event_campfires` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `game_id` VARCHAR(64) NOT NULL,
+    `day_num` INT NOT NULL,
+    `host_id` VARCHAR(64) NOT NULL,
+    `guest_id` VARCHAR(64) NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX(`game_id`),
+    INDEX(`host_id`),
+    INDEX(`guest_id`)
+);
+
+CREATE TABLE IF NOT EXISTS `event_contests` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `game_id` VARCHAR(64) NOT NULL,
+    `day_num` INT NOT NULL,
+    `development_id` VARCHAR(64) NOT NULL,
+    `challenger_id` VARCHAR(64) NOT NULL,
+    `owner_id` VARCHAR(64) NOT NULL,
+    `winner_id` VARCHAR(64) NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX(`game_id`),
+    INDEX(`challenger_id`),
+    INDEX(`owner_id`)
+);

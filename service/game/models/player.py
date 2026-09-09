@@ -18,6 +18,8 @@ class Player:
         # CHANGE THIS TO MATCH THE GAMESTATE STARTING SICKNESS CHANCE
         self.sickness_chance = sickness_chance
         self.developments = []  # List of IDs owned by this player
+        self.is_bot = self.session_id.startswith("bot_")
+        self.bot_model = None
 
         self.actions = {}
         self.timeline = []  # Chronological log for research data extraction

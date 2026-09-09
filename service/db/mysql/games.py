@@ -202,7 +202,7 @@ class GamesRepository:
         finally:
             cursor.close()
             conn.close()
-
+    
     def get_all_games(self):
         conn = self.get_connection()
         if not conn:
@@ -244,3 +244,74 @@ class GamesRepository:
         finally:
             cursor.close()
             conn.close()
+
+    def extract_and_store_vector_events(self, game):
+        conn = self.get_connection()
+        if not conn:
+            return
+        cursor = conn.cursor()
+
+        # 1. game_players
+        for player in game.players.values():
+            is_bot = getattr(player, "is_bot", False)
+            bot_model = getattr(player, "bot_model", None)
+            try:
+                cursor.execute("""
+                    INSERT INTO game_players (game_id, player_id, is_bot, bot_model)
+                    VALUES (%s, %s, %s, %s)
+                """, (game.id, player.session_id, is_bot, bot_model))
+            except Exception as e:
+                pass
+
+        # 2. event_trades
+        for player in game.players.values():
+            for trade in player.trade_history:
+                if trade.get("initiator_id") == player.session_id:
+                    status = "ACCEPTED"
+                    if trade.get("actual_sent") != trade.get("promised_sent") or trade.get("actual_received") != trade.get("promised_received"):
+                        status = "BROKEN"
+                    try:
+                        offer = trade.get("offered", {})
+                        req = trade.get("requested", {})
+                        cursor.execute("""
+                            INSERT INTO event_trades 
+                            (game_id, day_num, initiator_id, target_id, offer_wood, offer_food, offer_iron, request_wood, request_food, request_iron, status)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """, (
+                            game.id, trade.get("day_num", 1), trade.get("initiator_id"), trade.get("target_id"),
+                            offer.get("wood", 0), offer.get("food", 0), offer.get("iron", 0),
+                            req.get("wood", 0), req.get("food", 0), req.get("iron", 0), status
+                        ))
+                    except Exception as e:
+                        pass
+
+        # 3. event_campfires
+        for player in game.players.values():
+            for fire in player.fire_history:
+                if fire.get("role") == "guest":
+                    try:
+                        cursor.execute("""
+                            INSERT INTO event_campfires (game_id, day_num, host_id, guest_id)
+                            VALUES (%s, %s, %s, %s)
+                        """, (game.id, fire.get("day_num", 1), fire.get("host_id"), player.session_id))
+                    except Exception as e:
+                        pass
+
+        # 4. event_contests
+        for player in game.players.values():
+            for event in player.timeline:
+                if event.get("type") == "CONTEST_RESOLVED":
+                    data = event.get("data", {})
+                    if data.get("challenger") == player.session_id:
+                        try:
+                            cursor.execute("""
+                                INSERT INTO event_contests (game_id, day_num, development_id, challenger_id, owner_id, winner_id)
+                                VALUES (%s, %s, %s, %s, %s, %s)
+                            """, (game.id, data.get("day_num", 1), data.get("development"), data.get("challenger"), data.get("owner"), data.get("winner")))
+                        except Exception as e:
+                            pass
+
+        try:
+            conn.commit()
+        except Exception:
+            conn.rollback()
