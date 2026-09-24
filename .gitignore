@@ -10,6 +10,8 @@ bots/*.json
 bots/logs/
 service/logs/
 logs/
+deploy.sh
+.env
 
 bots/bot_training_data.jsonl
 .hermes/
