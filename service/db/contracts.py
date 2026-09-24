@@ -10,10 +10,6 @@ class DatabaseProvider(ABC):
     def initialize_database(self): pass
 
     @abstractmethod
-    def store_game_snapshot(self, game_id: str, day_num: int,
-                            phase: str, snapshot_json: str): pass
-
-    @abstractmethod
     def store_game_result(self, game_id: str, day_num: int,
                           phase: str, snapshot_json: str,
                           training_batch_id=None, training_generation=None,
@@ -21,19 +17,9 @@ class DatabaseProvider(ABC):
                           contest_count=None, lie_count=None): pass
 
     @abstractmethod
-    def get_all_game_history(self) -> list: pass
-    @abstractmethod
     def get_all_games(self) -> list: pass
     @abstractmethod
     def store_visualization(self, game_id: str, plot_name: str, figure) -> Any: pass
-    @abstractmethod
-    def store_player_snapshot(self, game_id, day_num, phase, player): pass
-    @abstractmethod
-    def store_work_snapshot(self, snapshot): pass
-    @abstractmethod
-    def store_trade_snapshot(self, snapshot): pass
-    @abstractmethod
-    def store_night_snapshot(self, snapshot): pass
     @abstractmethod
     def store_genome(self, name: str, shorthand: str, genome_json: str): pass
     @abstractmethod

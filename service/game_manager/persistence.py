@@ -10,19 +10,7 @@ from service.game.serializers.snapshots import (
 
 
 def persist_phase_completion(database, game, phase):
-    if game.training:
-        return
-    if phase == "NIGHT":
-        database.store_game_snapshot(
-            game.id, game.day, phase, json.dumps(build_game_snapshot(game))
-        )
-    for player in game.players.values():
-        if phase == "WORK":
-            database.store_work_snapshot(build_work_snapshot(player, game))
-        elif phase == "TRADE":
-            database.store_trade_snapshot(build_trade_snapshot(player, game))
-        elif phase == "NIGHT":
-            database.store_night_snapshot(build_night_snapshot(player, game))
+    pass
 
 
 def build_completed_game_data(game):
@@ -51,5 +39,4 @@ def persist_completed_game(database, game):
         lie_count=sum(game.lie_count.values()),
     )
 
-    # Extract and store events for CAB bot training vectors
-    database.extract_and_store_vector_events(game)
+

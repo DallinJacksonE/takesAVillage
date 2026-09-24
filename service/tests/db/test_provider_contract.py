@@ -32,24 +32,17 @@ def test_provider_contract_users_games_and_snapshots(case):
     assert database.user_exists("user-1") is True
     assert database.user_exists("missing") is False
 
-    database.store_game_snapshot("game-1", 1, "WORK", json.dumps({"day": 1}))
     database.store_game_result(
         "game-1", 2, "NIGHT", json.dumps({"day": 2}),
         training_batch_id="batch-1", training_generation=2,
         trade_count=3, contest_count=4, lie_count=5,
     )
-    database.store_player_snapshot("game-1", 1, "WORK", {"id": "user-1"})
-    database.store_work_snapshot({"game_id": "game-1"})
-    database.store_trade_snapshot({"game_id": "game-1"})
-    database.store_night_snapshot({"game_id": "game-1"})
 
-    assert [row["data"] for row in database.get_all_game_history()] == [
         {"day": 2}, {"day": 1},
     ]
     assert database.get_all_games()[0]["trade_count"] == 3
     assert database.get_all_games()[0]["contest_count"] == 4
     assert database.get_all_games()[0]["lie_count"] == 5
-    assert backend.player_snapshots[0]["player"] == {"id": "user-1"}
     assert backend.work_snapshots == [{"game_id": "game-1"}]
     assert backend.trade_snapshots == [{"game_id": "game-1"}]
     assert backend.night_snapshots == [{"game_id": "game-1"}]

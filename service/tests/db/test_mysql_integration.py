@@ -36,14 +36,12 @@ def test_mysql_schema_and_representative_crud():
     assert database.create_user(user_id, True) is True
     assert database.user_exists(user_id) is True
 
-    database.store_game_snapshot(game_id, 1, "WORK", json.dumps({"day": 1}))
     database.store_game_result(
         game_id, 2, "NIGHT", json.dumps({"day": 2}),
         training_batch_id=batch_id, training_generation=1,
         trade_count=2, contest_count=3, lie_count=4,
     )
     games = database.get_all_games()
-    history = database.get_all_game_history()
     assert any(row["game_id"] == game_id and row["lie_count"] == 4 for row in games)
     assert any(row["game_id"] == game_id and row["data"] == {"day": 1} for row in history)
 

@@ -3,12 +3,7 @@ from service.db.memory import InMemoryDB
 
 def test_memory_provider_preserves_phase_snapshots():
     database = InMemoryDB()
-    database.store_player_snapshot("game-1", 1, "WORK", {"id": "p1"})
-    database.store_work_snapshot({"game_id": "game-1"})
-    database.store_trade_snapshot({"game_id": "game-1"})
-    database.store_night_snapshot({"game_id": "game-1"})
 
-    assert database.player_snapshots == [
         {"game_id": "game-1", "day_num": 1, "phase": "WORK", "player": {"id": "p1"}}
     ]
     assert database.work_snapshots == [{"game_id": "game-1"}]

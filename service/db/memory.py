@@ -68,15 +68,6 @@ class InMemoryDB(DatabaseProvider):
             "created_at": datetime.now()
         })
 
-    def store_game_snapshot(self, game_id: str, day_num: int, phase: str, snapshot_json: str):
-        self.history.append({
-            "game_id": game_id,
-            "day_num": day_num,
-            "phase": phase,
-            "data": json.loads(snapshot_json),
-            "created_at": datetime.now()
-        })
-
     def get_all_games(self):
         return sorted(self.history, key=lambda x: x['created_at'], reverse=True)
 
@@ -91,20 +82,6 @@ class InMemoryDB(DatabaseProvider):
         if game_id not in self.visualizations:
             self.visualizations[game_id] = {}
         self.visualizations[game_id][plot_name] = buf.read()
-
-    def store_player_snapshot(self, game_id, day_num, phase, player):
-        self.player_snapshots.append({
-            "game_id": game_id, "day_num": day_num, "phase": phase, "player": player
-        })
-
-    def store_work_snapshot(self, snapshot):
-        self.work_snapshots.append(snapshot)
-
-    def store_trade_snapshot(self, snapshot):
-        self.trade_snapshots.append(snapshot)
-
-    def store_night_snapshot(self, snapshot):
-        self.night_snapshots.append(snapshot)
 
     def store_genome(self, name: str, shorthand: str, genome_json: str):
         self.genomes.append({
