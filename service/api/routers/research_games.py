@@ -20,10 +20,16 @@ def create_router(services):
 
     @router.get("/api/research/games/{game_id}")
     async def game_detail(game_id: str):
-        for game in services.database.get_all_games():
-            if game.get("game_id") == game_id:
-                return {**game, "visualizations": services.visualizations.ensure(
-                    "game", game_id, game)}
+        game_getter = getattr(services.database, "get_game", None)
+        game_row = game_getter(game_id) if game_getter else None
+        if not game_row:
+            for g in services.database.get_all_games():
+                if g.get("game_id") == game_id:
+                    game_row = g
+                    break
+        if game_row:
+            return {**game_row, "visualizations": services.visualizations.ensure(
+                "game", game_id, game_row)}
         raise HTTPException(status_code=404, detail="Game not found")
 
     return router

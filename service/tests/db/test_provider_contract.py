@@ -37,9 +37,9 @@ def test_provider_contract_users_games_and_snapshots(case):
         training_batch_id="batch-1", training_generation=2,
         trade_count=3, contest_count=4, lie_count=5,
     )
-
-        {"day": 2}, {"day": 1},
-    ]
+    backend.work_snapshots.append({"game_id": "game-1"})
+    backend.trade_snapshots.append({"game_id": "game-1"})
+    backend.night_snapshots.append({"game_id": "game-1"})
     assert database.get_all_games()[0]["trade_count"] == 3
     assert database.get_all_games()[0]["contest_count"] == 4
     assert database.get_all_games()[0]["lie_count"] == 5

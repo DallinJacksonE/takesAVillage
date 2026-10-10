@@ -365,6 +365,8 @@ export interface ResearchPlayerSnapshot {
   finished_phase: boolean;
   sickness_chance: number;
   committed_action: any;
+  trade_count?: number;
+  lie_count?: number;
 }
 
 export interface ResearchGameDTO {
@@ -375,6 +377,9 @@ export interface ResearchGameDTO {
   game_type?: "human" | "human_bot" | "training";
   training_batch_id?: string | null;
   training_generation?: number | null;
+  trade_count?: number;
+  contest_count?: number;
+  lie_count?: number;
   visualizations?: ResearchVisualizationDTO[];
 
   data: {
@@ -416,6 +421,9 @@ export interface ResearchGameListItemDTO {
   game_type: "human" | "human_bot" | "training";
   training_batch_id?: string | null;
   training_generation?: number | null;
+  trade_count?: number;
+  contest_count?: number;
+  lie_count?: number;
 }
 
 export interface ResearchGameDetailDTO extends ResearchGameDTO {
@@ -469,6 +477,9 @@ export interface TrainingBatchDetailDTO extends TrainingBatchListItemDTO {
     genome_count?: number;
     best_fitness?: number | null;
     average_fitness?: number | null;
+    trade_count?: number;
+    contest_count?: number;
+    lie_count?: number;
   }>;
   visualizations: ResearchVisualizationDTO[];
 }

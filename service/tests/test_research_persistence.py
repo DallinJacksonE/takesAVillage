@@ -231,7 +231,7 @@ class ResearchPersistenceTests(unittest.TestCase):
         schema = database._get_schema_script()
 
         self.assertNotIn("ADD COLUMN IF NOT EXISTS", schema)
-        self.assertIn("CREATE TABLE IF NOT EXISTS `research_visualizations`", schema)
+        self.assertIn("CREATE TABLE IF NOT EXISTS research_visualizations", schema)
 
     def test_mysql_training_games_query_selects_contest_and_lie_counts_separately(self):
         source_path = os.path.join(

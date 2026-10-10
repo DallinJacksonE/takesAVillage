@@ -80,8 +80,7 @@ class GamesRepository:
         cursor = conn.cursor(dictionary=True)
         query = """SELECT *
             FROM games FORCE INDEX (idx_created_at)
-            ORDER BY created_at DESC
-            LIMIT 10;"""
+            ORDER BY created_at DESC;"""
         try:
             cursor.execute(query)
             results = cursor.fetchall()
@@ -89,6 +88,23 @@ class GamesRepository:
                 if isinstance(row["data"], str):
                     row["data"] = json.loads(row["data"])
             return results
+        finally:
+            cursor.close()
+            conn.close()
+
+    def get_game(self, game_id: str):
+        conn = self.get_connection()
+        if not conn:
+            return None
+
+        cursor = conn.cursor(dictionary=True)
+        query = "SELECT * FROM games WHERE game_id = %s LIMIT 1;"
+        try:
+            cursor.execute(query, (game_id,))
+            row = cursor.fetchone()
+            if row and isinstance(row.get("data"), str):
+                row["data"] = json.loads(row["data"])
+            return row
         finally:
             cursor.close()
             conn.close()

@@ -41,7 +41,8 @@ def add_player_hist(game, session_id):
             list(player.actions.values())
         ),
         
-        'trade_count': player.trade_count
+        'trade_count': player.trade_count,
+        'lie_count': getattr(game, 'lie_count', {}).get(session_id, 0),
     }
 
     return True

@@ -284,7 +284,46 @@ class TrainingRepository:
         if not batch:
             return []
         games = batch.get("games", [])
-        return games if isinstance(games, list) else []
+        if not isinstance(games, list):
+            return []
+
+        conn = self.get_connection()
+        if not conn:
+            return [dict(g) for g in games]
+
+        cursor = conn.cursor(dictionary=True)
+        stats_by_id = {}
+        try:
+            cursor.execute(
+                """
+                SELECT
+                    game_id,
+                    trade_count,
+                    contest_count,
+                    lie_count
+                FROM games
+                WHERE training_batch_id = %s
+                """,
+                (batch_id,),
+            )
+            for row in cursor.fetchall():
+                stats_by_id[row["game_id"]] = row
+        except mysql.connector.Error as err:
+            db_logger.error(f"Error querying training games stats: {err}")
+        finally:
+            cursor.close()
+            conn.close()
+
+        merged = []
+        for game in games:
+            entry = dict(game)
+            if entry.get("game_id") in stats_by_id:
+                stats = stats_by_id[entry["game_id"]]
+                entry["trade_count"] = int(stats.get("trade_count", 0) or 0)
+                entry["contest_count"] = int(stats.get("contest_count", 0) or 0)
+                entry["lie_count"] = int(stats.get("lie_count", 0) or 0)
+            merged.append(entry)
+        return merged
 
     def _decode_training_batch(self, row: dict) -> dict:
         for key in ("config", "generation_statistics", "games"):

@@ -86,3 +86,26 @@ def test_training_visualizations_regenerate_when_generation_statistics_change():
 
     assert storage.deleted == [("training_batch", "batch-1")]
     assert runner.calls[0][:2] == ("training_batch", "batch-1")
+
+
+def test_training_visualizations_regenerate_when_games_change():
+    storage = Storage()
+    storage.items = [{
+        "id": "old",
+        "metadata": {"context_version": "generations:1:games:1:0:0:0"},
+    }]
+    runner = Runner()
+    service = VisualizationService(storage, game_runner=runner, batch_runner=runner)
+
+    service.ensure(
+        "training_batch",
+        "batch-1",
+        {
+            "generation_statistics": [{"generation": 1}],
+            "games": [{"game_id": "g-1", "trade_count": 2, "contest_count": 1, "lie_count": 0}],
+        },
+    )
+
+    assert storage.deleted == [("training_batch", "batch-1")]
+    assert runner.calls[0][:2] == ("training_batch", "batch-1")
+

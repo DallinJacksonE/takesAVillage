@@ -83,11 +83,11 @@ describe("AvailableWorkCard", () => {
     );
 
     const commitButton = screen.getByRole("button", {
-      name: "Commit work at Mine mine-1 for agreed wage 2 food",
+      name: "Commit work at Mine Moss for agreed wage 2 food",
     });
 
     expect(commitButton.hasAttribute("disabled")).toBe(false);
-    expect(screen.getByText("Mine mine-1")).toBeTruthy();
+    expect(screen.getByText("Mine Moss")).toBeTruthy();
     expect(screen.getByText("Agreed wage: 2 food")).toBeTruthy();
   });
 });

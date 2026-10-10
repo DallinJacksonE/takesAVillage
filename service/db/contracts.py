@@ -19,6 +19,8 @@ class DatabaseProvider(ABC):
     @abstractmethod
     def get_all_games(self) -> list: pass
     @abstractmethod
+    def get_game(self, game_id: str) -> dict | None: pass
+    @abstractmethod
     def store_visualization(self, game_id: str, plot_name: str, figure) -> Any: pass
     @abstractmethod
     def store_genome(self, name: str, shorthand: str, genome_json: str): pass
