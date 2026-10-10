@@ -1,0 +1,42 @@
+.text {
+  min-width: 24px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+
+}
+.text2 {
+  min-width: 45px;
+  font-size: 0.85rem;
+  text-transform: capitalize;
+  font-weight: bold;
+  color: var(--text-secondary);
+
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+
+}
+
+.decrementButton {
+  background: var(--surface-danger);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.incrementButton {
+  background: var(--surface-success);
+  color: var(--success);
+  border: 1px solid var(--success-border);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-weight: bold;
+}

@@ -1,0 +1,19 @@
+.text {
+  display: inline-block;
+  animation: pulse 1.2s infinite;
+
+}
+.text2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--purple);
+  font-size: 0.78rem;
+  font-weight: 600;
+
+}
+.text3 {
+  color: var(--medium_grey);
+  font-size: 0.78rem;
+
+}

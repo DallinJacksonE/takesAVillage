@@ -1,0 +1,113 @@
+.copy {
+  margin: 0px;
+
+}
+.copy2 {
+  margin: 0px;
+
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+}
+.label {
+  color: var(--label-color);
+
+}
+.copy3 {
+  margin: 0px;
+
+}
+.row2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+}
+.row3 {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+
+}
+.text {
+  color: var(--light_grey);
+
+}
+.header {
+  margin: 0px;
+
+}
+.row4 {
+  display: flex;
+  align-items: center;
+  justify-content: left;
+  gap: 8px;
+  margin-bottom: 1em;
+
+}
+.panel {
+  flex: 1;
+  min-width: 200px;
+  padding-left: 20px;
+
+}
+.panel2 {
+  width: 1px;
+  height: 60px;
+  background: var(--border-soft);
+
+}
+.row5 {
+  list-style: none;
+  padding: 0px;
+  display: flex;
+  gap: 1.5rem;
+  margin: 0px;
+
+}
+.text2 {
+  color: var(--light_grey);
+
+}
+.header2 {
+  margin: 0px;
+
+}
+.row6 {
+  display: flex;
+  align-items: center;
+  justify-content: left;
+  gap: 8px;
+  margin-bottom: 1em;
+
+}
+.panel3 {
+  flex: 2;
+
+}
+.row7 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 20px;
+
+}
+
+.healthGood {
+  color: var(--success);
+}
+
+.healthBad {
+  color: var(--danger);
+}
+
+.statusBar {
+  background: var(--light_grey);
+  padding: 2rem;
+  border-radius: 8px;
+}
