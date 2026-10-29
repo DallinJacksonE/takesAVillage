@@ -77,9 +77,6 @@ export const TrainingBatchDetail: React.FC<TrainingBatchDetailProps> = ({ batch,
                 <th>Genomes</th>
                 <th>Best</th>
                 <th>Average</th>
-                <th>Trades</th>
-                <th>Contests</th>
-                <th>Lies</th>
                 <th>Error</th>
                 <th>Open</th>
               </tr>
@@ -94,9 +91,6 @@ export const TrainingBatchDetail: React.FC<TrainingBatchDetailProps> = ({ batch,
                     <td>{game.genome_count ?? "-"}</td>
                     <td>{game.best_fitness ?? "-"}</td>
                     <td>{game.average_fitness ?? "-"}</td>
-                    <td>{game.trade_count ?? 0}</td>
-                    <td>{game.contest_count ?? 0}</td>
-                    <td>{game.lie_count ?? 0}</td>
                     <td>{game.error_message ?? "-"}</td>
                     <td>
                       <button className="btn btn-secondary" onClick={() => onSelectGame(game.game_id)}>

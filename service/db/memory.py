@@ -71,12 +71,6 @@ class InMemoryDB(DatabaseProvider):
     def get_all_games(self):
         return sorted(self.history, key=lambda x: x['created_at'], reverse=True)
 
-    def get_game(self, game_id: str) -> dict | None:
-        for game in self.history:
-            if game.get("game_id") == game_id:
-                return dict(game)
-        return None
-
     def get_all_game_history(self) -> list:
         return sorted(self.history, key=lambda x: x['created_at'], reverse=True)
 
@@ -249,21 +243,7 @@ class InMemoryDB(DatabaseProvider):
         batch = self.training_batches.get(batch_id)
         if not batch:
             return []
-        stats_by_id = {
-            game["game_id"]: game
-            for game in self.history
-            if game.get("training_batch_id") == batch_id
-        }
-        merged = []
-        for game in batch.get("games", []):
-            entry = dict(game)
-            if entry.get("game_id") in stats_by_id:
-                stats = stats_by_id[entry["game_id"]]
-                entry["trade_count"] = int(stats.get("trade_count", 0) or 0)
-                entry["contest_count"] = int(stats.get("contest_count", 0) or 0)
-                entry["lie_count"] = int(stats.get("lie_count", 0) or 0)
-            merged.append(entry)
-        return merged
+        return [dict(game) for game in batch.get("games", [])]
 
     def store_research_visualization(self, scope_type: str, scope_id: str,
                                      name: str, title: str, mime_type: str,

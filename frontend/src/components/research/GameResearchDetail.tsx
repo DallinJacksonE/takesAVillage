@@ -25,9 +25,6 @@ export const GameResearchDetail: React.FC<GameResearchDetailProps> = ({ game }) 
         {game.training_generation !== undefined && game.training_generation !== null && (
           <Meta label="Generation" value={String(game.training_generation)} />
         )}
-        <Meta label="Trades" value={String(game.trade_count ?? 0)} />
-        <Meta label="Contests" value={String(game.contest_count ?? 0)} />
-        <Meta label="Lies" value={String(game.lie_count ?? 0)} />
       </div>
       <VisualizationGallery visualizations={game.visualizations} />
       <ExpandableJsonPanel title="Parsed game data" data={game.data} />

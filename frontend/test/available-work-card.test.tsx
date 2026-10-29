@@ -20,8 +20,8 @@ const work: WorkActionDTO = {
   action_id: "contract-1",
   development,
   employer_id: "player-1",
-  wage: 3,
-  wage_type: "iron",
+  wage: 2,
+  wage_type: "food",
 };
 
 const player: PublicPlayerDTO = {
@@ -69,21 +69,10 @@ const gameState: GameStateDTO = {
 };
 
 describe("AvailableWorkCard", () => {
-  it.each([
-    { type: "Farm" as const, resource: "food" as const },
-    { type: "Woods" as const, resource: "wood" as const },
-    { type: "Mine" as const, resource: "iron" as const },
-  ])("shows an owned $type as My with its default wage", ({ type, resource }) => {
-    const ownedDevelopment = { ...development, type, level: 3 };
-    const ownedWork = { ...work, development: ownedDevelopment, wage: 3, wage_type: resource };
-    const state = {
-      ...gameState,
-      me: { ...gameState.me, available_work: [ownedWork] },
-    };
-
+  it("shows the development and agreed wage inline with each commit button", () => {
     render(
       <PlayerProvider players={[player]}>
-        <GameStateProvider gameState={state}>
+        <GameStateProvider gameState={gameState}>
           <AvailableWorkCard
             onAcceptOffer={jest.fn()}
             onCommitWork={jest.fn()}
@@ -93,49 +82,12 @@ describe("AvailableWorkCard", () => {
       </PlayerProvider>,
     );
 
-    const wageLabel = `3 ${resource}`;
     const commitButton = screen.getByRole("button", {
-      name: `Commit work at My ${type} for default wage ${wageLabel}`,
+      name: "Commit work at Mine mine-1 for agreed wage 2 food",
     });
 
     expect(commitButton.hasAttribute("disabled")).toBe(false);
-    expect(screen.getByText(`My ${type}`)).toBeTruthy();
-    expect(screen.getByText(`Default wage: ${wageLabel}`)).toBeTruthy();
-  });
-
-  it("shows another player's development with their possessive name", () => {
-    const otherPlayer = { ...player, id: "player-2", name: "Fern" };
-    const otherDevelopment = { ...development, owner_id: otherPlayer.id };
-    const otherWork = {
-      ...work,
-      development: otherDevelopment,
-      employer_id: otherPlayer.id,
-      wage: 2,
-      wage_type: "wood" as const,
-    };
-    const state = {
-      ...gameState,
-      me: { ...gameState.me, available_work: [otherWork] },
-    };
-
-    render(
-      <PlayerProvider players={[player, otherPlayer]}>
-        <GameStateProvider gameState={state}>
-          <AvailableWorkCard
-            onAcceptOffer={jest.fn()}
-            onCommitWork={jest.fn()}
-            onDenyOffer={jest.fn()}
-          />
-        </GameStateProvider>
-      </PlayerProvider>,
-    );
-
-    expect(screen.getByText("Fern's Mine")).toBeTruthy();
-    expect(screen.getByText("Agreed wage: 2 wood")).toBeTruthy();
-    expect(
-      screen.getByRole("button", {
-        name: "Commit work at Fern's Mine for agreed wage 2 wood",
-      }),
-    ).toBeTruthy();
+    expect(screen.getByText("Mine mine-1")).toBeTruthy();
+    expect(screen.getByText("Agreed wage: 2 food")).toBeTruthy();
   });
 });

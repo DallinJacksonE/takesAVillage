@@ -1,10 +1,9 @@
 import React from "react";
-import { CommitWorkPayload, EmploymentActionDTO, WorkActionDTO } from "../../dtos/index";
+import { EmploymentActionDTO, WorkActionDTO, CommitWorkPayload } from "../../dtos/index";
 import { usePlayerName } from "../hooks/usePlayerName";
 import { useGameState } from "../hooks/useGameState";
 
 import styles from "./AvailableWorkCard.module.css";
-
 interface Props {
   onCommitWork: (payload: CommitWorkPayload) => void;
   onAcceptOffer: (actionId: string) => void;
@@ -67,12 +66,8 @@ const AvailableWorkCard: React.FC<Props> = ({
         ) : (
           me.available_work.map((work: WorkActionDTO, index: number) => {
             const itemKey = work.action_id || `inherent-work-${index}`;
-            const isOwnDevelopment = work.development.owner_id === me.id;
-            const developmentLabel = isOwnDevelopment
-              ? `My ${work.development.type}`
-              : `${getPlayerName(work.development.owner_id)}'s ${work.development.type}`;
+            const developmentLabel = `${work.development?.type} ${getPlayerName(work.development?.owner_id) || ""}`.trim();
             const wageLabel = `${work.wage} ${work.wage_type}`;
-            const wageDescription = isOwnDevelopment ? "default wage" : "agreed wage";
 
             return (
               <div
@@ -82,11 +77,11 @@ const AvailableWorkCard: React.FC<Props> = ({
               >
                 <span className={styles.workDetails}>
                   <strong>{developmentLabel}</strong>
-                  <span>{isOwnDevelopment ? "Default wage" : "Agreed wage"}: {wageLabel}</span>
+                  <span>Agreed wage: {wageLabel}</span>
                 </span>
 
                 <button
-                  aria-label={`Commit work at ${developmentLabel} for ${wageDescription} ${wageLabel}`}
+                  aria-label={`Commit work at ${developmentLabel} for agreed wage ${wageLabel}`}
                   className="btn-tooltip success"
                   onClick={() => onCommitWork({ job: work })}
                   disabled={disabled}

@@ -10,19 +10,7 @@ from service.game.serializers.snapshots import (
 
 
 def persist_phase_completion(database, game, phase):
-    if game.training:
-        return
-    if phase == "NIGHT" and hasattr(database, "store_game_snapshot"):
-        database.store_game_snapshot(
-            game.id, game.day, phase, json.dumps(build_game_snapshot(game))
-        )
-    for player in game.players.values():
-        if phase == "WORK" and hasattr(database, "store_work_snapshot"):
-            database.store_work_snapshot(build_work_snapshot(player, game))
-        elif phase == "TRADE" and hasattr(database, "store_trade_snapshot"):
-            database.store_trade_snapshot(build_trade_snapshot(player, game))
-        elif phase == "NIGHT" and hasattr(database, "store_night_snapshot"):
-            database.store_night_snapshot(build_night_snapshot(player, game))
+    pass
 
 
 def build_completed_game_data(game):
@@ -46,13 +34,9 @@ def persist_completed_game(database, game):
         game_type=(
             "training" if game.training else "human_bot" if game.bot_count else "human"
         ),
-        trade_count=getattr(game, "trade_count", 0),
-        contest_count=getattr(game, "contest_count", 0),
-        lie_count=(
-            sum(game.lie_count.values())
-            if isinstance(getattr(game, "lie_count", None), dict)
-            else getattr(game, "lie_count", 0) or 0
-        ),
+        trade_count=game.trade_count,
+        contest_count=game.contest_count,
+        lie_count=sum(game.lie_count.values()),
     )
 
 

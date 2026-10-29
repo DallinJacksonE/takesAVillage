@@ -95,13 +95,13 @@ class TradeContract(Contract):
         game = context['game']
 
         if self.initiator_finalized and self.target_finalized:
-            clean_request = {k: v for k, v in getattr(self, 'actual_request_items', {}).items() if v and v > 0}
-            clean_expected_request = {k: v for k, v in getattr(self, 'request_items', {}).items() if v and v > 0}
-            clean_offer = {k: v for k, v in getattr(self, 'actual_offer_items', {}).items() if v and v > 0}
-            clean_expected_offer = {k: v for k, v in getattr(self, 'offer_items', {}).items() if v and v > 0}
 
-            target_lied = clean_request != clean_expected_request
-            initiator_lied = clean_offer != clean_expected_offer
+            target_lied = self.actual_request_items != self.request_items
+            initiator_lied = self.actual_offer_items != self.offer_items
+            
+            contract_logger.info(
+                f"Lie count after finalize: {game.lie_count}"
+            )
 
             self.status = "FINALIZED"
             self.waiting_on_id = None
@@ -110,9 +110,6 @@ class TradeContract(Contract):
                 initiator_lied=initiator_lied,
                 target_lied=target_lied,
             ))
-            contract_logger.info(
-                f"Lie count after finalize: {game.lie_count}"
-            )
             return "UPDATED_FINALIZED"
 
         return f"UPDATED_{self.status}"

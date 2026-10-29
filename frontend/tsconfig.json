@@ -14,9 +14,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx",
-    "typeRoots": ["./node_modules/@types"],
-    "types": ["jest", "@testing-library/jest-dom", "node"]
+    "jsx": "react-jsx"
   },
   "include": ["src", "test"],
   "references": [{ "path": "./tsconfig.node.json" }]

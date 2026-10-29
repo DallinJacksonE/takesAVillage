@@ -11,16 +11,12 @@ class RecordingSnapshotStore:
         self.trade = []
         self.night = []
 
-    def store_game_snapshot(self, *args):
         self.game.append(args)
 
-    def store_work_snapshot(self, snapshot):
         self.work.append(snapshot)
 
-    def store_trade_snapshot(self, snapshot):
         self.trade.append(snapshot)
 
-    def store_night_snapshot(self, snapshot):
         self.night.append(snapshot)
 
 

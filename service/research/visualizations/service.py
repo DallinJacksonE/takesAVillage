@@ -44,13 +44,6 @@ class VisualizationService:
 
     def _training_context_version(self, context: dict) -> str:
         generation_count = len(context.get("generation_statistics", []) or [])
-        games = context.get("games")
-        if games is not None:
-            game_count = len(games)
-            trades = sum(g.get("trade_count", 0) or 0 for g in games)
-            contests = sum(g.get("contest_count", 0) or 0 for g in games)
-            lies = sum(g.get("lie_count", 0) or 0 for g in games)
-            return f"generations:{generation_count}:games:{game_count}:{trades}:{contests}:{lies}"
         return f"generations:{generation_count}"
 
     def _matches_context_version(self, existing: list, context_version: str) -> bool:

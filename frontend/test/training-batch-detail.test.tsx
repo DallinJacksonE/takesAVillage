@@ -21,9 +21,6 @@ const batch: TrainingBatchDetailDTO = {
       genome_count: 3,
       best_fitness: 12,
       average_fitness: 8.5,
-      trade_count: 5,
-      contest_count: 6,
-      lie_count: 7,
       error_message: null,
     },
     {
@@ -51,12 +48,6 @@ describe("TrainingBatchDetail", () => {
     expect(within(table).getByText("3")).not.toBeNull();
     expect(within(table).getByText("12")).not.toBeNull();
     expect(within(table).getByText("8.5")).not.toBeNull();
-    expect(within(table).getByText("Trades")).not.toBeNull();
-    expect(within(table).getByText("Contests")).not.toBeNull();
-    expect(within(table).getByText("Lies")).not.toBeNull();
-    expect(within(table).getByText("5")).not.toBeNull();
-    expect(within(table).getByText("6")).not.toBeNull();
-    expect(within(table).getByText("7")).not.toBeNull();
     expect(within(table).getByText("No genome entries returned")).not.toBeNull();
 
     fireEvent.click(within(table).getByRole("button", { name: /open game game-1/i }));

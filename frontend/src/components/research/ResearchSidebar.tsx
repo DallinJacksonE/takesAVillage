@@ -62,7 +62,6 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
               <span>{new Date(game.created_at).toLocaleString()}</span>
               <span>{game.game_type ?? "human"} • Day {game.day_num}</span>
               {game.training_batch_id && <span>Batch {game.training_batch_id.slice(0, 8)} • Gen {game.training_generation ?? "?"}</span>}
-              <span>Trades: {game.trade_count ?? 0} • Contests: {game.contest_count ?? 0} • Lies: {game.lie_count ?? 0}</span>
             </button>
           ))}
         </div>
