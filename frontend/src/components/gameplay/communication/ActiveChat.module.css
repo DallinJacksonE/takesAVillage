@@ -1,32 +1,18 @@
-.panel {
-  background: var(--panel-background);
-  border: var(--panel-border);
-  padding: 8px 12px;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  word-wrap: break-word;
-
-}
-.panel2 {
-  font-size: 0.7rem;
-  color: var(--medium_grey);
-  margin-bottom: 2px;
-  margin-left: 2px;
-
-}
-.panel3 {
-  align-self: var(--panel3-align-self);
-  max-width: 80%;
-
-}
-.panel4 {
+.emptyState {
   text-align: center;
   color: var(--text-muted);
   font-style: italic;
   margin-top: 20px;
-
 }
-.column {
+
+.senderName {
+  font-size: 0.7rem;
+  color: var(--medium_grey);
+  margin-bottom: 2px;
+  margin-left: 2px;
+}
+
+.messageList {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -37,15 +23,14 @@
   background:
     radial-gradient(circle at top right, rgba(103, 160, 218, 0.13), transparent 42%),
     var(--surface);
-
 }
-.column2 {
+
+.chatPanel {
   display: flex;
   flex: 1;
-  min-width: 0px;
+  min-width: 0;
   flex-direction: column;
   min-height: 0;
-
 }
 
 .chatHeader {
@@ -130,7 +115,7 @@
 }
 
 @media (max-width: 720px) {
-  .column2 {
+  .chatPanel {
     min-height: 280px;
   }
 }

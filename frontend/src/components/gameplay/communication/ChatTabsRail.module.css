@@ -1,9 +1,9 @@
-.panel {
+.tabList {
   overflow-y: auto;
   min-height: 0;
 }
 
-.button {
+.createChatButton {
   padding: 10px 12px;
   border: none;
   border-bottom: 1px solid var(--rail-border);
@@ -17,7 +17,7 @@
   gap: 4px;
 }
 
-.column {
+.rail {
   width: clamp(170px, 42%, 220px);
   flex-shrink: 0;
   border-left: 1px solid var(--border-soft);
@@ -32,17 +32,17 @@
   display: none;
 }
 
-.newChatIcon {
+.createChatIcon {
   font-weight: bold;
 }
 
-.labelText {
+.createChatLabel {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.text {
+.unreadBadge {
   background: var(--danger);
   color: var(--surface);
   border-radius: 10px;
@@ -51,14 +51,14 @@
   white-space: nowrap;
 }
 
-.row {
+.unreadCount {
   width: 28px;
   display: flex;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.text2 {
+.tabLabel {
   min-width: 0;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -92,11 +92,11 @@
 }
 
 @media (max-width: 1420px) {
-  .columnCollapsed {
+  .railCollapsed {
     width: 44px;
   }
 
-  .columnExpanded {
+  .railExpanded {
     width: clamp(165px, 40%, 190px);
   }
 
@@ -114,12 +114,12 @@
     font-weight: bold;
   }
 
-  .columnCollapsed .button {
+  .railCollapsed .createChatButton {
     padding: 10px 0;
   }
 
-  .columnCollapsed .labelText,
-  .columnCollapsed .text2 {
+  .railCollapsed .createChatLabel,
+  .railCollapsed .tabLabel {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -128,12 +128,12 @@
     white-space: nowrap;
   }
 
-  .columnCollapsed .tab {
+  .railCollapsed .tab {
     padding: 10px 0;
     justify-content: center;
   }
 
-  .columnCollapsed .row {
+  .railCollapsed .unreadCount {
     width: auto;
   }
 }

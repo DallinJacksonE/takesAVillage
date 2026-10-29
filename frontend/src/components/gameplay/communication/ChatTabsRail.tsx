@@ -26,18 +26,17 @@ const ChatTabsRail: React.FC<Props> = ({
 
     return (
       <button
+        type="button"
         key={tab.id}
         onClick={() => onSelectChat(tab.id)}
         className={[styles.tab, isActive ? styles.tabActive : ""].filter(Boolean).join(" ")}
       >
-        <span className={styles.text2}>
+        <span className={styles.tabLabel}>
           {tab.label}
         </span>
-        <span className={styles.row}>
+        <span className={styles.unreadCount}>
           {tab.unread > 0 && (
-            <span
-              className={styles.text}
-            >
+            <span className={styles.unreadBadge}>
               {tab.unread}
             </span>
           )}
@@ -49,8 +48,8 @@ const ChatTabsRail: React.FC<Props> = ({
   return (
     <aside
       className={[
-        styles.column,
-        isExpanded ? styles.columnExpanded : styles.columnCollapsed,
+        styles.rail,
+        isExpanded ? styles.railExpanded : styles.railCollapsed,
       ].join(" ")}
     >
       <button
@@ -64,14 +63,15 @@ const ChatTabsRail: React.FC<Props> = ({
       </button>
 
       <button
+        type="button"
         onClick={onCreateChat}
-        className={styles.button}
+        className={styles.createChatButton}
       >
-        <span className={styles.newChatIcon}>+</span>
-        <span className={styles.labelText}>New Chat</span>
+        <span className={styles.createChatIcon} aria-hidden="true">+</span>
+        <span className={styles.createChatLabel}>New Chat</span>
       </button>
 
-      <div className={styles.panel}>
+      <div className={styles.tabList}>
         {renderTab(globalTab)}
         {chatTabs.map(renderTab)}
       </div>

@@ -31,7 +31,7 @@ const ActiveChat: React.FC<Props> = ({
   }, [messages.length, activeChat.id]);
 
   return (
-    <div className={styles.column2}>
+    <div className={styles.chatPanel}>
       <header className={styles.chatHeader}>
         <span className={styles.eyebrow}>Members</span>
         <span className={styles.memberNames}>
@@ -40,10 +40,10 @@ const ActiveChat: React.FC<Props> = ({
       </header>
       <div
         ref={chatContainerRef}
-        className={styles.column}
+        className={styles.messageList}
       >
         {messages.length === 0 ? (
-          <div className={styles.panel4}>
+          <div className={styles.emptyState}>
             No messages yet.
           </div>
         ) : (
@@ -57,7 +57,7 @@ const ActiveChat: React.FC<Props> = ({
               >
                 {!isMe && activeChat.showSenderNames && (
                   <div
-                    className={styles.panel2}
+                    className={styles.senderName}
                   >
                     {getPlayerName(message.from_id)}
                   </div>

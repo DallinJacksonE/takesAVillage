@@ -11,7 +11,6 @@ import {
   ChatTabViewModel,
   getActiveChatView,
   getChatLastMessageTime,
-  getMessageTime,
 } from "./chatViewTypes";
 
 interface Props {
@@ -32,36 +31,38 @@ const TabbedCommunicator: React.FC<Props> = ({
   onCreateChat,
 }) => {
   const [activeChatId, setActiveChatId] = useState<string>(GLOBAL_CHAT_ID);
-  const [chatInput, setChatInput] = useState("");
-  const [readMessages, setReadMessages] = useState<Set<string>>(new Set());
-  const [showCreateChat, setShowCreateChat] = useState(false);
+  const [messageInput, setMessageInput] = useState("");
+  const [readMessageIds, setReadMessageIds] = useState<Set<string>>(new Set());
+  const [isCreateChatModalOpen, setIsCreateChatModalOpen] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const getPlayerName = usePlayerName();
 
-  const chatIds = useMemo(() => new Set(chats.map((chat) => chat.id)), [chats]);
+  const availableChatIds = useMemo(
+    () => new Set(chats.map((chat) => chat.id)),
+    [chats],
+  );
 
   useEffect(() => {
-    if (activeChatId !== GLOBAL_CHAT_ID && !chatIds.has(activeChatId)) {
+    if (activeChatId !== GLOBAL_CHAT_ID && !availableChatIds.has(activeChatId)) {
       setActiveChatId(GLOBAL_CHAT_ID);
     }
-  }, [activeChatId, chatIds]);
+  }, [activeChatId, availableChatIds]);
 
-  const displayMessages = useMemo(() => {
+  const activeChatMessages = useMemo(() => {
+    const recipientId =
+      activeChatId === GLOBAL_CHAT_ID ? GLOBAL_RECIPIENT_ID : activeChatId;
+
     return messages.filter((message) => {
-      if (activeChatId === GLOBAL_CHAT_ID) {
-        return message.to_id === GLOBAL_RECIPIENT_ID;
-      }
-
-      return message.to_id === activeChatId;
+      return message.to_id === recipientId;
     });
   }, [messages, activeChatId]);
 
   useEffect(() => {
-    setReadMessages((previous) => {
+    setReadMessageIds((previous) => {
       let hasChanges = false;
       const updated = new Set(previous);
 
-      for (const message of displayMessages) {
+      for (const message of activeChatMessages) {
         if (!updated.has(message.id)) {
           updated.add(message.id);
           hasChanges = true;
@@ -70,69 +71,58 @@ const TabbedCommunicator: React.FC<Props> = ({
 
       return hasChanges ? updated : previous;
     });
-  }, [displayMessages]);
+  }, [activeChatMessages]);
 
-  const getGlobalUnreadCount = () => {
+  const getUnreadCount = (recipientId: string) => {
     return messages.filter(
       (message) =>
-        message.to_id === GLOBAL_RECIPIENT_ID &&
+        message.to_id === recipientId &&
         message.from_id !== playerId &&
-        !readMessages.has(message.id),
-    ).length;
-  };
-
-  const getChatUnreadCount = (chatId: string) => {
-    return messages.filter(
-      (message) =>
-        message.to_id === chatId &&
-        message.from_id !== playerId &&
-        !readMessages.has(message.id),
+        !readMessageIds.has(message.id),
     ).length;
   };
 
   const globalTab: ChatTabViewModel = {
     id: GLOBAL_CHAT_ID,
     label: "Village Square",
-    unread: getGlobalUnreadCount(),
-    lastMessageTime: messages
-      .filter((message) => message.to_id === GLOBAL_RECIPIENT_ID)
-      .reduce((latest, message) => Math.max(latest, getMessageTime(message)), 0),
+    unread: getUnreadCount(GLOBAL_RECIPIENT_ID),
+    lastMessageTime: getChatLastMessageTime(messages, GLOBAL_RECIPIENT_ID),
   };
 
   const chatTabs = chats
     .map((chat) => ({
       id: chat.id,
       label: `#${chat.name}`,
-      unread: getChatUnreadCount(chat.id),
+      unread: getUnreadCount(chat.id),
       lastMessageTime: getChatLastMessageTime(messages, chat.id),
     }))
     .sort((a, b) => b.lastMessageTime - a.lastMessageTime);
 
   const activeChat = getActiveChatView(activeChatId, chats);
-  const activeChatWithMembers = {
+  const activeChatView = {
     ...activeChat,
     memberIds: activeChat.memberIds ?? players.map((player) => player.id),
   };
 
   const handleSend = () => {
-    if (!chatInput.trim()) return;
+    const trimmedMessage = messageInput.trim();
+    if (!trimmedMessage) return;
 
-    onSend(chatInput.trim(), activeChat.recipientId);
-    setChatInput("");
+    onSend(trimmedMessage, activeChat.recipientId);
+    setMessageInput("");
   };
 
   return (
     <>
       <div
-        className={`card ${styles.row}`}
-        
+        className={`card ${styles.communicatorLayout}`}
       >
         <ActiveChat
-          activeChat={activeChatWithMembers}
-          messages={displayMessages}
+          activeChat={activeChatView}
+          messages={activeChatMessages}
           playerId={playerId}
-          inputValue={chatInput}
-          onInputChange={setChatInput}
+          inputValue={messageInput}
+          onInputChange={setMessageInput}
           onSend={handleSend}
           getPlayerName={getPlayerName}
         />
@@ -144,16 +134,16 @@ const TabbedCommunicator: React.FC<Props> = ({
           isExpanded={isSidebarExpanded}
           onSelectChat={setActiveChatId}
           onToggleExpanded={() => setIsSidebarExpanded((isExpanded) => !isExpanded)}
-          onCreateChat={() => setShowCreateChat(true)}
+          onCreateChat={() => setIsCreateChatModalOpen(true)}
         />
       </div>
 
-      {showCreateChat && (
+      {isCreateChatModalOpen && (
         <CreateChatModal
           players={players}
           playerId={playerId}
           onCreateChat={onCreateChat}
-          onClose={() => setShowCreateChat(false)}
+          onClose={() => setIsCreateChatModalOpen(false)}
         />
       )}
     </>

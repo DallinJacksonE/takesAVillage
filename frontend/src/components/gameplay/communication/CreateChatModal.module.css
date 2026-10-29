@@ -1,40 +1,39 @@
-.row {
+.modalActions {
   display: flex;
   gap: 10px;
   margin-top: 15px;
-
 }
-.row2 {
+
+.playerCheckbox {
   width: 40px;
   display: flex;
   justify-content: center;
-
 }
-.row3 {
+
+.playerOption {
   display: flex;
   align-items: center;
   margin-bottom: 5px;
   color: var(--accent-color);
-
 }
-.panel {
+
+.modalPanel {
   background: var(--surface);
   padding: 20px;
   border-radius: 8px;
   width: 400px;
   max-height: 80vh;
   overflow-y: auto;
-
 }
-.row4 {
+
+.modalBackdrop {
   position: fixed;
-  inset: 0px;
+  inset: 0;
   background: var(--overlay);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-
 }
 
 .nameInput {
