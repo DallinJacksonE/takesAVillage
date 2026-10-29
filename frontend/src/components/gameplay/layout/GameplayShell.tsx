@@ -4,6 +4,7 @@ import { updatePanelAttention, type PanelAttentionState } from "./phaseAttention
 
 interface Props {
   actionAttentionKey?: string;
+  chatAttentionKey?: string;
   autoOpenActionsKey?: string;
   actionPanel: ReactNode;
   chatPanel: ReactNode;
@@ -11,7 +12,7 @@ interface Props {
   statusBar: ReactNode;
 }
 
-const GameplayShell = ({ actionAttentionKey = "", autoOpenActionsKey = "", actionPanel, chatPanel, map, statusBar }: Props) => {
+const GameplayShell = ({ actionAttentionKey = "", chatAttentionKey = "", autoOpenActionsKey = "", actionPanel, chatPanel, map, statusBar }: Props) => {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const actionToggleRef = useRef<HTMLButtonElement | null>(null);
@@ -19,12 +20,21 @@ const GameplayShell = ({ actionAttentionKey = "", autoOpenActionsKey = "", actio
   const [actionAttention, setActionAttention] = useState<PanelAttentionState>(() =>
     updatePanelAttention(undefined, { contentKey: actionAttentionKey, isOpen: actionsOpen }),
   );
+  const [chatAttention, setChatAttention] = useState<PanelAttentionState>(() =>
+    updatePanelAttention(undefined, { contentKey: chatAttentionKey, isOpen: chatOpen }),
+  );
 
   useEffect(() => {
     setActionAttention((previous) =>
       updatePanelAttention(previous, { contentKey: actionAttentionKey, isOpen: actionsOpen }),
     );
   }, [actionAttentionKey, actionsOpen]);
+
+  useEffect(() => {
+    setChatAttention((previous) =>
+      updatePanelAttention(previous, { contentKey: chatAttentionKey, isOpen: chatOpen }),
+    );
+  }, [chatAttentionKey, chatOpen]);
 
   useEffect(() => {
     if (autoOpenActionsKey) {
@@ -101,6 +111,9 @@ const GameplayShell = ({ actionAttentionKey = "", autoOpenActionsKey = "", actio
           type="button"
         >
           {chatOpen ? "Close" : "Chat"}
+          {chatAttention.hasAttention && !chatOpen && (
+            <span aria-label="New chat messages" className={styles.attentionDot} />
+          )}
         </button>
         {chatOpen && (
           <aside

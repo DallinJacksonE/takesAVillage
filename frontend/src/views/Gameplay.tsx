@@ -39,6 +39,8 @@ const Gameplay: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [userId, setUserId] = useState("");
   const [messages, setMessages] = useState<ChatMessageDTO[]>([]);
+  const [chatAttentionRevision, setChatAttentionRevision] = useState(0);
+  const userIdRef = React.useRef("");
   const [connectionState, setConnectionState] = useState<ConnectionState>("CONNECTING");
   const [toasts, setToasts] = useState<Array<GameNotification & { id: number }>>([]);
 
@@ -63,7 +65,10 @@ const Gameplay: React.FC = () => {
       setGameState,
       setPlayerCount,
       setTimeLeft,
-      setUserId,
+      setUserId: (id: string) => {
+        userIdRef.current = id;
+        setUserId(id);
+      },
       showAlert: (msg: string) => alert(msg),
       showToast: (notification: GameNotification) => {
         const id = Date.now();
@@ -73,8 +78,12 @@ const Gameplay: React.FC = () => {
         }, 5000);
       },
       setChatHistory: setMessages,
-      addChatMessage: (msg: ChatMessageDTO) =>
-        setMessages(prev => [...prev, msg]),
+      addChatMessage: (msg: ChatMessageDTO) => {
+        setMessages((previous) => [...previous, msg]);
+        if (msg.from_id !== userIdRef.current) {
+          setChatAttentionRevision((revision) => revision + 1);
+        }
+      },
 
       // NEW: Wire the connection state to the UI
       setConnectionState,
@@ -192,6 +201,7 @@ const Gameplay: React.FC = () => {
           <PlayerProvider players={gameState.player_list}>
             <GameplayShell
               actionAttentionKey={buildPhaseAttentionKey(gameState)}
+              chatAttentionKey={String(chatAttentionRevision)}
               autoOpenActionsKey={acceptedActionIds}
               statusBar={(
                 <PlayerStatusBar

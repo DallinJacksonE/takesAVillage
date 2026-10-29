@@ -57,6 +57,50 @@ describe("GameplayShell", () => {
     expect(screen.queryByLabelText("Phase actions have updates")).toBeNull();
   });
 
+  it("shows and clears a chat attention dot when new messages arrive", () => {
+    const { rerender } = render(
+      <GameplayShell
+        chatAttentionKey="0"
+        actionPanel={<div>Work choices</div>}
+        chatPanel={<div>Village chat</div>}
+        map={<div>Village map</div>}
+        statusBar={<div>Village status</div>}
+      />,
+    );
+
+    expect(screen.queryByLabelText("New chat messages")).toBeNull();
+
+    rerender(
+      <GameplayShell
+        chatAttentionKey="1"
+        actionPanel={<div>Work choices</div>}
+        chatPanel={<div>Village chat</div>}
+        map={<div>Village map</div>}
+        statusBar={<div>Village status</div>}
+      />,
+    );
+
+    expect(screen.getByLabelText("New chat messages")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open village chat" }));
+
+    expect(screen.queryByLabelText("New chat messages")).toBeNull();
+
+    rerender(
+      <GameplayShell
+        chatAttentionKey="2"
+        actionPanel={<div>Work choices</div>}
+        chatPanel={<div>Village chat</div>}
+        map={<div>Village map</div>}
+        statusBar={<div>Village status</div>}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Close village chat" }));
+
+    expect(screen.queryByLabelText("New chat messages")).toBeNull();
+  });
+
   it("closes an open phase panel with Escape and returns focus to its toggle", () => {
     render(
       <GameplayShell
