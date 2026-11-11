@@ -1,8 +1,7 @@
-import React from "react";
-import { ChatTabViewModel } from "./chatViewTypes";
-
+import type { ChatTabViewModel } from "./chatViewTypes";
 import styles from "./ChatTabsRail.module.css";
-interface Props {
+
+export interface ChatTabsRailProps {
   activeChatId: string;
   globalTab: ChatTabViewModel;
   chatTabs: ChatTabViewModel[];
@@ -12,7 +11,7 @@ interface Props {
   onCreateChat: () => void;
 }
 
-const ChatTabsRail: React.FC<Props> = ({
+const ChatTabsRail = ({
   activeChatId,
   globalTab,
   chatTabs,
@@ -20,58 +19,60 @@ const ChatTabsRail: React.FC<Props> = ({
   onSelectChat,
   onToggleExpanded,
   onCreateChat,
-}) => {
+}: ChatTabsRailProps) => {
   const renderTab = (tab: ChatTabViewModel) => {
     const isActive = activeChatId === tab.id;
+    const tabClassName = isActive
+      ? `${styles.tab} ${styles.tabActive}`
+      : styles.tab;
 
     return (
       <button
-        type="button"
+        aria-selected={isActive}
+        className={tabClassName}
         key={tab.id}
         onClick={() => onSelectChat(tab.id)}
-        className={[styles.tab, isActive ? styles.tabActive : ""].filter(Boolean).join(" ")}
+        role="tab"
+        type="button"
       >
-        <span className={styles.tabLabel}>
-          {tab.label}
-        </span>
+        <span className={styles.tabLabel}>{tab.label}</span>
         <span className={styles.unreadCount}>
           {tab.unread > 0 && (
-            <span className={styles.unreadBadge}>
-              {tab.unread}
-            </span>
+            <span className={styles.unreadBadge}>{tab.unread}</span>
           )}
         </span>
       </button>
     );
   };
 
+  const railClassName = `${styles.rail} ${
+    isExpanded ? styles.railExpanded : styles.railCollapsed
+  }`;
+
   return (
-    <aside
-      className={[
-        styles.rail,
-        isExpanded ? styles.railExpanded : styles.railCollapsed,
-      ].join(" ")}
-    >
+    <aside className={railClassName}>
       <button
-        type="button"
-        onClick={onToggleExpanded}
-        className={styles.toggleButton}
-        aria-label={isExpanded ? "Collapse chat sidebar" : "Expand chat sidebar"}
         aria-expanded={isExpanded}
+        aria-label={isExpanded ? "Collapse chat sidebar" : "Expand chat sidebar"}
+        className={styles.toggleButton}
+        onClick={onToggleExpanded}
+        type="button"
       >
         <span aria-hidden="true">{isExpanded ? "→" : "←"}</span>
       </button>
 
       <button
-        type="button"
-        onClick={onCreateChat}
         className={styles.createChatButton}
+        onClick={onCreateChat}
+        type="button"
       >
-        <span className={styles.createChatIcon} aria-hidden="true">+</span>
+        <span aria-hidden="true" className={styles.createChatIcon}>
+          +
+        </span>
         <span className={styles.createChatLabel}>New Chat</span>
       </button>
 
-      <div className={styles.tabList}>
+      <div className={styles.tabList} role="tablist">
         {renderTab(globalTab)}
         {chatTabs.map(renderTab)}
       </div>

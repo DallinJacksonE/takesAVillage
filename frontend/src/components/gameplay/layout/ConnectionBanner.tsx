@@ -1,21 +1,27 @@
 import type { ConnectionState } from "../../../service/GameplayService";
 import styles from "./GameplayNotifications.module.css";
 
-interface Props {
+export interface ConnectionBannerProps {
   state: ConnectionState;
 }
 
-const ConnectionBanner = ({ state }: Props) => {
-  if (state === "CONNECTED") return null;
+const ConnectionBanner = ({ state }: ConnectionBannerProps) => {
+  if (state === "CONNECTED") {
+    return null;
+  }
+
+  const isConnecting = state === "CONNECTING";
+  const statusClassName = isConnecting ? styles.connecting : styles.disconnected;
+  const bannerMessage = isConnecting
+    ? "Negotiating connection..."
+    : "Connection lost. Watchdog is reconnecting...";
 
   return (
     <div
-      className={`${styles.connectionBanner} ${state === "CONNECTING" ? styles.connecting : styles.disconnected}`}
+      className={`${styles.connectionBanner} ${statusClassName}`}
       role="status"
     >
-      {state === "CONNECTING"
-        ? "Negotiating connection..."
-        : "Connection lost. Watchdog is reconnecting..."}
+      {bannerMessage}
     </div>
   );
 };

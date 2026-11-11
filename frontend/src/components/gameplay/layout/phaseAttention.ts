@@ -1,4 +1,11 @@
-import type { ActionDTO, GameStateDTO, MapDataDTO, ResourceBundle } from "../../../dtos";
+import type {
+  ActionDTO,
+  GameStateDTO,
+  MapDataDTO,
+  MapTileDTO,
+  ResourceBundle,
+  WorkActionDTO,
+} from "../../../dtos";
 
 export interface PanelAttentionState {
   readonly seenKey: string | null;
@@ -45,7 +52,28 @@ const summarizeAction = (action: ActionDTO) => ({
   type: action.type,
 });
 
-const summarizeCommittedAction = (action: GameStateDTO["me"]["committed_action"]) => {
+const summarizeAvailableWork = (job: WorkActionDTO) => ({
+  action_id: job.action_id,
+  development_id: job.development.id,
+  employer_id: job.employer_id,
+  wage: job.wage,
+  wage_type: job.wage_type,
+});
+
+const summarizeMapTile = (tile: MapTileDTO) => ({
+  development_id: tile.development?.id ?? null,
+  is_contested: tile.development?.is_contested ?? false,
+  owner_id: tile.development?.owner_id ?? null,
+  pending_contest: tile.development?.pending_contest ?? false,
+  q: tile.q,
+  r: tile.r,
+  tile_id: tile.id,
+  type: tile.type,
+});
+
+const summarizeCommittedAction = (
+  action: GameStateDTO["me"]["committed_action"],
+) => {
   if (!action) {
     return null;
   }
@@ -62,44 +90,31 @@ const summarizeCommittedAction = (action: GameStateDTO["me"]["committed_action"]
   return summarizeAction(action);
 };
 
-const mapTiles = (mapData: MapDataDTO) => (
+const getTileList = (mapData: MapDataDTO): MapTileDTO[] => (
   Array.isArray(mapData) ? mapData : Object.values(mapData)
 );
 
 export const buildPhaseAttentionKey = (state: GameStateDTO): string => {
-  const actionIds = state.me.actions
+  const summarizedActions = state.me.actions
     .map(summarizeAction)
-    .sort((left, right) => left.id.localeCompare(right.id));
-  const availableWorkIds = state.me.available_work
-    .map((job) => ({
-      action_id: job.action_id,
-      development_id: job.development.id,
-      employer_id: job.employer_id,
-      wage: job.wage,
-      wage_type: job.wage_type,
-    }))
-    .sort((left, right) => (left.action_id || "").localeCompare(right.action_id || ""));
-  const mapDevelopments = mapTiles(state.map)
-    .map((tile) => ({
-      development_id: tile.development?.id ?? null,
-      is_contested: tile.development?.is_contested ?? false,
-      owner_id: tile.development?.owner_id ?? null,
-      pending_contest: tile.development?.pending_contest ?? false,
-      q: tile.q,
-      r: tile.r,
-      tile_id: tile.id,
-      type: tile.type,
-    }))
-    .sort((left, right) => left.tile_id.localeCompare(right.tile_id));
+    .sort((a, b) => a.id.localeCompare(b.id));
+
+  const summarizedAvailableWork = state.me.available_work
+    .map(summarizeAvailableWork)
+    .sort((a, b) => (a.action_id ?? "").localeCompare(b.action_id ?? ""));
+
+  const summarizedMapTiles = getTileList(state.map)
+    .map(summarizeMapTile)
+    .sort((a, b) => a.tile_id.localeCompare(b.tile_id));
 
   return JSON.stringify({
-    actions: actionIds,
-    available_work: availableWorkIds,
+    actions: summarizedActions,
+    available_work: summarizedAvailableWork,
     committed_action: summarizeCommittedAction(state.me.committed_action),
     developments: [...state.me.developments].sort(),
     finished_phase: state.me.finished_phase,
     fire_status: state.me.fire_status,
-    map: mapDevelopments,
+    map: summarizedMapTiles,
     phase: state.phase,
     phase_state: state.me.phase_state,
     resources: summarizeResources(state.me.resources),

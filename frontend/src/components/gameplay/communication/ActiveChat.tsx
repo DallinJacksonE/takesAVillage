@@ -1,9 +1,9 @@
-import React, { useEffect, useRef } from "react";
-import { ChatMessageDTO } from "../../../dtos/index";
-import { ActiveChatViewModel } from "./chatViewTypes";
-
+import { useEffect, useRef, type KeyboardEvent } from "react";
+import type { ChatMessageDTO } from "../../../dtos";
+import type { ActiveChatViewModel } from "./chatViewTypes";
 import styles from "./ActiveChat.module.css";
-interface Props {
+
+export interface ActiveChatProps {
   activeChat: ActiveChatViewModel;
   messages: ChatMessageDTO[];
   playerId: string;
@@ -13,7 +13,7 @@ interface Props {
   getPlayerName: (playerId: string | undefined) => string;
 }
 
-const ActiveChat: React.FC<Props> = ({
+const ActiveChat = ({
   activeChat,
   messages,
   playerId,
@@ -21,52 +21,58 @@ const ActiveChat: React.FC<Props> = ({
   onInputChange,
   onSend,
   getPlayerName,
-}) => {
+}: ActiveChatProps) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    const container = chatContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
     }
   }, [messages.length, activeChat.id]);
+
+  const memberDisplayNames = activeChat.memberIds?.length
+    ? activeChat.memberIds.map(getPlayerName).join(" · ")
+    : "No members";
+
+  const handleInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      onSend();
+    }
+  };
 
   return (
     <div className={styles.chatPanel}>
       <header className={styles.chatHeader}>
         <span className={styles.eyebrow}>Members</span>
-        <span className={styles.memberNames}>
-          {activeChat.memberIds?.map(getPlayerName).join(" · ") || "No members"}
-        </span>
+        <span className={styles.memberNames}>{memberDisplayNames}</span>
       </header>
+
       <div
-        ref={chatContainerRef}
+        aria-label="Message history"
         className={styles.messageList}
+        ref={chatContainerRef}
       >
         {messages.length === 0 ? (
-          <div className={styles.emptyState}>
-            No messages yet.
-          </div>
+          <div className={styles.emptyState}>No messages yet.</div>
         ) : (
           messages.map((message) => {
-            const isMe = message.from_id === playerId;
+            const isSentByMe = message.from_id === playerId;
+            const messageClassName = `${styles.message} ${
+              isSentByMe ? styles.messageMine : styles.messageTheirs
+            }`;
+            const bubbleClassName = `${styles.bubble} ${
+              isSentByMe ? styles.bubbleMine : styles.bubbleTheirs
+            }`;
 
             return (
-              <div
-                key={message.id}
-                className={[styles.message, isMe ? styles.messageMine : styles.messageTheirs].join(" ")}
-              >
-                {!isMe && activeChat.showSenderNames && (
-                  <div
-                    className={styles.senderName}
-                  >
+              <div className={messageClassName} key={message.id}>
+                {!isSentByMe && activeChat.showSenderNames && (
+                  <div className={styles.senderName}>
                     {getPlayerName(message.from_id)}
                   </div>
                 )}
-                <div
-                  className={[styles.bubble, isMe ? styles.bubbleMine : styles.bubbleTheirs].join(" ")}
-                >
-                  {message.content}
-                </div>
+                <div className={bubbleClassName}>{message.content}</div>
               </div>
             );
           })
@@ -76,12 +82,17 @@ const ActiveChat: React.FC<Props> = ({
       <div className={styles.sendBar}>
         <input
           className={styles.sendInput}
-          placeholder={`Message ${activeChat.label}...`}
-          value={inputValue}
           onChange={(event) => onInputChange(event.target.value)}
-          onKeyDown={(event) => event.key === "Enter" && onSend()}
+          onKeyDown={handleInputKeyDown}
+          placeholder={`Message ${activeChat.label}...`}
+          type="text"
+          value={inputValue}
         />
-        <button className={`btn ${styles.sendButton}`} onClick={onSend}>
+        <button
+          className={`btn ${styles.sendButton}`}
+          onClick={onSend}
+          type="button"
+        >
           Send
         </button>
       </div>

@@ -1,4 +1,4 @@
-import { ChatDTO, ChatMessageDTO } from "../../../dtos/index";
+import type { ChatDTO, ChatMessageDTO } from "../../../dtos";
 
 export type ActiveChatId = "global" | string;
 
@@ -19,6 +19,7 @@ export interface ActiveChatViewModel {
 
 export const GLOBAL_CHAT_ID = "global";
 export const GLOBAL_RECIPIENT_ID = "GLOBAL";
+export const GLOBAL_CHAT_LABEL = "Village Square";
 
 export const getMessageTime = (message: ChatMessageDTO): number => {
   if (typeof message.timestamp === "number") {
@@ -49,7 +50,7 @@ export const getActiveChatView = (
   if (activeChatId === GLOBAL_CHAT_ID) {
     return {
       id: GLOBAL_CHAT_ID,
-      label: "Village Square",
+      label: GLOBAL_CHAT_LABEL,
       recipientId: GLOBAL_RECIPIENT_ID,
       showSenderNames: true,
       memberIds: null,

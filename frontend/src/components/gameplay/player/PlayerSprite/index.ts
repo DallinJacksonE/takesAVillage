@@ -1,4 +1,4 @@
-export { default } from "./PlayerSprite";
+export { default, getSpriteFramePosition } from "./PlayerSprite";
 export type {
   PlayerSpriteAnimation,
   PlayerSpriteDirection,

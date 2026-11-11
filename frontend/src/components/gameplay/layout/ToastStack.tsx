@@ -3,21 +3,26 @@ import styles from "./GameplayNotifications.module.css";
 
 export type ToastItem = GameNotification & { id: number };
 
-interface Props {
+export interface ToastStackProps {
   toasts: ToastItem[];
 }
 
-const ToastStack = ({ toasts }: Props) => (
+const ToastStack = ({ toasts }: ToastStackProps) => (
   <div className={styles.toastStack}>
-    {toasts.map((toast) => (
-      <div
-        className={`${styles.toast} ${styles[toast.level ?? "info"]}`}
-        key={toast.id}
-        role="status"
-      >
-        {toast.message}
-      </div>
-    ))}
+    {toasts.map((toast) => {
+      const notificationLevel = toast.level ?? "info";
+      const levelClassName = styles[notificationLevel];
+
+      return (
+        <div
+          className={`${styles.toast} ${levelClassName}`}
+          key={toast.id}
+          role="status"
+        >
+          {toast.message}
+        </div>
+      );
+    })}
   </div>
 );
 

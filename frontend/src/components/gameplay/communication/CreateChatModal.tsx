@@ -1,20 +1,20 @@
-import React, { useState } from "react";
-import { PublicPlayerDTO } from "../../../dtos/index";
-
+import { useState, type KeyboardEvent, type MouseEvent } from "react";
+import type { PublicPlayerDTO } from "../../../dtos";
 import styles from "./CreateChatModal.module.css";
-interface Props {
+
+export interface CreateChatModalProps {
   players: PublicPlayerDTO[];
   playerId: string;
   onCreateChat: (name: string, memberIds: string[]) => void;
   onClose: () => void;
 }
 
-const CreateChatModal: React.FC<Props> = ({
+const CreateChatModal = ({
   players,
   playerId,
   onCreateChat,
   onClose,
-}) => {
+}: CreateChatModalProps) => {
   const [chatName, setChatName] = useState("");
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
 
@@ -28,78 +28,95 @@ const CreateChatModal: React.FC<Props> = ({
     onClose();
   };
 
+  const trimmedChatName = chatName.trim();
+  const isSubmitDisabled = !trimmedChatName || selectedPlayerIds.length === 0;
+
   const handleCreate = () => {
-    const trimmedChatName = chatName.trim();
-    if (!trimmedChatName || selectedPlayerIds.length === 0) return;
+    if (isSubmitDisabled) {
+      return;
+    }
 
     onCreateChat(trimmedChatName, selectedPlayerIds);
     resetAndClose();
   };
 
-  const togglePlayer = (targetPlayerId: string, isSelected: boolean) => {
-    if (isSelected) {
-      setSelectedPlayerIds((current) => [...current, targetPlayerId]);
-      return;
-    }
+  const togglePlayerSelection = (targetPlayerId: string, shouldSelect: boolean) => {
+    setSelectedPlayerIds((current) =>
+      shouldSelect
+        ? [...current, targetPlayerId]
+        : current.filter((id) => id !== targetPlayerId),
+    );
+  };
 
-    setSelectedPlayerIds((current) => current.filter((id) => id !== targetPlayerId));
+  const handleBackdropClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (event.target === event.currentTarget) {
+      resetAndClose();
+    }
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      resetAndClose();
+    }
   };
 
   return (
     <div
       className={styles.modalBackdrop}
+      onClick={handleBackdropClick}
+      onKeyDown={handleKeyDown}
+      role="presentation"
     >
       <div
+        aria-labelledby="create-chat-title"
+        aria-modal="true"
         className={styles.modalPanel}
         role="dialog"
-        aria-modal="true"
-        aria-labelledby="create-chat-title"
       >
         <h3 id="create-chat-title">Create Chat</h3>
 
         <label htmlFor="create-chat-name">Chat name</label>
         <input
+          className={styles.nameInput}
           id="create-chat-name"
-          value={chatName}
           onChange={(event) => setChatName(event.target.value)}
           placeholder="Chat name"
-          className={styles.nameInput}
+          type="text"
+          value={chatName}
         />
 
         <div>
-          {availablePlayers.map((player) => (
-            <label
-              key={player.id}
-              className={styles.playerOption}
-            >
-              <div
-                className={styles.playerCheckbox}
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedPlayerIds.includes(player.id)}
-                  onChange={(event) => togglePlayer(player.id, event.target.checked)}
-                />
-              </div>
+          {availablePlayers.map((player) => {
+            const isPlayerSelected = selectedPlayerIds.includes(player.id);
 
-              <span>{player.name}</span>
-            </label>
-          ))}
+            return (
+              <label className={styles.playerOption} key={player.id}>
+                <div className={styles.playerCheckbox}>
+                  <input
+                    checked={isPlayerSelected}
+                    onChange={(event) =>
+                      togglePlayerSelection(player.id, event.target.checked)
+                    }
+                    type="checkbox"
+                  />
+                </div>
+                <span>{player.name}</span>
+              </label>
+            );
+          })}
         </div>
 
-        <div
-          className={styles.modalActions}
-        >
+        <div className={styles.modalActions}>
           <button
-            type="button"
             className="btn"
+            disabled={isSubmitDisabled}
             onClick={handleCreate}
-            disabled={!chatName.trim() || selectedPlayerIds.length === 0}
+            type="button"
           >
             Create
           </button>
 
-          <button type="button" className="btn" onClick={resetAndClose}>
+          <button className="btn" onClick={resetAndClose} type="button">
             Cancel
           </button>
         </div>

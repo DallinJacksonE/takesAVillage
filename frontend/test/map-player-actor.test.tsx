@@ -72,7 +72,6 @@ describe("MapPlayerActor", () => {
         player={player}
         x={0}
         y={0}
-        isLocal
         onReact={onReact}
       />,
     );

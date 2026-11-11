@@ -635,7 +635,6 @@ const VillageMap: React.FC<Props> = ({
             <React.Fragment key={player.id}>
               <MapPlayerActor
                 color={getPlayerColor(player.id)}
-                isLocal={isMe}
                 isSelected={isSelectedPlayer}
                 onClick={phase !== "WORK" && player.visual_state.animation !== "DEAD" ? () => {
                   setSelectedPlayer(player);

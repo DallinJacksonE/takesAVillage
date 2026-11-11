@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { ChatDTO, ChatMessageDTO, PublicPlayerDTO } from "../../../dtos/index";
+import { useEffect, useMemo, useState } from "react";
+import type { ChatDTO, ChatMessageDTO, PublicPlayerDTO } from "../../../dtos";
 import { usePlayerName } from "../../hooks/usePlayerName";
 import ActiveChat from "./ActiveChat";
 import ChatTabsRail from "./ChatTabsRail";
@@ -7,13 +7,14 @@ import CreateChatModal from "./CreateChatModal";
 import styles from "./TabbedCommunicator.module.css";
 import {
   GLOBAL_CHAT_ID,
+  GLOBAL_CHAT_LABEL,
   GLOBAL_RECIPIENT_ID,
-  ChatTabViewModel,
+  type ChatTabViewModel,
   getActiveChatView,
   getChatLastMessageTime,
 } from "./chatViewTypes";
 
-interface Props {
+export interface TabbedCommunicatorProps {
   messages: ChatMessageDTO[];
   playerId: string;
   players: PublicPlayerDTO[];
@@ -22,14 +23,14 @@ interface Props {
   onCreateChat: (name: string, memberIds: string[]) => void;
 }
 
-const TabbedCommunicator: React.FC<Props> = ({
+const TabbedCommunicator = ({
   messages,
   playerId,
   players,
   chats,
   onSend,
   onCreateChat,
-}) => {
+}: TabbedCommunicatorProps) => {
   const [activeChatId, setActiveChatId] = useState<string>(GLOBAL_CHAT_ID);
   const [messageInput, setMessageInput] = useState("");
   const [readMessageIds, setReadMessageIds] = useState<Set<string>>(new Set());
@@ -49,12 +50,10 @@ const TabbedCommunicator: React.FC<Props> = ({
   }, [activeChatId, availableChatIds]);
 
   const activeChatMessages = useMemo(() => {
-    const recipientId =
+    const activeRecipientId =
       activeChatId === GLOBAL_CHAT_ID ? GLOBAL_RECIPIENT_ID : activeChatId;
 
-    return messages.filter((message) => {
-      return message.to_id === recipientId;
-    });
+    return messages.filter((message) => message.to_id === activeRecipientId);
   }, [messages, activeChatId]);
 
   useEffect(() => {
@@ -73,23 +72,22 @@ const TabbedCommunicator: React.FC<Props> = ({
     });
   }, [activeChatMessages]);
 
-  const getUnreadCount = (recipientId: string) => {
-    return messages.filter(
+  const getUnreadCount = (recipientId: string) =>
+    messages.filter(
       (message) =>
         message.to_id === recipientId &&
         message.from_id !== playerId &&
         !readMessageIds.has(message.id),
     ).length;
-  };
 
   const globalTab: ChatTabViewModel = {
     id: GLOBAL_CHAT_ID,
-    label: "Village Square",
+    label: GLOBAL_CHAT_LABEL,
     unread: getUnreadCount(GLOBAL_RECIPIENT_ID),
     lastMessageTime: getChatLastMessageTime(messages, GLOBAL_RECIPIENT_ID),
   };
 
-  const chatTabs = chats
+  const chatTabs: ChatTabViewModel[] = chats
     .map((chat) => ({
       id: chat.id,
       label: `#${chat.name}`,
@@ -104,46 +102,51 @@ const TabbedCommunicator: React.FC<Props> = ({
     memberIds: activeChat.memberIds ?? players.map((player) => player.id),
   };
 
-  const handleSend = () => {
+  const handleSendMessage = () => {
     const trimmedMessage = messageInput.trim();
-    if (!trimmedMessage) return;
+    if (!trimmedMessage) {
+      return;
+    }
 
     onSend(trimmedMessage, activeChat.recipientId);
     setMessageInput("");
   };
 
+  const handleToggleSidebar = () =>
+    setIsSidebarExpanded((isExpanded) => !isExpanded);
+  const handleOpenCreateChatModal = () => setIsCreateChatModalOpen(true);
+  const handleCloseCreateChatModal = () => setIsCreateChatModalOpen(false);
+
   return (
     <>
-      <div
-        className={`card ${styles.communicatorLayout}`}
-      >
+      <div className={`card ${styles.communicatorLayout}`}>
         <ActiveChat
           activeChat={activeChatView}
-          messages={activeChatMessages}
-          playerId={playerId}
-          inputValue={messageInput}
-          onInputChange={setMessageInput}
-          onSend={handleSend}
           getPlayerName={getPlayerName}
+          inputValue={messageInput}
+          messages={activeChatMessages}
+          onInputChange={setMessageInput}
+          onSend={handleSendMessage}
+          playerId={playerId}
         />
 
         <ChatTabsRail
           activeChatId={activeChatId}
-          globalTab={globalTab}
           chatTabs={chatTabs}
+          globalTab={globalTab}
           isExpanded={isSidebarExpanded}
+          onCreateChat={handleOpenCreateChatModal}
           onSelectChat={setActiveChatId}
-          onToggleExpanded={() => setIsSidebarExpanded((isExpanded) => !isExpanded)}
-          onCreateChat={() => setIsCreateChatModalOpen(true)}
+          onToggleExpanded={handleToggleSidebar}
         />
       </div>
 
       {isCreateChatModalOpen && (
         <CreateChatModal
-          players={players}
-          playerId={playerId}
           onCreateChat={onCreateChat}
-          onClose={() => setIsCreateChatModalOpen(false)}
+          onClose={handleCloseCreateChatModal}
+          playerId={playerId}
+          players={players}
         />
       )}
     </>

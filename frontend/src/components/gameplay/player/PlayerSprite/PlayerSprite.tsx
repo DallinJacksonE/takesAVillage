@@ -44,12 +44,17 @@ const PlayerSprite = ({
 
   useEffect(() => {
     setFrameIndex(0);
-    if (paused || prefersReducedMotion || frameCount <= 1) return;
-    const timer = window.setInterval(
-      () => setFrameIndex((frame) => (frame + 1) % frameCount),
+
+    const shouldAnimate = !paused && !prefersReducedMotion && frameCount > 1;
+    if (!shouldAnimate) {
+      return;
+    }
+
+    const animationIntervalId = window.setInterval(
+      () => setFrameIndex((currentFrame) => (currentFrame + 1) % frameCount),
       1000 / fps,
     );
-    return () => window.clearInterval(timer);
+    return () => window.clearInterval(animationIntervalId);
   }, [animation, fps, frameCount, paused, prefersReducedMotion]);
 
   const framePosition = getSpriteFramePosition(
@@ -58,13 +63,9 @@ const PlayerSprite = ({
     frameWidth,
     frameHeight,
   );
-  const spriteClassName = [
-    styles.sprite,
-    paused ? styles.paused : "",
-    className ?? "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const spriteClassName = className
+    ? `${styles.sprite} ${className}`
+    : styles.sprite;
 
   const style: PlayerSpriteStyle = {
     "--frame-height": frameHeight,
