@@ -1,32 +1,35 @@
-.list {
-  margin: 4px 0 0 0;
-  padding-left: 20px;
-
+.container {
+  position: relative;
+  display: inline-block;
 }
-.panel {
-  color: var(--text-muted);
-  font-style: italic;
-  margin-top: 4px;
 
+.playerName {
+  cursor: pointer;
+  font-weight: bold;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 2px 6px;
+  transition: all 0.2s ease;
 }
-.text {
-  color: var(--text-color);
 
+.underAttack {
+  background: rgba(255, 0, 0, 0.15);
+  border-color: rgba(255, 0, 0, 0.5);
+  box-shadow: 0 0 8px rgba(255, 0, 0, 0.45);
 }
-.panel2 {
-  margin-bottom: 10px;
 
+.attackBadge {
+  color: var(--danger-bright);
+  font-weight: bold;
+  margin-right: 4px;
 }
-.header {
-  margin: 0 0 10px 0;
-  border-bottom: 1px solid var(--border-soft);
-  padding-bottom: 5px;
 
-}
-.panel3 {
+.tooltipPopover {
   position: absolute;
   bottom: 120%;
-            left: 50%;
+  left: 50%;
   transform: translateX(-50%);
   width: 200px;
   background: var(--surface);
@@ -38,23 +41,16 @@
   font-size: 0.85rem;
   text-align: left;
   cursor: default;
-
 }
-.text2 {
-  color: var(--danger-bright);
-  font-weight: bold;
-  margin-right: 4px;
 
+.tooltipHeader {
+  margin: 0 0 10px 0;
+  border-bottom: 1px solid var(--border-soft);
+  padding-bottom: 5px;
 }
-.text3 {
-  position: relative;
-  display: inline-block;
 
-}
-.text4 {
-  color: var(--light_grey);
-  font-style: italic;
-
+.healthRow {
+  margin-bottom: 10px;
 }
 
 .healthGood {
@@ -63,4 +59,20 @@
 
 .healthBad {
   color: var(--danger);
+}
+
+.emptyDevelopments {
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 4px;
+}
+
+.developmentsList {
+  margin: 4px 0 0 0;
+  padding-left: 20px;
+}
+
+.unknownPlayer {
+  color: var(--light_grey);
+  font-style: italic;
 }
