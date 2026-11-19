@@ -1,74 +1,92 @@
-import React, { useState, useEffect } from "react";
-import { TradeActionDTO, Resource, ResourceBundle } from "../../../dtos/index";
-import { renderItems } from "./TradeCard";
+import { useEffect, useState } from "react";
+import type { Resource, ResourceBundle, TradeActionDTO } from "../../../dtos";
+import ResourceStepper from "../ResourceStepper";
 import styles from "./ShippingWindow.module.css";
-import ResourceStepper from "../ResourceStepper"; // <-- Import the stepper
+import { renderItems } from "./TradeCard";
 
-interface ShippingWindowProps {
+export interface ShippingWindowProps {
   trade: TradeActionDTO;
   meId: string;
   onFinalizeTrade: (actionId: string, actualItems: Partial<ResourceBundle>) => void;
   getPlayerName: (id: string) => string;
 }
 
-const ShippingWindow: React.FC<ShippingWindowProps> = ({ trade, meId, onFinalizeTrade, getPlayerName }) => {
-  const isInitiator = meId === trade.initiator_id;
-  const otherPersonId = isInitiator ? trade.target_id : trade.initiator_id;
-  const hasFinalized = isInitiator ? trade.initiator_finalized : trade.target_finalized;
+const TRADE_RESOURCES: Resource[] = ["food", "wood", "iron"];
 
-  // Strict Initiator Ownership mapping 
+export const ShippingWindow = ({
+  trade,
+  meId,
+  onFinalizeTrade,
+  getPlayerName,
+}: ShippingWindowProps) => {
+  const isInitiator = meId === trade.initiator_id;
+  const partnerPlayerId = isInitiator ? trade.target_id : trade.initiator_id;
+  const isAlreadyShipped = isInitiator
+    ? trade.initiator_finalized
+    : trade.target_finalized;
+
+  // Strict initiator ownership mapping
   const expectedToSend = isInitiator ? trade.offer_items : trade.request_items;
   const expectedToReceive = isInitiator ? trade.request_items : trade.offer_items;
 
-  const [actualItems, setActualItems] = useState<Partial<ResourceBundle>>(expectedToSend || {});
+  const [actualItems, setActualItems] = useState<Partial<ResourceBundle>>(
+    expectedToSend || {},
+  );
 
-  // Keep state synced if the trade updates
+  // Only re-initialize if the active trade changes, so local adjustments aren't wiped on parent re-renders
   useEffect(() => {
     setActualItems({ ...(expectedToSend || {}) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trade.id]);
 
-  const handleShip = () => {
+  const handleShipGoods = () => {
     onFinalizeTrade(trade.id, actualItems);
   };
 
-  if (hasFinalized) {
+  const partnerName = getPlayerName(partnerPlayerId || "");
+
+  if (isAlreadyShipped) {
     return (
-      <div className={styles.panel4}>
-        <strong className={styles.label2}>Goods Shipped!</strong>
-        <div className={styles.panel3}>Waiting for {getPlayerName(otherPersonId || "")} to send their goods...</div>
+      <div className={styles.shippedSuccessPanel}>
+        <strong className={styles.shippedSuccessTitle}>Goods Shipped!</strong>
+        <div className={styles.waitingNotice}>
+          Waiting for {partnerName} to send their goods...
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.panel2}>
-      <div className={styles.row3}>
-        <strong className={styles.label}>Ship to {getPlayerName(otherPersonId || "")}</strong>
-        <span className={styles.text}>
+    <div className={styles.shippingContainer}>
+      <div className={styles.headerRow}>
+        <strong className={styles.headerTitle}>Ship to {partnerName}</strong>
+        <span className={styles.expectedBadge}>
           Expected from them: {renderItems(expectedToReceive)}
         </span>
       </div>
 
-      <div className={styles.panel}>
+      <div className={styles.agreedNotice}>
         Agreed to send: {renderItems(expectedToSend)}
       </div>
 
-      <div className={styles.row2}>
-        <div className={styles.row}>
-          {(["food", "wood", "iron"] as Resource[]).map((res) => (
+      <div className={styles.stepperContainer}>
+        <div className={styles.stepperList}>
+          {TRADE_RESOURCES.map((resource) => (
             <ResourceStepper
-              key={`ship-${res}`}
-              resource={res}
-              value={actualItems[res] || 0}
-              onChange={(val) => setActualItems({ ...actualItems, [res]: val })}
+              key={`ship-${resource}`}
+              onChange={(value) =>
+                setActualItems((prev) => ({ ...prev, [resource]: value }))
+              }
+              resource={resource}
+              value={actualItems[resource] || 0}
             />
           ))}
         </div>
 
         <button
-          className={`btn success ${styles.button}`}
-          
-          onClick={handleShip}
+          className={`btn success ${styles.shipButton}`}
+          onClick={handleShipGoods}
+          type="button"
         >
           Ship Goods
         </button>

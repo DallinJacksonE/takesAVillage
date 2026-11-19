@@ -1,22 +1,48 @@
 import React, { useState } from "react";
 import { GameStateDTO, TradeActionDTO, Resource, ResourceBundle } from "../../../dtos/index";
 import { usePlayerName } from "../../hooks/usePlayerName";
-import TradeCard, { renderItems } from "../trading/TradeCard";
-import ShippingWindow from "../trading/ShippingWindow";
+import ResourceStepper from "../ResourceStepper";
+import TradeCard, { renderItems } from "./TradeCard";
+import ShippingWindow from "./ShippingWindow";
 import styles from "./TradeDesk.module.css";
-import ResourceStepper from "../ResourceStepper"; // <-- Import the new stepper
 
-interface Props {
+const TRADE_RESOURCES: Resource[] = ["food", "wood", "iron"];
+
+const PUBLIC_STATUS_LABELS = {
+  PENDING: "Negotiating",
+  ACCEPTED: "Accepted",
+  FINALIZED: "Completed",
+  DENIED: "Declined",
+  EXPIRED: "Expired",
+} as const;
+
+export interface TradeDeskProps {
   state: GameStateDTO;
-  onDraftTrade: (targetId: string, offerItems: Partial<ResourceBundle>, requestItems: Partial<ResourceBundle>) => void;
-  onCounterTrade: (actionId: string, offerItems: Partial<ResourceBundle>, requestItems: Partial<ResourceBundle>) => void;
+  onDraftTrade: (
+    targetId: string,
+    offerItems: Partial<ResourceBundle>,
+    requestItems: Partial<ResourceBundle>,
+  ) => void;
+  onCounterTrade: (
+    actionId: string,
+    offerItems: Partial<ResourceBundle>,
+    requestItems: Partial<ResourceBundle>,
+  ) => void;
   onAcceptTrade: (actionId: string) => void;
   onDenyTrade: (actionId: string) => void;
   onCancelTrade: (actionId: string) => void;
   onFinalizeTrade: (actionId: string, actualItems: Partial<ResourceBundle>) => void;
 }
 
-const TradeDesk: React.FC<Props> = ({ state, onDraftTrade, onCounterTrade, onAcceptTrade, onDenyTrade, onCancelTrade, onFinalizeTrade }) => {
+export const TradeDesk: React.FC<TradeDeskProps> = ({
+  state,
+  onDraftTrade,
+  onCounterTrade,
+  onAcceptTrade,
+  onDenyTrade,
+  onCancelTrade,
+  onFinalizeTrade,
+}) => {
   const { me, player_list } = state;
   const getPlayerName = usePlayerName();
 
@@ -24,24 +50,21 @@ const TradeDesk: React.FC<Props> = ({ state, onDraftTrade, onCounterTrade, onAcc
   const [draftGiveItems, setDraftGiveItems] = useState<Partial<ResourceBundle>>({});
   const [draftReqItems, setDraftReqItems] = useState<Partial<ResourceBundle>>({});
 
-  const tradeActions = (me.actions || []).filter((a): a is TradeActionDTO => a.type === "TRADE" || a.type === "BARTER");
-  const incomingTrades = tradeActions.filter(t => t.status === "PENDING" && t.waiting_on_id === me.id);
-  const outgoingTrades = tradeActions.filter(t => t.status === "PENDING" && t.waiting_on_id !== me.id);
-  const acceptedTrades = tradeActions.filter(t => t.status === "ACCEPTED");
-  const otherPlayers = player_list.filter(p => p.id !== me.id);
-  const thirdPartyTrades = (state.public_interactions || []).filter(
-    interaction => (
-      interaction.kind === "TRADE"
-      && !interaction.participant_ids.includes(me.id)
-    ),
+  const tradeActions = (me.actions || []).filter(
+    (action): action is TradeActionDTO => action.type === "TRADE" || action.type === "BARTER",
   );
-  const publicStatusLabels = {
-    PENDING: "Negotiating",
-    ACCEPTED: "Accepted",
-    FINALIZED: "Completed",
-    DENIED: "Declined",
-    EXPIRED: "Expired",
-  } as const;
+  const incomingTrades = tradeActions.filter(
+    (trade) => trade.status === "PENDING" && trade.waiting_on_id === me.id,
+  );
+  const outgoingTrades = tradeActions.filter(
+    (trade) => trade.status === "PENDING" && trade.waiting_on_id !== me.id,
+  );
+  const acceptedTrades = tradeActions.filter((trade) => trade.status === "ACCEPTED");
+  const otherPlayers = player_list.filter((player) => player.id !== me.id);
+  const thirdPartyTrades = (state.public_interactions || []).filter(
+    (interaction) =>
+      interaction.kind === "TRADE" && !interaction.participant_ids.includes(me.id),
+  );
 
   const handleDraftTrade = () => {
     if (!targetId) return;
@@ -52,53 +75,54 @@ const TradeDesk: React.FC<Props> = ({ state, onDraftTrade, onCounterTrade, onAcc
   };
 
   return (
-    <div className={`card ${styles.column}`} >
-      <h3 className={styles.header}>Trade Desk</h3>
+    <div className={`card ${styles.tradeDeskContainer}`}>
+      <h3 className={styles.tradeDeskTitle}>Trade Desk</h3>
 
       {thirdPartyTrades.length > 0 && (
-        <div className={styles.panel13}>
-          <strong className={styles.label4}>Village Activity</strong>
-          {thirdPartyTrades.map(interaction => (
-            <div key={interaction.id} className={styles.panel12}>
+        <div className={styles.sidebarSection}>
+          <strong className={styles.sidebarTitle}>Village Activity</strong>
+          {thirdPartyTrades.map((interaction) => (
+            <div key={interaction.id} className={styles.mutedText}>
               <div>
                 {getPlayerName(interaction.participant_ids[0])}
                 {" ↔ "}
                 {getPlayerName(interaction.participant_ids[1])}
               </div>
-              <strong>{publicStatusLabels[interaction.status]}</strong>
+              <strong>{PUBLIC_STATUS_LABELS[interaction.status]}</strong>
             </div>
           ))}
         </div>
       )}
 
       {/* --- TOP ROW: DRAFTING & HISTORY --- */}
-      <div className={styles.row5}>
-
-        {/* LEFT: Drafting Tray (Flex 2 takes up more room) */}
-        <div className={styles.panel18}>
-          <strong className={styles.label7}>Draft New Trade</strong>
-          <div className={styles.row4}>
-            {otherPlayers.map(p => (
+      <div className={styles.topRow}>
+        {/* LEFT: Drafting Tray */}
+        <div className={styles.draftSection}>
+          <strong className={styles.draftSectionTitle}>Draft New Trade</strong>
+          <div className={styles.partnerSelectRow}>
+            {otherPlayers.map((player) => (
               <button
-                key={p.id}
+                key={player.id}
                 className={[
                   "btn-user",
-                  styles.button3,
-                  targetId === p.id ? styles.buttonSelected : "",
-                ].filter(Boolean).join(" ")}
-                onClick={() => setTargetId(targetId === p.id ? null : p.id)}
+                  styles.partnerButton,
+                  targetId === player.id ? styles.partnerButtonSelected : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                onClick={() => setTargetId(targetId === player.id ? null : player.id)}
               >
-                {p.name}
+                {player.name}
               </button>
             ))}
           </div>
 
           {targetId && (
-            <div className={styles.panel17}>
-              <div className={styles.row3}>
-                <div className={styles.panel16}>
-                  <strong className={styles.label6}>I Give:</strong>
-                  {(["food", "wood", "iron"] as Resource[]).map(res => (
+            <div className={styles.draftDetailsCard}>
+              <div className={styles.draftColumns}>
+                <div className={styles.resourceColumn}>
+                  <strong className={styles.giveLabel}>I Give:</strong>
+                  {TRADE_RESOURCES.map((res) => (
                     <ResourceStepper
                       key={res}
                       resource={res}
@@ -108,9 +132,9 @@ const TradeDesk: React.FC<Props> = ({ state, onDraftTrade, onCounterTrade, onAcc
                   ))}
                 </div>
 
-                <div className={styles.panel15}>
-                  <strong className={styles.label5}>I Want:</strong>
-                  {(["food", "wood", "iron"] as Resource[]).map(res => (
+                <div className={styles.resourceColumn}>
+                  <strong className={styles.wantLabel}>I Want:</strong>
+                  {TRADE_RESOURCES.map((res) => (
                     <ResourceStepper
                       key={res}
                       resource={res}
@@ -121,8 +145,8 @@ const TradeDesk: React.FC<Props> = ({ state, onDraftTrade, onCounterTrade, onAcc
                 </div>
               </div>
 
-              <div className={styles.panel14}>
-                <button className={`btn ${styles.button2}`} onClick={handleDraftTrade}>
+              <div className={styles.sendOfferWrapper}>
+                <button className={`btn ${styles.sendOfferButton}`} onClick={handleDraftTrade}>
                   Send Trade Offer
                 </button>
               </div>
@@ -130,58 +154,81 @@ const TradeDesk: React.FC<Props> = ({ state, onDraftTrade, onCounterTrade, onAcc
           )}
         </div>
 
-        {/* RIGHT: Trade History (Flex 1) */}
-        <div className={styles.panel13}>
-          <strong className={styles.label4}>
-            Recent Trades
-          </strong>
-          {(me.trade_history || []).length === 0 && <div className={styles.panel12}>No recent trades</div>}
-          {(me.trade_history || []).slice().reverse().map((trade) => (
-            <div key={trade.id} className={styles.panel11}>
-              <div className={styles.panel10}>With {getPlayerName(trade.target_id)}</div>
-              <div className={styles.panel9}><strong>Offered:</strong> <div>{renderItems(trade.offered)}</div></div>
-              <div className={styles.panel8}><strong>Requested:</strong> <div>{renderItems(trade.requested)}</div></div>
-              <div className={styles.panel7}>
-                <div className={styles.panel6}><strong>Sent:</strong> <div>{renderItems(trade.actual_sent)}</div></div>
-                <div><strong>Received:</strong> <div>{renderItems(trade.actual_received)}</div></div>
+        {/* RIGHT: Trade History */}
+        <div className={styles.sidebarSection}>
+          <strong className={styles.sidebarTitle}>Recent Trades</strong>
+          {(me.trade_history || []).length === 0 && (
+            <div className={styles.mutedText}>No recent trades</div>
+          )}
+          {(me.trade_history || [])
+            .slice()
+            .reverse()
+            .map((trade) => (
+              <div key={trade.id} className={styles.historyCard}>
+                <div className={styles.historyPartner}>With {getPlayerName(trade.target_id)}</div>
+                <div className={styles.historyRow}>
+                  <strong>Offered:</strong> <div>{renderItems(trade.offered)}</div>
+                </div>
+                <div className={styles.historyRow}>
+                  <strong>Requested:</strong> <div>{renderItems(trade.requested)}</div>
+                </div>
+                <div className={styles.actualTransfersSection}>
+                  <div className={styles.historyRow}>
+                    <strong>Sent:</strong> <div>{renderItems(trade.actual_sent)}</div>
+                  </div>
+                  <div>
+                    <strong>Received:</strong> <div>{renderItems(trade.actual_received)}</div>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       </div>
 
-      <hr className={styles.hr} />
+      <hr className={styles.divider} />
 
       {/* --- MIDDLE ROW: INBOX & OUTBOX --- */}
-      <div className={styles.row2}>
-
+      <div className={styles.inboxOutboxRow}>
         {/* INBOX */}
-        <div className={styles.panel5}>
-          <strong className={styles.label3}>
+        <div className={styles.tradeQueueColumn}>
+          <strong className={styles.inboxTitle}>
             Inbox ({incomingTrades.length})
           </strong>
-          {incomingTrades.map(trade => (
-            <TradeCard key={trade.id} trade={trade} meId={me.id} getPlayerName={getPlayerName} onAccept={onAcceptTrade} onDeny={onDenyTrade} onCounterTrade={onCounterTrade} />
+          {incomingTrades.map((trade) => (
+            <TradeCard
+              key={trade.id}
+              trade={trade}
+              meId={me.id}
+              getPlayerName={getPlayerName}
+              onAccept={onAcceptTrade}
+              onDeny={onDenyTrade}
+              onCounterTrade={onCounterTrade}
+            />
           ))}
         </div>
 
         {/* OUTBOX */}
-        <div className={styles.panel4}>
-          <strong className={styles.label2}>
+        <div className={styles.tradeQueueColumn}>
+          <strong className={styles.outboxTitle}>
             Awaiting Reply ({outgoingTrades.length})
           </strong>
-          {outgoingTrades.map(trade => {
+          {outgoingTrades.map((trade) => {
             const isInitiator = me.id === trade.initiator_id;
             const otherPersonId = isInitiator ? trade.target_id : trade.initiator_id;
             const iGive = isInitiator ? trade.offer_items : trade.request_items;
             const iWant = isInitiator ? trade.request_items : trade.offer_items;
             return (
-              <div key={trade.id} className={styles.panel3}>
-                <div className={styles.row}>
+              <div key={trade.id} className={styles.outboxCard}>
+                <div className={styles.outboxHeader}>
                   <strong>To: {getPlayerName(otherPersonId || "")}</strong>
-                  <button className={`btn-tooltip danger ${styles.button}`} onClick={() => onCancelTrade(trade.id)}>Revoke</button>
+                  <button
+                    className={`btn-tooltip danger ${styles.revokeButton}`}
+                    onClick={() => onCancelTrade(trade.id)}
+                  >
+                    Revoke
+                  </button>
                 </div>
-                <div className={styles.panel2}>
+                <div className={styles.outboxDetails}>
                   <div>I Give: {renderItems(iGive)}</div>
                   <div>I Want: {renderItems(iWant)}</div>
                 </div>
@@ -193,13 +240,18 @@ const TradeDesk: React.FC<Props> = ({ state, onDraftTrade, onCounterTrade, onAcc
 
       {/* --- BOTTOM ROW: SHIPPING BAY --- */}
       {acceptedTrades.length > 0 && (
-        <div className={styles.panel}>
-          <strong className={styles.label}>
+        <div className={styles.shippingBaySection}>
+          <strong className={styles.shippingBayTitle}>
             Shipping Bay (Lock-in your payload)
           </strong>
-          {acceptedTrades.map(trade => (
+          {acceptedTrades.map((trade) => (
             <div key={trade.id} id={`action-item-${trade.id}`}>
-              <ShippingWindow trade={trade} meId={me.id} onFinalizeTrade={onFinalizeTrade} getPlayerName={getPlayerName} />
+              <ShippingWindow
+                trade={trade}
+                meId={me.id}
+                onFinalizeTrade={onFinalizeTrade}
+                getPlayerName={getPlayerName}
+              />
             </div>
           ))}
         </div>
